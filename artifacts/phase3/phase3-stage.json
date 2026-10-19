@@ -1,0 +1,103 @@
+{
+  "report": {
+    "available": true,
+    "consoles": [
+      {
+        "id": "ps1",
+        "short": "PS1",
+        "loaded": true,
+        "placeholder": false,
+        "meshes": 41,
+        "materials": 2,
+        "triangles": 7482,
+        "x": -5.075
+      },
+      {
+        "id": "ps2",
+        "short": "PS2",
+        "loaded": true,
+        "placeholder": false,
+        "meshes": 8,
+        "materials": 8,
+        "triangles": 10851,
+        "x": -3.625
+      },
+      {
+        "id": "ps3",
+        "short": "PS3",
+        "loaded": true,
+        "placeholder": false,
+        "meshes": 10,
+        "materials": 10,
+        "triangles": 32701,
+        "x": -2.175
+      },
+      {
+        "id": "wii",
+        "short": "Wii",
+        "loaded": true,
+        "placeholder": false,
+        "meshes": 6,
+        "materials": 2,
+        "triangles": 32492,
+        "x": -0.725
+      },
+      {
+        "id": "gamecube",
+        "short": "GC",
+        "loaded": false,
+        "placeholder": true,
+        "meshes": 1,
+        "materials": 1,
+        "triangles": 12,
+        "x": 0.725
+      },
+      {
+        "id": "ds",
+        "short": "DS",
+        "loaded": true,
+        "placeholder": false,
+        "meshes": 4,
+        "materials": 3,
+        "triangles": 1198,
+        "x": 2.175
+      },
+      {
+        "id": "3ds",
+        "short": "3DS",
+        "loaded": false,
+        "placeholder": true,
+        "meshes": 1,
+        "materials": 1,
+        "triangles": 12,
+        "x": 3.625
+      },
+      {
+        "id": "xbox360",
+        "short": "360",
+        "loaded": true,
+        "placeholder": false,
+        "meshes": 2,
+        "materials": 2,
+        "triangles": 159981,
+        "x": 5.075
+      }
+    ],
+    "drawCalls": 80,
+    "trianglesRendered": 246481,
+    "textures": 34,
+    "programs": 21,
+    "canvas": {
+      "width": 1329,
+      "height": 210
+    },
+    "selectedId": "ps1",
+    "spotlight": {
+      "x": -5.07,
+      "targetX": -5.07,
+      "intensity": 30,
+      "expectedX": -5.075
+    }
+  },
+  "problems": []
+}

@@ -86,6 +86,8 @@ function renderConsoles() {
 
   const totalGames = consoles.reduce((sum, console) => sum + console.games.length, 0);
   elements.totals.textContent = `${consoles.length} consoles · ${totalGames} games`;
+
+  publishSnapshot();
 }
 
 function renderGames() {
@@ -226,6 +228,17 @@ function emptyState(text) {
 
 /* ---------- state ---------- */
 
+function publishSnapshot() {
+  // The 3D stage is a module, so it cannot read this file's top-level bindings.
+  // A snapshot plus an event is the whole contract between the two.
+  window.aislesSnapshot = {
+    consoles: state.library?.consoles ?? [],
+    selectedConsoleId: state.selectedConsoleId,
+  };
+
+  window.dispatchEvent(new CustomEvent('aisles:update'));
+}
+
 function currentConsole() {
   return state.library?.consoles.find((console) => console.id === state.selectedConsoleId) ?? null;
 }
@@ -237,6 +250,9 @@ function selectConsole(consoleId) {
   renderConsoles();
   renderGames();
 }
+
+// The 3D lineup clicks back into the same selection path as the list.
+window.aislesSelectConsole = selectConsole;
 
 function selectGame(gameId) {
   state.selectedGameId = gameId;

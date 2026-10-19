@@ -7,6 +7,8 @@
     "test": "node --test tools/artwork-workshop.test.cjs",
     "import:models": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/import-downloaded-models.ps1",
     "prepare:models": "node tools/prepare-models.cjs",
+    "build:lineup": "node tools/build-lineup-models.cjs",
+    "vendor:three": "node tools/vendor-three.cjs",
     "check:models": "node tools/check-models.cjs"
   },
   "dependencies": {

@@ -79,9 +79,87 @@ body {
 
 .layout {
   display: grid;
-  grid-template-columns: 320px 1fr;
+  grid-template-rows: auto 1fr;
   flex: 1;
   min-height: 0;
+}
+
+/* ---------- console lineup (3D) ---------- */
+
+.lineup {
+  position: relative;
+  height: clamp(190px, 27vh, 260px);
+  border-bottom: 1px solid var(--navy-line);
+  background:
+    radial-gradient(120% 90% at 50% 8%, #1b2450 0%, #111731 45%, #0b1022 100%);
+  overflow: hidden;
+}
+
+#stage-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.stage-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.stage-labels .slot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin-top: 7px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  white-space: nowrap;
+  transition: color 180ms ease;
+}
+
+.stage-labels .slot[data-selected="true"] {
+  color: var(--yellow);
+}
+
+.stage-labels .slot .count {
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--dim);
+}
+
+.stage-labels .slot .pending {
+  font-size: 9px;
+  font-weight: 400;
+  color: #4a5578;
+}
+
+.console-fallback {
+  display: none;
+  padding: 8px 20px;
+  max-height: 100%;
+}
+
+body.stage3d-failed .lineup {
+  height: auto;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+body.stage3d-failed .console-fallback {
+  display: block;
+}
+
+body.stage3d-failed #stage-canvas,
+body.stage3d-failed #stage-labels {
+  display: none;
 }
 
 .panel {
@@ -89,10 +167,6 @@ body {
   flex-direction: column;
   min-height: 0;
   padding: 16px 20px;
-}
-
-.consoles {
-  border-right: 1px solid var(--navy-line);
 }
 
 .panel h2 {

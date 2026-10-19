@@ -1,0 +1,412 @@
+{
+  "schemaVersion": 1,
+  "notes": "Lineup tier for the console row (PLAN.md 5.3). Textures capped; geometry identical to the runtime model.",
+  "maxTextureSize": 256,
+  "models": [
+    {
+      "id": "ps1",
+      "name": "PlayStation",
+      "file": "/assets/models/ps1/lineup.glb",
+      "bytes": 1110652,
+      "runtimeBytes": 9986240,
+      "triangles": 7470,
+      "images": [
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        }
+      ],
+      "estimatedTextureMiB": 1.3333333333333333
+    },
+    {
+      "id": "ps2",
+      "name": "PlayStation 2",
+      "file": "/assets/models/ps2/lineup.glb",
+      "bytes": 1941796,
+      "runtimeBytes": 44197732,
+      "triangles": 10839,
+      "images": [
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        }
+      ],
+      "estimatedTextureMiB": 7.33333333333333
+    },
+    {
+      "id": "ps3",
+      "name": "PlayStation 3",
+      "file": "/assets/models/ps3/lineup.glb",
+      "bytes": 1784572,
+      "runtimeBytes": 3611872,
+      "triangles": 32689,
+      "images": [
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            1024,
+            512
+          ],
+          "after": [
+            256,
+            128
+          ],
+          "shrunk": true
+        }
+      ],
+      "estimatedTextureMiB": 0.5
+    },
+    {
+      "id": "wii",
+      "name": "Nintendo Wii",
+      "file": "/assets/models/wii/lineup.glb",
+      "bytes": 2030632,
+      "runtimeBytes": 2030632,
+      "triangles": 32480,
+      "images": [],
+      "estimatedTextureMiB": 0
+    },
+    {
+      "id": "ds",
+      "name": "Nintendo DS Lite",
+      "file": "/assets/models/ds/lineup.glb",
+      "bytes": 201848,
+      "runtimeBytes": 3017692,
+      "triangles": 1186,
+      "images": [
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            256,
+            256
+          ],
+          "shrunk": true
+        }
+      ],
+      "estimatedTextureMiB": 1
+    },
+    {
+      "id": "xbox360",
+      "name": "Xbox 360",
+      "file": "/assets/models/xbox360/lineup.glb",
+      "bytes": 6230612,
+      "runtimeBytes": 6230612,
+      "triangles": 159969,
+      "images": [],
+      "estimatedTextureMiB": 0
+    }
+  ]
+}

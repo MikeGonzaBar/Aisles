@@ -325,6 +325,9 @@ Messages are JSON over `CoreWebView2.PostWebMessageAsJson` /
 - **Console models ship in two tiers**: a decimated lineup LOD (small per-console
   atlas) and the full model used only for the selected slot (§6). The lineup never
   loads a full-quality model. GameCube and 3DS are still unmodelled.
+  The lineup tier is built (`assets/models/<id>/lineup.glb`, 12.7 MiB total, textures
+  capped at 256 px); the full tier is not wired yet because the selected slot is still
+  a 100 px row rather than a hero view.
 
 ## 6. Visual design
 
@@ -405,7 +408,7 @@ media-insertion animations remain excluded.
 | 0 | Skeleton ✅ | WinUI 3 window + WebView2 + message bridge + `consoles.json` loading | done |
 | 1 | Discovery ✅ | Correct scanning of all four shapes, clean titles and serials, 26/47 local case fronts | done |
 | 2 | **Launching** ✅ | Select a game (2D list first) → emulator opens it → **usable app** | done |
-| 3 | 3D consoles | Three.js stage + fixed camera + console lineup (low-LOD pipeline) + lighting | 1–2 days |
+| 3 | 3D consoles ✅ | Three.js stage + fixed camera + console lineup (low-LOD pipeline) + lighting | done — look sign-off pending |
 | 4 | 3D shelf | Paged shelf bays (18 per bay, ~400 ms slide), procedural media models, sticker textures, hit-testing, select-vs-launch wiring | 1–2 days |
 | 5 | Polish | Details rail (information / played / achievements), transitions, settings, error states, icon | 1–2 days |
 | 6 | *(optional)* RA | Achievement progress on media (PS1/PS2/GC/Wii only) | 2–4 days |
