@@ -1,0 +1,331 @@
+{
+  "consoles": [
+    {
+      "id": "ps1",
+      "short": "PS1",
+      "games": [
+        {
+          "title": "A bugs life",
+          "url": "https://art-ps1.aisles.local/Disney-Pixar%20A%20Bug%27s%20Life%20%28USA%29.jpg",
+          "match": "title-contains",
+          "source": "cover-folder"
+        },
+        {
+          "title": "Harry Potter and The Sorcerer Stone",
+          "url": "https://art-ps1.aisles.local/Harry%20Potter%20and%20the%20Sorcerer%27s%20Stone%20%28USA%29%20%28En%2CFr%2CEs%29.jpg",
+          "match": "title-similar",
+          "source": "cover-folder"
+        },
+        {
+          "title": "Madden - NFL 2000",
+          "url": "https://art-ps1.aisles.local/Madden%20NFL%202000%20%28USA%29.jpg",
+          "match": "title",
+          "source": "cover-folder"
+        },
+        {
+          "title": "Monster Rancher 2",
+          "url": "https://art-ps1.aisles.local/Monster%20Rancher%202%20%28USA%29.jpg",
+          "match": "title",
+          "source": "cover-folder"
+        },
+        {
+          "title": "Ridge Racer",
+          "url": "https://art-ps1.aisles.local/Ridge%20Racer%20%28USA%29.jpg",
+          "match": "title",
+          "source": "cover-folder"
+        },
+        {
+          "title": "Rugrats - Search for Reptar",
+          "url": "https://art-ps1.aisles.local/Nickelodeon%20Rugrats%20-%20Search%20for%20Reptar%20%28USA%29.jpg",
+          "match": "title-contains",
+          "source": "cover-folder"
+        },
+        {
+          "title": "Sim City - 2000",
+          "url": "https://art-ps1.aisles.local/SimCity%202000%20%28USA%29.jpg",
+          "match": "title",
+          "source": "cover-folder"
+        },
+        {
+          "title": "WWF War Zone",
+          "url": "https://art-ps1.aisles.local/WWF%20War%20Zone%20%28USA%29.jpg",
+          "match": "title",
+          "source": "cover-folder"
+        }
+      ]
+    },
+    {
+      "id": "ps2",
+      "short": "PS2",
+      "games": [
+        {
+          "title": "Disney/Pixar Cars",
+          "url": "https://art-ps2.aisles.local/SLUS-21151.jpg",
+          "match": "serial",
+          "source": "cover-folder"
+        },
+        {
+          "title": "Dragon Ball Z - Budokai 3",
+          "url": "https://art-ps2.aisles.local/SLUS-20998.jpg",
+          "match": "serial",
+          "source": "cover-folder"
+        },
+        {
+          "title": "DreamWorks Shrek the Third",
+          "url": "https://art-ps2.aisles.local/SLUS-21454.jpg",
+          "match": "serial",
+          "source": "cover-folder"
+        },
+        {
+          "title": "FIFA Soccer 08",
+          "url": "https://art-ps2.aisles.local/SLUS-21648.jpg",
+          "match": "serial",
+          "source": "cover-folder"
+        },
+        {
+          "title": "Gran Turismo 4",
+          "url": "https://art-ps2.aisles.local/SCUS-97328.jpg",
+          "match": "serial",
+          "source": "cover-folder"
+        },
+        {
+          "title": "Hot Shots Golf FORE!",
+          "url": "https://art-ps2.aisles.local/SCUS-97401.jpg",
+          "match": "serial",
+          "source": "cover-folder"
+        },
+        {
+          "title": "I-Ninja",
+          "url": "https://art-ps2.aisles.local/SCES-52099.jpg",
+          "match": "serial",
+          "source": "cover-folder"
+        },
+        {
+          "title": "Metal Gear Solid 2 - Sons of Liberty",
+          "url": "https://art-ps2.aisles.local/SLUS-20144.jpg",
+          "match": "serial",
+          "source": "cover-folder"
+        },
+        {
+          "title": "Mountain Bike Adrenaline",
+          "url": "https://art-ps2.aisles.local/SLUS-21666.jpg",
+          "match": "serial",
+          "source": "cover-folder"
+        },
+        {
+          "title": "Grand Theft Auto - San Andreas",
+          "url": "https://art-ps2.aisles.local/SLUS-20946.jpg",
+          "match": "serial",
+          "source": "cover-folder"
+        },
+        {
+          "title": "WWE SmackDown! vs. Raw 2008",
+          "url": "https://art-ps2.aisles.local/SLUS-21645.jpg",
+          "match": "serial",
+          "source": "cover-folder"
+        },
+        {
+          "title": "Sonic Heroes",
+          "url": "https://art-ps2.aisles.local/SLUS-20718.jpg",
+          "match": "serial",
+          "source": "cover-folder"
+        },
+        {
+          "title": "Sonic Riders",
+          "url": "https://art-ps2.aisles.local/SLUS-21331.jpg",
+          "match": "serial",
+          "source": "cover-folder"
+        },
+        {
+          "title": "SSX Tricky",
+          "url": "https://art-ps2.aisles.local/SLUS-20326.jpg",
+          "match": "serial",
+          "source": "cover-folder"
+        },
+        {
+          "title": "Suzuki TT Superbikes - Real Road Racing",
+          "url": "https://art-ps2.aisles.local/SLUS-20912.jpg",
+          "match": "serial",
+          "source": "cover-folder"
+        },
+        {
+          "title": "Nickelodeon Tak and the Guardians of Gross",
+          "url": "https://art-ps2.aisles.local/SLUS-21797.jpg",
+          "match": "serial",
+          "source": "cover-folder"
+        },
+        {
+          "title": "Teen Titans",
+          "url": "https://art-ps2.aisles.local/SLUS-21183.jpg",
+          "match": "serial",
+          "source": "cover-folder"
+        }
+      ]
+    },
+    {
+      "id": "ps3",
+      "short": "PS3",
+      "games": [
+        {
+          "title": "LittleBigPlanet",
+          "url": null,
+          "match": null,
+          "source": null
+        },
+        {
+          "title": "LittleBigPlanet 2",
+          "url": null,
+          "match": null,
+          "source": null
+        }
+      ]
+    },
+    {
+      "id": "wii",
+      "short": "Wii",
+      "games": [
+        {
+          "title": "ABC Wipeout 2",
+          "url": null,
+          "match": null,
+          "source": null
+        },
+        {
+          "title": "Guitar Hero - Warriors of Rock",
+          "url": null,
+          "match": null,
+          "source": null
+        },
+        {
+          "title": "LEGO Rock Band",
+          "url": null,
+          "match": null,
+          "source": null
+        },
+        {
+          "title": "Mario Kart Wii",
+          "url": null,
+          "match": null,
+          "source": null
+        },
+        {
+          "title": "New Super Mario Bros. Wii",
+          "url": null,
+          "match": null,
+          "source": null
+        },
+        {
+          "title": "Super Smash Bros. Brawl",
+          "url": null,
+          "match": null,
+          "source": null
+        },
+        {
+          "title": "Wii Sports",
+          "url": null,
+          "match": null,
+          "source": null
+        },
+        {
+          "title": "Wii Sports Resort",
+          "url": null,
+          "match": null,
+          "source": null
+        }
+      ]
+    },
+    {
+      "id": "gamecube",
+      "short": "GC",
+      "games": []
+    },
+    {
+      "id": "ds",
+      "short": "DS",
+      "games": [
+        {
+          "title": "Iron Man",
+          "url": "https://games-ds.aisles.local/2269%20-%20Iron%20Man%20%28E%29%28SQUiRE%29/2269%20-%20Cover.png",
+          "match": "sidecar",
+          "source": "sidecar"
+        },
+        {
+          "title": "X-Men Origins - Wolverine",
+          "url": null,
+          "match": null,
+          "source": null
+        },
+        {
+          "title": "Cooking Mama 3 - Shop & Chop",
+          "url": null,
+          "match": null,
+          "source": null
+        },
+        {
+          "title": "Avatar: The Last Airbender - Into the Inferno",
+          "url": null,
+          "match": null,
+          "source": null
+        },
+        {
+          "title": "Bakugan: Battle Brawlers",
+          "url": null,
+          "match": null,
+          "source": null
+        },
+        {
+          "title": "Ben 10 Triple Pack",
+          "url": null,
+          "match": null,
+          "source": null
+        },
+        {
+          "title": "LEGO Rock Band",
+          "url": null,
+          "match": null,
+          "source": null
+        },
+        {
+          "title": "Mario Kart DS",
+          "url": null,
+          "match": null,
+          "source": null
+        },
+        {
+          "title": "Sea Monsters: A Prehistoric Adventure",
+          "url": null,
+          "match": null,
+          "source": null
+        },
+        {
+          "title": "Speed Racer: The Videogame",
+          "url": null,
+          "match": null,
+          "source": null
+        },
+        {
+          "title": "Transformers Animated: The Game",
+          "url": null,
+          "match": null,
+          "source": null
+        },
+        {
+          "title": "WWE SmackDown vs Raw 2009 featuring ECW",
+          "url": null,
+          "match": null,
+          "source": null
+        }
+      ]
+    },
+    {
+      "id": "3ds",
+      "short": "3DS",
+      "games": []
+    },
+    {
+      "id": "xbox360",
+      "short": "360",
+      "games": []
+    }
+  ]
+}

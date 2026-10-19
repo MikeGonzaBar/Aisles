@@ -4,6 +4,7 @@ using Aisles.App.Domain;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.Web.WebView2.Core;
+using System.Text;
 using Windows.Graphics;
 
 namespace Aisles.App;
@@ -15,6 +16,7 @@ public sealed partial class MainWindow : Window
 
     private readonly Dictionary<string, ConsoleDescriptor> _consolesById = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, GameEntry> _gamesById = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, AssetHosts> _assetHosts = new(StringComparer.OrdinalIgnoreCase);
     private readonly WebBridge _bridge = new();
     private readonly EmulatorLauncher _launcher = new();
 
@@ -76,6 +78,10 @@ public sealed partial class MainWindow : Window
         var webRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
         core.SetVirtualHostNameToFolderMapping(WebHostName, webRoot, CoreWebView2HostResourceAccessKind.Allow);
 
+        // Artwork is referenced in place and served over its own hosts, so the page
+        // can use ordinary <img> tags instead of base64 (PLAN.md section 5.3).
+        RegisterAssetHosts(core);
+
         _bridge.Attach(core, OnMessageFromWeb);
         core.Navigate($"https://{WebHostName}/index.html");
     }
@@ -106,6 +112,117 @@ public sealed partial class MainWindow : Window
             _catalogError = $"Could not read {path}: {ex.Message}";
         }
     }
+
+    /// <summary>
+    /// Maps each console's games folder and artwork folder to its own virtual host.
+    /// The plan calls for one hostname per folder, which keeps the URL a plain
+    /// relative path: <c>https://art-ps2.aisles.local/SLUS-20946.jpg</c>.
+    /// </summary>
+    private void RegisterAssetHosts(CoreWebView2 core)
+    {
+        _assetHosts.Clear();
+
+        if (_catalog is null)
+        {
+            return;
+        }
+
+        var usedHosts = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { WebHostName };
+
+        foreach (var console in _catalog.Consoles)
+        {
+            var label = HostLabel(console.Id);
+            string? gamesHost = null;
+            string? artHost = null;
+
+            if (Directory.Exists(console.GamesPath))
+            {
+                gamesHost = UniqueHost($"games-{label}", usedHosts);
+                core.SetVirtualHostNameToFolderMapping(
+                    gamesHost,
+                    console.GamesPath,
+                    CoreWebView2HostResourceAccessKind.Allow);
+            }
+
+            if (!string.IsNullOrWhiteSpace(console.ArtworkPath) && Directory.Exists(console.ArtworkPath))
+            {
+                artHost = UniqueHost($"art-{label}", usedHosts);
+                core.SetVirtualHostNameToFolderMapping(
+                    artHost,
+                    console.ArtworkPath,
+                    CoreWebView2HostResourceAccessKind.Allow);
+            }
+
+            _assetHosts[console.Id] = new AssetHosts(
+                gamesHost,
+                console.GamesPath,
+                artHost,
+                console.ArtworkPath);
+        }
+    }
+
+    /// <summary>
+    /// Turns a resolved file into a URL under the host that serves its root. Anything
+    /// outside that root is refused rather than exposed.
+    /// </summary>
+    private string? UrlForArtwork(string consoleId, ArtworkReference artwork)
+    {
+        if (!_assetHosts.TryGetValue(consoleId, out var hosts))
+        {
+            return null;
+        }
+
+        var (host, root) = artwork.Source == "sidecar"
+            ? (hosts.GamesHost, hosts.GamesRoot)
+            : (hosts.ArtHost, hosts.ArtRoot);
+
+        if (host is null || string.IsNullOrEmpty(root))
+        {
+            return null;
+        }
+
+        var relative = Path.GetRelativePath(root, artwork.FilePath);
+
+        if (relative.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(relative))
+        {
+            return null;
+        }
+
+        var segments = relative
+            .Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries)
+            .Select(Uri.EscapeDataString);
+
+        return $"https://{host}/{string.Join('/', segments)}";
+    }
+
+    /// <summary>A hostname label may hold only letters, digits and hyphens.</summary>
+    private static string HostLabel(string value)
+    {
+        var label = new StringBuilder(value.Length);
+
+        foreach (var character in value.ToLowerInvariant())
+        {
+            label.Append(character is >= 'a' and <= 'z' or >= '0' and <= '9' ? character : '-');
+        }
+
+        var trimmed = label.ToString().Trim('-');
+        return trimmed.Length == 0 ? "console" : trimmed;
+    }
+
+    private static string UniqueHost(string label, HashSet<string> used)
+    {
+        var host = $"{label}.aisles.local";
+
+        for (var suffix = 2; !used.Add(host); suffix++)
+        {
+            host = $"{label}-{suffix}.aisles.local";
+        }
+
+        return host;
+    }
+
+    /// <summary>Virtual hosts and their roots, used to turn artwork files into URLs.</summary>
+    private sealed record AssetHosts(string? GamesHost, string? GamesRoot, string? ArtHost, string? ArtRoot);
 
     private LibraryPayload BuildLibraryPayload()
     {
@@ -145,7 +262,10 @@ public sealed partial class MainWindow : Window
                     game.Title,
                     game.LaunchTarget,
                     game.Serial,
-                    game.TitleSource)).ToList()));
+                    game.TitleSource,
+                    game.FrontCover is { } cover ? UrlForArtwork(console.Id, cover) : null,
+                    game.FrontCover?.Match,
+                    game.FrontCover?.Source)).ToList()));
         }
 
         return new LibraryPayload(null, consoles);

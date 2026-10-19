@@ -22,4 +22,10 @@ public sealed record GameEntry
     /// heuristics auditable instead of mysterious.
     /// </summary>
     public string? TitleSource { get; init; }
+
+    /// <summary>
+    /// A case front found on this machine, when one is suitable. Disc and cartridge
+    /// labels are independent slots and are not implied by this.
+    /// </summary>
+    public ArtworkReference? FrontCover { get; init; }
 }

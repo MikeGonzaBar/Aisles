@@ -136,6 +136,12 @@ The native layer owns adapters for these sources and writes an Aisles-owned
 metadata cache. Emulator binary caches are useful evidence, but are not a stable
 persistence contract.
 
+Case fronts are resolved from `artworkPath`, an optional per-console folder in
+`consoles.json`. On this machine that is PCSX2's serial-named `covers` folder for PS2
+and DuckStation's title-named one for PS1, giving 26 of 47 games a real cover; the
+rest stay generated. Files are referenced in place and served over one WebView2
+virtual host per folder (§5.3) rather than copied.
+
 `prototype/library-preview.html` is the browser workshop for this contract.
 Game/emulator discovery is read-only. Optional artwork lookup downloads selected
 assets into an Aisles-owned cache and persists artwork choices before the native
@@ -397,7 +403,7 @@ media-insertion animations remain excluded.
 | # | Phase | Deliverable | Est. |
 |---|---|---|---|
 | 0 | Skeleton ✅ | WinUI 3 window + WebView2 + message bridge + `consoles.json` loading | done |
-| 1 | Discovery ◐ | Correct scanning of all four shapes ✅, clean titles and serials ✅, cover-art discovery outstanding | ½ day left |
+| 1 | Discovery ✅ | Correct scanning of all four shapes, clean titles and serials, 26/47 local case fronts | done |
 | 2 | **Launching** ✅ | Select a game (2D list first) → emulator opens it → **usable app** | done |
 | 3 | 3D consoles | Three.js stage + fixed camera + console lineup (low-LOD pipeline) + lighting | 1–2 days |
 | 4 | 3D shelf | Paged shelf bays (18 per bay, ~400 ms slide), procedural media models, sticker textures, hit-testing, select-vs-launch wiring | 1–2 days |

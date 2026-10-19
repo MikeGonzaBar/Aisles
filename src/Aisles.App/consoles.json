@@ -1,5 +1,5 @@
 {
-  "$comment": "Aisles console catalog. User-editable; sits next to Aisles.exe. Adding a platform requires no recompile. Schema: PLAN.md section 5.1. Paths below are the verified reality on this machine (PLAN.md section 3.2), and differ from the earlier plan draft.",
+  "$comment": "Aisles console catalog. User-editable; sits next to Aisles.exe. Adding a platform requires no recompile. Schema: PLAN.md section 5.1. Paths below are the verified reality on this machine (PLAN.md section 3.2), and differ from the earlier plan draft. artworkPath is optional: a folder of case fronts (serial- or title-named) supplied by the emulator or the user.",
   "consoles": [
     {
       "id": "ps1",
@@ -10,6 +10,7 @@
       "media": "JewelCase",
       "scan": "CuePerFolder",
       "gamesPath": "D:\\Emulation\\PS1\\Games",
+      "artworkPath": "C:\\Users\\gonza\\Documents\\DuckStation\\covers",
       "extensions": [".cue"],
       "emulatorPath": "C:\\Emulation\\Duckstation\\duckstation-qt-x64-ReleaseLTCG.exe",
       "arguments": "\"{0}\"",
@@ -25,6 +26,7 @@
       "media": "DvdCase",
       "scan": "FlatFiles",
       "gamesPath": "D:\\Emulation\\PS2\\ISOs",
+      "artworkPath": "C:\\Emulation\\PCSX2\\pcsx2-v1.7.4981-windows-x64-Qt\\covers",
       "extensions": [".iso"],
       "emulatorPath": "C:\\Emulation\\PCSX2\\pcsx2-v1.7.4981-windows-x64-Qt\\pcsx2-qt.exe",
       "arguments": "\"{0}\"",

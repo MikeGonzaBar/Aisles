@@ -1,4 +1,4 @@
-# Phase 1 discovery: titles and serials
+# Phase 1 discovery: titles, serials and cover art
 
 Verified against the real 47-game library by reading the resolved payload out of the
 running app (`artifacts/phase1/library.json`) and screenshotting each console.
@@ -60,9 +60,59 @@ Notes worth keeping:
 - The `pcsx2-gamelist` / `name` chip on each row is provenance, not decoration. Titles are
   derived rather than catalogued, so the rule that produced each one stays visible.
 
-## Still to do in Phase 1
+## Cover-art discovery
 
-- **Cover-art discovery.** `tools/artwork-workshop.cjs` already resolves artwork; porting it
-  into the host is the rest of this phase.
-- **Wii and PS1 serials.** A Wii disc ID needs the RVZ container header and a PS1 serial
-  needs the disc's `SYSTEM.CNF`. Neither affects titles, so both are deferred.
+Artwork is resolved from this machine first (PLAN.md §3.3.1, precedence step 2). Two
+shapes exist in the real libraries here, and both are named in `consoles.json` through an
+optional per-console `artworkPath`, so adding a platform still needs no recompile:
+
+| Console | Source | Named by | Resolved |
+|---|---|---|---|
+| PS1 | `Documents\DuckStation\covers` | title | 8/8 |
+| PS2 | `…\pcsx2-v1.7.4981-windows-x64-Qt\covers` | disc serial | 17/17 |
+| DS | `2269 - Cover.png` beside the ROM | sidecar | 1/12 |
+| PS3 | — | menu art only | 0/2 |
+| Wii | — | Dolphin's `GameCovers` folder is empty | 0/8 |
+| GC / 3DS / 360 | — | no games | 0/0 |
+
+**26 of 47 games carry a local case front.** A menu icon is not a case front, so the PS3
+discs' `ICON0.PNG` and `PIC1.PNG` are deliberately not used (§3.3.1).
+
+Matching runs strictest first, and the rule that won is kept on the result and shown on the
+row, so a loose match can never pass for an exact one:
+
+1. `serial` — normalized file name equals the serial (`SLUS-20946.jpg`).
+2. `title` — normalized file name equals the normalized title.
+3. `title-contains` — one normalized title contains the other (`Rugrats - Search for
+   Reptar` inside `Nickelodeon Rugrats - Search for Reptar`).
+4. `title-similar` — Sørensen–Dice over character bigrams ≥ 0.90. This exists for exactly
+   one row in this library: *Sorcerer Stone* versus *Sorcerer's Stone*.
+
+A cover stored beside the game (`source: sidecar`) beats a folder match, because it was put
+there for that game. In a flat library the folder is shared with every other game, so a
+sidecar there must name the game; only per-game folders accept a loose `- Cover`.
+
+Files are referenced in place and served through one WebView2 virtual host per folder
+(`games-<id>.aisles.local`, `art-<id>.aisles.local`), so the page uses plain `<img>` tags
+(§5.3). Nothing is copied and nothing in the emulator's folder is touched.
+
+![PlayStation 2 with covers](../artifacts/phase1/phase1-artwork-ps2.png)
+
+Evidence: `artifacts/phase1/phase1-artwork.json` and `phase1-artwork-*.png`. All 26 URLs
+were loaded through a real `<img>` in the running app — 26/26 loaded, 0 failed — and the
+rendered rows were counted per console. Launching was re-checked after the change and still
+starts `duckstation-qt-x64-ReleaseLTCG.exe "D:\Emulation\PS1\Games\A bugs life\A_BUGS_LIFE.CUE"`.
+
+## Still open
+
+- **Online artwork.** §3.3.1 steps 3–4 (exact platform/ID or serial, then title + platform +
+  region) are not implemented. `tools/artwork-workshop.cjs` is the working prototype and
+  still downloads into `.cache/artwork/`; nothing in the host touches the network.
+- **Disc and cartridge labels.** Separate slots from the cover and currently zero locally;
+  `docs/ds-cartridge-sticker-review.md` records the measured DS situation.
+- **Wii and PS1 serials.** A Wii disc ID needs the RVZ container header and a PS1 serial needs
+  the disc's `SYSTEM.CNF`. Neither affects titles. Wii serials would additionally unlock
+  Dolphin's GameTDB cover cache by ID.
+- **A test project.** The matching rules above are pinned by an integration check against the
+  real library, not by unit tests; extracting `Aisles.Core` is the prerequisite.
+

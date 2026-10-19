@@ -27,6 +27,14 @@ public sealed class ConsoleDescriptor
     public string? ScanMarker { get; set; }
 
     public string GamesPath { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Optional folder of case fronts supplied by the emulator or the user. PS2
+    /// points at PCSX2's serial-named <c>covers</c> folder; PS1 points at
+    /// DuckStation's title-named one. Files are referenced in place.
+    /// </summary>
+    public string? ArtworkPath { get; set; }
+
     public List<string> Extensions { get; set; } = new();
     public string EmulatorPath { get; set; } = string.Empty;
     public string Arguments { get; set; } = "\"{0}\"";

@@ -21,9 +21,10 @@ public sealed class LibraryScanner
         }
 
         var metadata = MetadataSource.Resolve(console);
+        var artwork = ArtworkLookup.For(console);
 
         return Discover(console)
-            .Select(found => CreateEntry(console, found, metadata))
+            .Select(found => CreateEntry(console, found, metadata, artwork))
             .ToList();
     }
 
@@ -97,7 +98,11 @@ public sealed class LibraryScanner
             .Distinct(StringComparer.OrdinalIgnoreCase);
     }
 
-    private static GameEntry CreateEntry(ConsoleDescriptor console, Discovered found, MetadataSource metadata)
+    private static GameEntry CreateEntry(
+        ConsoleDescriptor console,
+        Discovered found,
+        MetadataSource metadata,
+        ArtworkLookup artwork)
     {
         var title = TitleNormalizer.Normalize(found.NameHint);
         var titleSource = "name";
@@ -122,6 +127,7 @@ public sealed class LibraryScanner
             LaunchTarget = found.LaunchTarget,
             Serial = serial,
             TitleSource = titleSource,
+            FrontCover = artwork.Resolve(title, serial, found.LaunchTarget),
         };
     }
 

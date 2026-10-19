@@ -146,6 +146,19 @@ function renderGames() {
       meta.append(source);
     }
 
+    // Loose artwork matches are labelled; an exact serial or title match is not
+    // dressed up as anything more than "cover" (PLAN.md section 3.3.1).
+    if (game.frontCoverUrl) {
+      const cover = document.createElement('span');
+      cover.className = 'cover';
+      cover.textContent =
+        game.frontCoverMatch === 'serial' || game.frontCoverMatch === 'title'
+          ? 'cover'
+          : `cover: ${game.frontCoverMatch}`;
+      cover.title = `${game.frontCoverSource}, matched by ${game.frontCoverMatch}`;
+      meta.append(cover);
+    }
+
     const path = document.createElement('span');
     path.className = 'path';
     path.textContent = game.launchTarget;
@@ -163,13 +176,45 @@ function renderGames() {
       launchGame(game.id);
     });
 
-    item.append(text, launch);
+    item.append(artwork(game), text, launch);
 
     item.addEventListener('click', () => selectGame(game.id));
     item.addEventListener('dblclick', () => launchGame(game.id));
 
     elements.gameList.append(item);
   }
+}
+
+function artwork(game) {
+  const tile = document.createElement('span');
+  tile.className = 'art';
+
+  // The generated tile always exists underneath. A missing host mapping or an
+  // unreadable file therefore degrades to a typographic case, not a broken image.
+  const fallback = document.createElement('span');
+  fallback.className = 'art-fallback';
+  fallback.textContent = initialsFor(game.title);
+  tile.append(fallback);
+
+  if (game.frontCoverUrl) {
+    const image = document.createElement('img');
+    image.src = game.frontCoverUrl;
+    image.alt = '';
+    image.loading = 'lazy';
+    image.addEventListener('error', () => image.remove());
+    tile.append(image);
+  }
+
+  return tile;
+}
+
+function initialsFor(title) {
+  return String(title || '?')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0].toUpperCase())
+    .join('');
 }
 
 function emptyState(text) {
@@ -216,15 +261,21 @@ function launchGame(gameId) {
 function onLibrary(payload) {
   state.library = payload;
 
+  const consoles = payload.consoles ?? [];
+
   if (payload.error) {
     setBadge('bridge: catalog error', 'error');
     setStatus(payload.error, 'err');
   } else {
     setBadge('bridge OK', 'ok');
-    setStatus('Library loaded from consoles.json.');
+    const games = consoles.reduce((sum, console) => sum + console.games.length, 0);
+    const covers = consoles.reduce(
+      (sum, console) => sum + console.games.filter((game) => game.frontCoverUrl).length,
+      0,
+    );
+    setStatus(`Library loaded · ${games} games · ${covers} local covers`);
   }
 
-  const consoles = payload.consoles ?? [];
 
   // Keep the current console if it still exists, otherwise start on the first
   // console that actually has games.

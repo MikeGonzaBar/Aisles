@@ -25,4 +25,7 @@ public sealed record GamePayload(
     string Title,
     string LaunchTarget,
     string? Serial,
-    string? TitleSource);
+    string? TitleSource,
+    string? FrontCoverUrl,
+    string? FrontCoverMatch,
+    string? FrontCoverSource);
