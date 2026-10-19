@@ -38,4 +38,23 @@ public sealed record BridgeMessage(string Type, JsonElement? Payload)
             ? value.GetString()
             : null;
     }
+
+    /// <summary>Reads a boolean property from the payload object, or false if absent.</summary>
+    public bool ReadBool(string property)
+    {
+        if (Payload is not { } payload || payload.ValueKind != JsonValueKind.Object)
+        {
+            return false;
+        }
+
+        return payload.TryGetProperty(property, out var value)
+            && value.ValueKind is JsonValueKind.True or JsonValueKind.False
+            && value.GetBoolean();
+    }
+
+    public JsonElement? ReadElement(string property)
+    {
+        if (Payload is not { } payload || payload.ValueKind != JsonValueKind.Object) return null;
+        return payload.TryGetProperty(property, out var value) ? value : null;
+    }
 }

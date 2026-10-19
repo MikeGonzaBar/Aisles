@@ -1,0 +1,98 @@
+[
+  {
+    "platform": "ps1",
+    "games": 8,
+    "shape": "disc",
+    "caption": "CD-ROM",
+    "viewBox": "0 0 200 200",
+    "labelText": "A bugs life",
+    "usesCoverUrl": false,
+    "heroTitle": "A bugs life",
+    "heroBoxWidth": 460,
+    "heroBoxHeight": 491
+  },
+  {
+    "platform": "ps2",
+    "games": 17,
+    "shape": "disc",
+    "caption": "DVD-ROM",
+    "viewBox": "0 0 200 200",
+    "labelText": "Disney/Pixar Cars | SLUS-21151",
+    "usesCoverUrl": false,
+    "heroTitle": "Disney/Pixar Cars",
+    "heroBoxWidth": 460,
+    "heroBoxHeight": 644
+  },
+  {
+    "platform": "ps3",
+    "games": 2,
+    "shape": "disc",
+    "caption": "Blu-ray",
+    "viewBox": "0 0 200 200",
+    "labelText": "LittleBigPlanet | BCUS98148",
+    "usesCoverUrl": false,
+    "heroTitle": "LittleBigPlanet",
+    "heroBoxWidth": 460,
+    "heroBoxHeight": 646
+  },
+  {
+    "platform": "wii",
+    "games": 8,
+    "shape": "disc",
+    "caption": "DVD-ROM",
+    "viewBox": "0 0 200 200",
+    "labelText": "ABC Wipeout 2",
+    "usesCoverUrl": false,
+    "heroTitle": "ABC Wipeout 2",
+    "heroBoxWidth": 460,
+    "heroBoxHeight": 644
+  },
+  {
+    "platform": "ds",
+    "games": 12,
+    "shape": "cartridge",
+    "caption": "Game card",
+    "viewBox": "0 0 200 212",
+    "labelText": "Iron Man | YIMP",
+    "usesCoverUrl": false,
+    "heroTitle": "Iron Man",
+    "heroBoxWidth": 460,
+    "heroBoxHeight": 639
+  },
+  {
+    "platform": "gamecube",
+    "games": 0,
+    "shape": null,
+    "caption": null,
+    "viewBox": null,
+    "labelText": null,
+    "usesCoverUrl": null,
+    "heroTitle": "Nintendo GameCube",
+    "heroBoxWidth": 676,
+    "heroBoxHeight": 887
+  },
+  {
+    "platform": "3ds",
+    "games": 0,
+    "shape": null,
+    "caption": null,
+    "viewBox": null,
+    "labelText": null,
+    "usesCoverUrl": null,
+    "heroTitle": "Nintendo 3DS",
+    "heroBoxWidth": 676,
+    "heroBoxHeight": 887
+  },
+  {
+    "platform": "xbox360",
+    "games": 0,
+    "shape": null,
+    "caption": null,
+    "viewBox": null,
+    "labelText": null,
+    "usesCoverUrl": null,
+    "heroTitle": "Xbox 360",
+    "heroBoxWidth": 676,
+    "heroBoxHeight": 887
+  }
+]

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="320" viewBox="0 0 2560 320"><defs>
+<linearGradient id="wall" x2="0" y2="1"><stop stop-color="#e4e5e3"/><stop offset="1" stop-color="#c2c5c6"/></linearGradient>
+<linearGradient id="counter" x2="0" y2="1"><stop stop-color="#cececa"/><stop offset="1" stop-color="#a6aaab"/></linearGradient>
+<pattern id="slats" width="2560" height="38" patternUnits="userSpaceOnUse"><rect width="2560" height="38" fill="url(#wall)"/><path d="M0 36H2560" stroke="#8c9296" stroke-width="2"/><path d="M0 38H2560" stroke="#fafbf8" stroke-width="1"/></pattern>
+</defs>
+<rect width="2560" height="320" fill="#c6c8c8"/>
+<rect width="2560" height="12" fill="#194ba0"/><rect y="12" width="2560" height="4" fill="#ffce00"/>
+<rect y="16" width="2560" height="236" fill="url(#slats)"/>
+<rect y="252" width="2560" height="68" fill="url(#counter)"/>
+<rect y="250" width="2560" height="3" fill="#626c74"/></svg>

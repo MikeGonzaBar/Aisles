@@ -1,0 +1,63 @@
+{
+  "report": {
+    "available": true,
+    "platform": "ps1",
+    "media": {
+      "width": 0.3,
+      "height": 0.32,
+      "depth": 0.024
+    },
+    "bays": 1,
+    "bayCount": 1,
+    "cases": 8,
+    "realCovers": 8,
+    "generated": 0,
+    "drawCalls": 56,
+    "triangles": 192,
+    "textures": 10,
+    "canvas": {
+      "width": 1820,
+      "height": 949
+    },
+    "css": {
+      "width": 1822,
+      "height": 951
+    },
+    "camera": {
+      "x": 0,
+      "y": 0.8,
+      "z": 2.31,
+      "fov": 32
+    },
+    "rootX": 0,
+    "selected": null,
+    "pagerLabel": "Shelf 1 of 1 · 8 games",
+    "hint": "Plays like a shelf: a case lifts out when you pick it. Double-click or LAUNCH to play.",
+    "heroTitle": "PlayStation",
+    "heroLaunchDisabled": true
+  },
+  "target": {
+    "id": "ps1:d:\\emulation\\ps1\\games\\a bugs life\\a_bugs_life.cue",
+    "x": 328,
+    "y": 555
+  },
+  "paging": {
+    "start": 0,
+    "bay": 0,
+    "bayCount": 1,
+    "samples": [
+      0,
+      0,
+      0
+    ],
+    "settled": 0,
+    "expected": 0,
+    "label": "Shelf 1 of 1 · 8 games"
+  },
+  "fallback": {
+    "listVisible": true,
+    "shelfHidden": true,
+    "rows": 8
+  },
+  "problems": []
+}

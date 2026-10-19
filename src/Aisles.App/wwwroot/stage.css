@@ -18,6 +18,9 @@ html,
 body {
   height: 100%;
   margin: 0;
+  /* A stage is a fixed surface: nothing scrolls, and a stray pixel of overflow would
+     both add a scrollbar and shift the whole composition sideways. */
+  overflow: hidden;
 }
 
 body {
@@ -38,17 +41,26 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
-  height: 48px;
-  padding: 0 20px;
+  height: 64px;
+  flex-shrink: 0;
+  padding: 0 28px;
   border-bottom: 1px solid var(--navy-line);
   background: #0a0f1f;
 }
 
 .wordmark {
-  font-size: 17px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--yellow);
+}
+
+.brand-icon {
+  display: block;
+  flex-shrink: 0;
 }
 
 .phase {
@@ -56,13 +68,98 @@ body {
   color: var(--dim);
 }
 
-.badge {
+.settings-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   margin-left: auto;
+  padding: 7px 11px;
+  border: 1px solid var(--navy-line);
+  border-radius: 6px;
+  background: var(--navy-raised);
+  color: var(--cream);
+  font: inherit;
+  cursor: pointer;
+}
+
+.settings-trigger:hover, .settings-trigger:focus-visible { border-color: #46547d; background: #192243; }
+.settings-trigger svg { width: 15px; height: 15px; fill: currentColor; }
+
+.badge {
   padding: 4px 10px;
   border: 1px solid var(--navy-line);
   border-radius: 999px;
   font-size: 11px;
   color: var(--muted);
+}
+
+/* ---------- settings ---------- */
+
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(2 5 14 / 78%);
+  backdrop-filter: blur(4px);
+}
+
+.settings-backdrop[hidden] { display: none; }
+
+.settings-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(960px, 100%);
+  max-height: min(760px, calc(100vh - 48px));
+  overflow: hidden;
+  border: 1px solid #2a365f;
+  border-radius: 12px;
+  background: #0e152c;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 55%);
+}
+
+.settings-header, .settings-footer { flex-shrink: 0; display: flex; align-items: center; padding: 20px 24px; }
+.settings-header { justify-content: space-between; border-bottom: 1px solid var(--navy-line); }
+.settings-header h1 { margin: 0; font-size: 21px; }
+.settings-header p { margin: 5px 0 0; color: var(--muted); }
+.icon-button { width: 36px; height: 36px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 28px; cursor: pointer; }
+.icon-button:hover, .icon-button:focus-visible { background: #1a2445; color: var(--cream); }
+
+.settings-body { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 0; overflow: hidden; }
+.settings-consoles { overflow-y: auto; padding: 14px; border-right: 1px solid var(--navy-line); background: #0a1022; }
+.settings-console-button { display: block; width: 100%; padding: 11px 12px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--muted); text-align: left; font: inherit; cursor: pointer; }
+.settings-console-button + .settings-console-button { margin-top: 3px; }
+.settings-console-button:hover { background: #131d3b; color: var(--cream); }
+.settings-console-button[aria-selected="true"] { border-color: #3b4b79; background: #1a2547; color: var(--yellow); }
+.settings-editor { overflow-y: auto; padding: 24px 28px 30px; }
+.settings-identity { display: flex; align-items: center; gap: 18px; margin-bottom: 24px; }
+.settings-identity h2 { margin: 2px 0 0; font-size: 23px; }
+.eyebrow { margin: 0; color: var(--dim); font-size: 10px; font-weight: 700; letter-spacing: .16em; }
+.settings-console-badge { display: grid; place-items: center; width: 74px; height: 74px; flex: 0 0 74px; border: 1px solid #354774; border-radius: 12px; background: #182344; color: var(--yellow); font-size: 20px; font-weight: 800; letter-spacing: .06em; }
+.settings-console-meta { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+.settings-field { margin-top: 18px; }
+.settings-field label { display: block; margin-bottom: 7px; font-size: 12px; font-weight: 600; }
+.path-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.path-row input { min-width: 0; padding: 10px 11px; border: 1px solid #2b385f; border-radius: 6px; outline: none; background: #080e20; color: var(--cream); font: 13px Consolas, monospace; }
+.path-row input:focus { border-color: #6378bd; box-shadow: 0 0 0 2px rgb(99 120 189 / 18%); }
+.browse-button, .secondary-button, .primary-button { padding: 9px 14px; border: 1px solid #35446e; border-radius: 6px; font: inherit; cursor: pointer; }
+.browse-button, .secondary-button { background: #172140; color: var(--cream); }
+.primary-button { border-color: #e4b900; background: var(--yellow); color: #101426; font-weight: 700; }
+button:disabled { opacity: .55; cursor: wait; }
+.field-status { margin: 6px 0 0; font-size: 11px; color: var(--muted); }
+.field-status[data-state="found"] { color: #83d99e; }
+.field-status[data-state="notFound"], .field-status[data-state="invalid"] { color: #ffb86b; }
+.settings-error { margin-bottom: 16px; padding: 10px 12px; border: 1px solid #7d3a3a; border-radius: 6px; color: #ffaaaa; background: #29151d; }
+.settings-footer { justify-content: flex-end; gap: 10px; border-top: 1px solid var(--navy-line); }
+.settings-footer #settings-progress { margin-right: auto; color: var(--muted); font-size: 12px; }
+
+@media (max-width: 720px) {
+  .settings-backdrop { padding: 12px; }
+  .settings-body { grid-template-columns: 160px minmax(0, 1fr); }
+  .settings-editor { padding: 18px; }
+  .settings-console-badge { width: 62px; height: 62px; flex-basis: 62px; }
 }
 
 .badge[data-state="ok"] {
@@ -82,6 +179,237 @@ body {
   grid-template-rows: auto 1fr;
   flex: 1;
   min-height: 0;
+}
+
+/* ---------- the shelf and the hero ---------- */
+
+.stage-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 27%);
+  gap: 18px;
+  min-height: 0;
+  padding: 8px 20px 10px;
+}
+
+.shelf {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+#shelf-canvas {
+  display: block;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: 1px solid var(--navy-line);
+  border-radius: 4px;
+  background: radial-gradient(120% 90% at 50% 0%, #1b2450 0%, #111731 45%, #0b1022 100%);
+  /* The shelf owns drag-to-page; without this a pointer drag scrolls the page instead. */
+  touch-action: none;
+}
+
+.shelf-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  height: 30px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.shelf-pager button {
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--navy-line);
+  border-radius: 3px;
+  background: #101731;
+  color: var(--cream);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.shelf-pager button:hover:not(:disabled) {
+  border-color: #35446e;
+  color: var(--yellow);
+}
+
+.shelf-pager button:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.shelf-hint {
+  margin: 2px 0 0;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  color: var(--dim);
+}
+
+/* ---------- hero ---------- */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  min-width: 0;
+  padding: 6px 2px 0;
+}
+
+.hero-row {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+
+.hero-art {
+  position: relative;
+  min-height: 0;
+  border: 1px solid var(--navy-line);
+  border-radius: 3px;
+  background: #101731;
+  overflow: hidden;
+}
+
+/* The case keeps the real packaging proportion, so the art is never letterboxed into a
+   frame built for another shape. It holds the left of the row and the medium stands
+   beside it - nothing overlaps, so a cover is never covered by its own disc. */
+.hero-art[data-layout='medium'] {
+  flex: 0 0 68%;
+  aspect-ratio: var(--case-aspect, 0.704);
+  max-height: 100%;
+}
+
+/* The medium is a physical object: real shape, real footprint, printed label. */
+.hero-medium {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 30%;
+  margin: 0 0 18px;
+}
+
+.hero-medium svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 16px 20px rgba(0, 0, 0, 0.5));
+}
+
+.hero-medium figcaption {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.hero-art img {
+  /* Absolute, so it paints over the fallback initials: a positioned element would
+     otherwise cover a static one no matter the DOM order. */
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.hero-art .hero-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 22% 10% 10%;
+  overflow: hidden;
+  /* The accent bands and the dark wash of the shelf's generated case, so a game with no
+     artwork reads as the same design at hero size. */
+  background:
+    linear-gradient(var(--accent, #0b4ea2), var(--accent, #0b4ea2)) top / 100% 10% no-repeat,
+    linear-gradient(var(--accent, #0b4ea2), var(--accent, #0b4ea2)) bottom / 100% 4.5% no-repeat,
+    linear-gradient(160deg, #1a2340, #0d1424);
+}
+
+.hero-fallback-title {
+  font-size: clamp(15px, 1.6vw, 30px);
+  font-weight: 650;
+  line-height: 1.16;
+  color: var(--cream);
+  overflow-wrap: anywhere;
+}
+
+.hero-art[data-state='empty'] {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.hero-title {
+  font-size: 19px;
+  font-weight: 650;
+  line-height: 1.2;
+  color: var(--cream);
+}
+
+.hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.hero-meta .serial {
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 10px;
+  color: var(--dim);
+}
+
+.hero .launch {
+  height: 36px;
+  border: 0;
+  border-radius: 3px;
+  background: var(--yellow);
+  color: #241c00;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+
+.hero .launch:disabled {
+  background: #2a3150;
+  color: #5f6a85;
+  cursor: default;
+}
+
+/* The shelf failing means falling back to the Phase 2 list; the hero goes with it. */
+body:not(.shelf3d-failed) .panel.games {
+  display: none;
+}
+
+body.shelf3d-failed .stage-row {
+  display: none;
 }
 
 /* ---------- console lineup (3D) ---------- */

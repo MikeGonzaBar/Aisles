@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "direction": "Natural oak shelving; blue and yellow reserved for category signs and narrow accents.",
+  "colorSpace": "All albedo textures are sRGB; do not assign sRGB to future normal/roughness maps.",
+  "materials": {
+    "shelfWood": {
+      "map": "oak-laminate.webp",
+      "color": "#ffffff",
+      "roughness": 0.72,
+      "metalness": 0
+    },
+    "shelfBack": {
+      "color": "#252a30",
+      "roughness": 0.94,
+      "metalness": 0
+    },
+    "categoryBlue": {
+      "color": "#194ba0",
+      "roughness": 0.7,
+      "metalness": 0
+    },
+    "accentYellow": {
+      "color": "#ffce00",
+      "roughness": 0.65,
+      "metalness": 0
+    },
+    "carpet": {
+      "map": "carpet-confetti.webp",
+      "color": "#ffffff",
+      "roughness": 1,
+      "metalness": 0
+    },
+    "counter": {
+      "color": "#bec1bf",
+      "roughness": 0.82,
+      "metalness": 0
+    }
+  },
+  "lighting": {
+    "keyColor": "#f2f5ff",
+    "fillColor": "#dce7ff",
+    "note": "Retune intensities against actual exposure. Remove amber key and yellow rim dominance."
+  },
+  "signs": [
+    {
+      "id": "ps1",
+      "file": "category-ps1.png",
+      "label": "PLAYSTATION"
+    },
+    {
+      "id": "ps2",
+      "file": "category-ps2.png",
+      "label": "PLAYSTATION 2"
+    },
+    {
+      "id": "ps3",
+      "file": "category-ps3.png",
+      "label": "PLAYSTATION 3"
+    },
+    {
+      "id": "wii",
+      "file": "category-wii.png",
+      "label": "NINTENDO WII"
+    },
+    {
+      "id": "gamecube",
+      "file": "category-gamecube.png",
+      "label": "NINTENDO GAMECUBE"
+    },
+    {
+      "id": "ds",
+      "file": "category-ds.png",
+      "label": "NINTENDO DS"
+    },
+    {
+      "id": "3ds",
+      "file": "category-3ds.png",
+      "label": "NINTENDO 3DS"
+    },
+    {
+      "id": "xbox360",
+      "file": "category-xbox360.png",
+      "label": "XBOX 360"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "start": {
+    "platform": "ps2",
+    "games": 17,
+    "bays": 3,
+    "bay": 1,
+    "pitch": 2.416,
+    "cases": 17,
+    "label": "Shelf 1 of 3 · 17 games",
+    "hint": "11 more games open Shelf 2. The bay slides and the consoles stay put.",
+    "rootX": 0
+  },
+  "slide": {
+    "bay": 2,
+    "samples": [
+      -1.079,
+      -1.786,
+      -2.185,
+      -2.366,
+      -2.414,
+      -2.416,
+      -2.416
+    ],
+    "settled": -2.416,
+    "expected": -2.416,
+    "label": "Shelf 2 of 3 · 17 games",
+    "hint": "5 more games open Shelf 3. The bay slides and the consoles stay put."
+  },
+  "selection": {
+    "id": "ps2:d:\\emulation\\ps2\\isos\\fifa08ps2.iso",
+    "bayOfGame": 1,
+    "caseHidden": true,
+    "outlineShown": true,
+    "afterPagingBay": 1,
+    "outlineStillShown": true,
+    "hero": "FIFA Soccer 08"
+  },
+  "problems": []
+}

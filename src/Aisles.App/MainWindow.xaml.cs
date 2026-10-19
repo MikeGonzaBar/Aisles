@@ -5,7 +5,8 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.Web.WebView2.Core;
 using System.Text;
-using Windows.Graphics;
+using System.Text.Json;
+using Windows.Storage.Pickers;
 
 namespace Aisles.App;
 
@@ -19,15 +20,21 @@ public sealed partial class MainWindow : Window
     private readonly Dictionary<string, AssetHosts> _assetHosts = new(StringComparer.OrdinalIgnoreCase);
     private readonly WebBridge _bridge = new();
     private readonly EmulatorLauncher _launcher = new();
+    private readonly ConsoleSettingsStore _settingsStore = new(Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Aisles", "settings.json"));
 
     private ConsoleCatalog? _catalog;
+    private ConsoleCatalog? _catalogDefaults;
     private string? _catalogError;
+    private string? _settingsError;
     private bool _catalogLoaded;
+    private bool _fullScreen;
 
     public MainWindow()
     {
         InitializeComponent();
         Title = "Aisles";
+        AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "wwwroot", "branding", "Aisles.ico"));
         RootGrid.Loaded += OnRootGridLoaded;
     }
 
@@ -42,16 +49,17 @@ public sealed partial class MainWindow : Window
 
     private void ResizeWindow()
     {
-        // The agreed blockout is 1280x720; start a little taller so the details rail
-        // and the shelf both have room at the target aspect.
-        AppWindow.Resize(new SizeInt32(1360, 820));
+        MaximizeWindow();
+        _fullScreen = false;
+    }
 
-        var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary);
-        if (area is not null)
+    private void MaximizeWindow()
+    {
+        AppWindow.SetPresenter(AppWindowPresenterKind.Overlapped);
+
+        if (AppWindow.Presenter is OverlappedPresenter presenter)
         {
-            var x = area.WorkArea.X + ((area.WorkArea.Width - 1360) / 2);
-            var y = area.WorkArea.Y + ((area.WorkArea.Height - 820) / 2);
-            AppWindow.Move(new PointInt32(Math.Max(area.WorkArea.X, x), Math.Max(area.WorkArea.Y, y)));
+            presenter.Maximize();
         }
     }
 
@@ -98,13 +106,10 @@ public sealed partial class MainWindow : Window
 
         try
         {
-            _catalog = ConsoleCatalog.Load(path);
+            _catalogDefaults = ConsoleCatalog.Load(path);
+            (_catalog, _settingsError) = _settingsStore.Apply(_catalogDefaults);
             _catalogError = null;
-
-            foreach (var console in _catalog.Consoles)
-            {
-                _consolesById[console.Id] = console;
-            }
+            IndexConsoles();
         }
         catch (Exception ex)
         {
@@ -120,6 +125,8 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private void RegisterAssetHosts(CoreWebView2 core)
     {
+        foreach (var host in _assetHosts.Values.SelectMany(h => new[] { h.GamesHost, h.ArtHost }).Where(h => h is not null))
+            core.ClearVirtualHostNameToFolderMapping(host!);
         _assetHosts.Clear();
 
         if (_catalog is null)
@@ -271,7 +278,7 @@ public sealed partial class MainWindow : Window
         return new LibraryPayload(null, consoles);
     }
 
-    private void OnMessageFromWeb(string json)
+    private async void OnMessageFromWeb(string json)
     {
         if (BridgeMessage.Parse(json) is not { } message)
         {
@@ -284,6 +291,26 @@ public sealed partial class MainWindow : Window
                 _bridge.Send("library", BuildLibraryPayload());
                 break;
 
+            case "getSettings":
+                SendSettings(message.ReadString("requestId"));
+                break;
+
+            case "validateSettings":
+                ValidateSettings(message);
+                break;
+
+            case "browsePath":
+                await BrowsePathAsync(message);
+                break;
+
+            case "saveSettings":
+                await SaveSettingsAsync(message);
+                break;
+
+            case "rescan":
+                await RescanAsync(message.ReadString("requestId"));
+                break;
+
             case "launchGame":
                 LaunchGame(message.ReadString("gameId"));
                 break;
@@ -292,13 +319,174 @@ public sealed partial class MainWindow : Window
                 RevealGame(message.ReadString("gameId"));
                 break;
 
-            // The web layer owns selection state in Phase 0, and settings arrive in
-            // Phase 5, so these are accepted and acknowledged but do nothing yet.
+            // Full screen is borderless, so the page is the only thing that can offer a
+            // way back out: Escape and F11 come through here.
+            case "windowMode":
+                SetFullScreen(message.ReadBool("fullScreen"));
+                break;
+
             case "selectConsole":
             case "selectGame":
-            case "openSettings":
                 break;
         }
+    }
+
+    private void SendSettings(string? requestId)
+    {
+        if (_catalog is null || _catalogDefaults is null)
+        {
+            _bridge.Send("settingsData", new { requestId, error = _catalogError ?? "Console catalog is unavailable." });
+            return;
+        }
+
+        var drafts = _catalog.Consoles.ToDictionary(c => c.Id,
+            c => new ConsolePathDraft(c.GamesPath, c.EmulatorPath, c.ArtworkPath ?? string.Empty),
+            StringComparer.OrdinalIgnoreCase);
+        var validation = _settingsStore.Validate(_catalogDefaults, drafts);
+        _bridge.Send("settingsData", new
+        {
+            requestId,
+            error = _settingsError,
+            consoles = _catalog.Consoles.Select(c => new
+            {
+                c.Id, c.Name, c.ShortName, c.Manufacturer, c.Year,
+                gamesPath = c.GamesPath,
+                emulatorPath = c.EmulatorPath,
+                artworkPath = c.ArtworkPath ?? string.Empty,
+                validation = validation[c.Id],
+            }).ToList(),
+        });
+    }
+
+    private void ValidateSettings(BridgeMessage message)
+    {
+        var requestId = message.ReadString("requestId");
+        Dictionary<string, ConsolePathDraft> drafts;
+        string? error = null;
+        if (_catalogDefaults is null || !TryReadDrafts(message, out drafts, out error))
+        {
+            _bridge.Send("settingsValidation", new { requestId, error = error ?? "Console catalog is unavailable." });
+            return;
+        }
+        _bridge.Send("settingsValidation", new { requestId, consoles = _settingsStore.Validate(_catalogDefaults, drafts) });
+    }
+
+    private async Task BrowsePathAsync(BridgeMessage message)
+    {
+        var requestId = message.ReadString("requestId");
+        var consoleId = message.ReadString("consoleId");
+        var field = message.ReadString("field");
+        try
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            string? selected;
+            if (field == "emulatorPath")
+            {
+                var picker = new FileOpenPicker { SuggestedStartLocation = PickerLocationId.ComputerFolder };
+                picker.FileTypeFilter.Add(".exe");
+                WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+                selected = (await picker.PickSingleFileAsync())?.Path;
+            }
+            else if (field is "gamesPath" or "artworkPath")
+            {
+                var picker = new FolderPicker { SuggestedStartLocation = PickerLocationId.ComputerFolder };
+                picker.FileTypeFilter.Add("*");
+                WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+                selected = (await picker.PickSingleFolderAsync())?.Path;
+            }
+            else throw new InvalidDataException("Unknown settings field.");
+            _bridge.Send("browsePathResult", new { requestId, consoleId, field, path = selected, cancelled = selected is null });
+        }
+        catch (Exception ex)
+        {
+            _bridge.Send("browsePathResult", new { requestId, error = ex.Message });
+        }
+    }
+
+    private async Task SaveSettingsAsync(BridgeMessage message)
+    {
+        var requestId = message.ReadString("requestId");
+        Dictionary<string, ConsolePathDraft> drafts;
+        string? error = null;
+        if (_catalogDefaults is null || !TryReadDrafts(message, out drafts, out error))
+        {
+            _bridge.Send("settingsSaved", new { requestId, saved = false, error = error ?? "Console catalog is unavailable." });
+            return;
+        }
+
+        try
+        {
+            await Task.Run(() => _settingsStore.Save(_catalogDefaults, drafts));
+            (_catalog, _settingsError) = _settingsStore.Apply(_catalogDefaults);
+            IndexConsoles();
+            RegisterAssetHosts(Stage.CoreWebView2);
+            _bridge.Send("settingsSaved", new { requestId, saved = true });
+            await RescanAsync(requestId);
+        }
+        catch (Exception ex)
+        {
+            _bridge.Send("settingsSaved", new { requestId, saved = false, error = ex.Message });
+        }
+    }
+
+    private async Task RescanAsync(string? requestId)
+    {
+        try
+        {
+            var library = await Task.Run(BuildLibraryPayload);
+            _bridge.Send("library", library);
+            _bridge.Send("scanResult", new { requestId, succeeded = true });
+        }
+        catch (Exception ex)
+        {
+            _bridge.Send("scanResult", new { requestId, succeeded = false, error = ex.Message });
+        }
+    }
+
+    private bool TryReadDrafts(BridgeMessage message, out Dictionary<string, ConsolePathDraft> drafts, out string? error)
+    {
+        drafts = new(StringComparer.OrdinalIgnoreCase);
+        error = null;
+        var element = message.ReadElement("consoles");
+        if (element is not { ValueKind: JsonValueKind.Object }) { error = "Settings payload is missing consoles."; return false; }
+        var known = _catalogDefaults?.Consoles.Select(c => c.Id).ToHashSet(StringComparer.OrdinalIgnoreCase) ?? [];
+        foreach (var console in element.Value.EnumerateObject())
+        {
+            if (!known.Contains(console.Name)) { error = $"Unknown console: {console.Name}"; return false; }
+            if (console.Value.ValueKind != JsonValueKind.Object) { error = $"Invalid settings for {console.Name}."; return false; }
+            static string Field(JsonElement item, string name) => item.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : "";
+            drafts[console.Name] = new(Field(console.Value, "gamesPath"), Field(console.Value, "emulatorPath"), Field(console.Value, "artworkPath"));
+        }
+        if (drafts.Count != known.Count) { error = "Settings must include every configured console."; return false; }
+        return true;
+    }
+
+    private void IndexConsoles()
+    {
+        _consolesById.Clear();
+        if (_catalog is null) return;
+        foreach (var console in _catalog.Consoles) _consolesById[console.Id] = console;
+    }
+
+    /// <summary>
+    /// Switches between the optional full-screen stage and the default maximized window.
+    /// </summary>
+    private void SetFullScreen(bool fullScreen)
+    {
+        if (fullScreen == _fullScreen)
+        {
+            return;
+        }
+
+        _fullScreen = fullScreen;
+
+        if (fullScreen)
+        {
+            AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen);
+            return;
+        }
+
+        MaximizeWindow();
     }
 
     private void LaunchGame(string? gameId)

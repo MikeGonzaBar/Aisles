@@ -59,6 +59,11 @@ displayed and stays crisp all the way down.
 PNG-compressed 256, with per-pixel alpha for the rounded corners. The handoff point is the `PLAN`
 array at the top of the script.
 
+The app embeds this icon in `Aisles.exe` and assigns it to the native window for
+the title bar and taskbar. The web header shows the mark beside AISLES, and its
+favicon uses the same `.ico`. The project links the branding assets into
+`wwwroot/branding` when building or publishing.
+
 ## Quick facts
 
 - **Shell:** WinUI 3 — settled, it builds and runs unpackaged on .NET 10 against Windows App SDK 2.0.1, so the WPF fallback in `PLAN.md` §9 was not needed. **3D:** WebView2 + Three.js, **assets:** downloaded console GLBs plus procedural media
@@ -80,6 +85,13 @@ Every build form lands in the same place, `src/Aisles.App/bin/Debug/net10.0-wind
 The window hosts WebView2. The page is served from `wwwroot` over a virtual host (`https://aisles.local`) rather than `file://`, so it stays a normal https origin with working module and fetch semantics. WebView2's data folder is redirected to `%LOCALAPPDATA%\Aisles\WebView2` so nothing is written beside the exe.
 
 `consoles.json` sits next to the exe after a build and is the only file needed to add or change a platform.
+
+Use **Settings** in the app header to change a console's games folder, emulator
+executable, or optional artwork folder. Aisles stores these path overrides in
+`%LOCALAPPDATA%\Aisles\settings.json`; `consoles.json` remains the default catalog,
+so rebuilding the app does not erase local choices. Saving rescans the library
+without restarting the app. Each console uses a consistent short-name badge in
+the editor, so platforms with and without prepared 3D models receive the same UI.
 
 ## Console preview
 
