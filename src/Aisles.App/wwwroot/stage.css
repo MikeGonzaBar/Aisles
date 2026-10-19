@@ -1,0 +1,258 @@
+:root {
+  --navy: #0e1224;
+  --navy-raised: #131a33;
+  --navy-line: #1b2442;
+  --yellow: #ffce00;
+  --cream: #f4efe4;
+  --muted: #8a94ad;
+  --dim: #5f6a85;
+  --warn: #ffb86b;
+  --ok: #3f7d55;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  background: var(--navy);
+  color: var(--cream);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  /* Phase 0 is a plain app surface, not the 3D stage; keep it non-selectable
+     so it can't be mistaken for a document. */
+  user-select: none;
+}
+
+/* ---------- top bar ---------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 48px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--navy-line);
+  background: #0a0f1f;
+}
+
+.wordmark {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--yellow);
+}
+
+.phase {
+  font-size: 11px;
+  color: var(--dim);
+}
+
+.badge {
+  margin-left: auto;
+  padding: 4px 10px;
+  border: 1px solid var(--navy-line);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.badge[data-state="ok"] {
+  border-color: var(--ok);
+  color: #9fe0b7;
+}
+
+.badge[data-state="error"] {
+  border-color: #7d3a3a;
+  color: #ff9a9a;
+}
+
+/* ---------- layout ---------- */
+
+.layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  flex: 1;
+  min-height: 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 16px 20px;
+}
+
+.consoles {
+  border-right: 1px solid var(--navy-line);
+}
+
+.panel h2 {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.list {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+/* ---------- console rows ---------- */
+
+.console {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.console:hover {
+  background: var(--navy-raised);
+}
+
+.console[aria-selected="true"] {
+  background: #1c2546;
+  box-shadow: inset 2px 0 0 var(--yellow);
+}
+
+.console .short {
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.console[aria-selected="true"] .short {
+  color: var(--yellow);
+}
+
+.console .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.console .count {
+  font-variant-numeric: tabular-nums;
+  color: var(--dim);
+}
+
+.console.is-empty .name {
+  color: var(--dim);
+}
+
+.console .flag {
+  grid-column: 2 / -1;
+  font-size: 11px;
+  color: var(--warn);
+}
+
+/* ---------- game rows ---------- */
+
+.game {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #141c33;
+  cursor: pointer;
+}
+
+.game:hover {
+  background: var(--navy-raised);
+}
+
+.game[aria-selected="true"] {
+  background: #1c2546;
+  box-shadow: inset 2px 0 0 var(--yellow);
+}
+
+.game .title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game .path {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+}
+
+.game .launch {
+  padding: 5px 14px;
+  border: 0;
+  border-radius: 5px;
+  background: var(--yellow);
+  color: var(--navy);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.game .launch:hover {
+  filter: brightness(1.08);
+}
+
+/* ---------- empty state ---------- */
+
+.empty {
+  padding: 24px 10px;
+  color: var(--dim);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.empty code {
+  color: var(--muted);
+  font-family: Consolas, monospace;
+  font-size: 12px;
+}
+
+/* ---------- status bar ---------- */
+
+.statusbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  height: 30px;
+  padding: 0 20px;
+  border-top: 1px solid var(--navy-line);
+  background: #0a0f1f;
+  font-size: 11px;
+  line-height: 30px;
+  color: var(--dim);
+}
+
+.statusbar .ok {
+  color: #9fe0b7;
+}
+
+.statusbar .err {
+  color: #ff9a9a;
+}

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Aisles — mark, full detail">
+  <title>Aisles — full mark (128px and up)</title>
+  <rect width="512" height="512" rx="116" fill="#0E1224"/>
+
+  <!-- shelf: top face, front edge, under-shadow -->
+  <path d="M48 356 L464 356 L436 322 L76 322 Z" fill="#FFD62E"/>
+  <rect x="48" y="356" width="416" height="34" rx="9" fill="#FFCE00"/>
+  <rect x="58" y="390" width="396" height="16" rx="8" fill="#D4A700"/>
+
+  <!-- spines standing on the shelf -->
+  <rect x="92" y="140" width="72" height="190" rx="8" fill="#00387B"/>
+  <rect x="106" y="162" width="44" height="110" rx="5" fill="#F4EFE4"/>
+
+  <rect x="180" y="152" width="72" height="178" rx="8" fill="#F4EFE4"/>
+  <rect x="194" y="174" width="44" height="96" rx="5" fill="#00387B"/>
+
+  <!-- hero case, pulled forward off the shelf -->
+  <rect x="326" y="172" width="148" height="196" rx="18" fill="#050912" opacity="0.5"/>
+  <g transform="rotate(-8 400 258)">
+    <rect x="300" y="160" width="148" height="196" rx="18" fill="#0B4EA2"/>
+    <rect x="316" y="178" width="116" height="108" rx="10" fill="#F4EFE4"/>
+    <g fill="#0E1224">
+      <rect x="330" y="206" width="88" height="44" rx="22"/>
+      <rect x="340" y="223" width="19" height="7" rx="3.5" fill="#F4EFE4"/>
+      <rect x="346" y="217" width="7" height="19" rx="3.5" fill="#F4EFE4"/>
+      <circle cx="396" cy="219" r="5" fill="#FFCE00"/>
+      <circle cx="406" cy="232" r="5" fill="#FFCE00"/>
+    </g>
+    <rect x="316" y="300" width="116" height="16" rx="5" fill="#FFCE00"/>
+    <rect x="316" y="324" width="78" height="16" rx="5" fill="#FFCE00" opacity="0.45"/>
+  </g>
+</svg>

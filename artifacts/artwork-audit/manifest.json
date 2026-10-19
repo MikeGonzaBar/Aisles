@@ -1,0 +1,80 @@
+{
+  "checkedAt": "2026-10-19T06:10:27.696Z",
+  "samples": [
+    {
+      "platform": "ps3",
+      "id": "BCUS98148",
+      "page": "https://gamesdb.launchbox-app.com/games/images/786-littlebigplanet",
+      "url": "https://images.launchbox-app.com/69d1630d-630e-47ee-9a32-fa0ad540a296.png",
+      "imageId": "308984",
+      "label": "LittleBigPlanet - Disc Image (North America)",
+      "file": "artifacts\\artwork-audit\\ps3-BCUS98148.png",
+      "width": 800,
+      "height": 800,
+      "hasAlpha": true,
+      "format": "png",
+      "bytes": 2577562,
+      "status": "downloaded-for-audit"
+    },
+    {
+      "platform": "ps3",
+      "id": "BCUS98245",
+      "page": "https://gamesdb.launchbox-app.com/games/images/14975-littlebigplanet-2",
+      "url": "https://images.launchbox-app.com/aa1ab2d1-03ee-4efb-b399-fbaae0585d86.png",
+      "imageId": "1980124",
+      "label": "LittleBigPlanet 2 - Disc Image (North America)",
+      "file": "artifacts\\artwork-audit\\ps3-BCUS98245.png",
+      "width": 722,
+      "height": 722,
+      "hasAlpha": true,
+      "format": "png",
+      "bytes": 891750,
+      "status": "downloaded-for-audit"
+    },
+    {
+      "platform": "ds",
+      "id": "AMCE",
+      "page": "https://gamesdb.launchbox-app.com/games/images/6545-mario-kart-ds",
+      "url": "https://images.launchbox-app.com/r2_312e5d8d-b6ba-4902-9902-7cef99c112e6.png",
+      "imageId": "873660",
+      "label": "Mario Kart DS - Cart - Front Image (North America)",
+      "file": "artifacts\\artwork-audit\\ds-AMCE.png",
+      "width": 517,
+      "height": 564,
+      "hasAlpha": true,
+      "format": "png",
+      "bytes": 312551,
+      "status": "downloaded-for-audit"
+    },
+    {
+      "platform": "ds",
+      "id": "B3CE",
+      "page": "https://gamesdb.launchbox-app.com/games/images/20268-cooking-mama-3-shop-chop",
+      "url": "https://images.launchbox-app.com/r2_2995f20a-e199-4c30-ba33-8b4ecdbdeffd.png",
+      "imageId": "20131120",
+      "label": "Cooking Mama 3: Shop &amp; Chop - Cart - Front Image (North America)",
+      "file": "artifacts\\artwork-audit\\ds-B3CE.png",
+      "width": 517,
+      "height": 564,
+      "hasAlpha": true,
+      "format": "png",
+      "bytes": 495359,
+      "status": "downloaded-for-audit"
+    },
+    {
+      "platform": "xbox360",
+      "id": "reference-only",
+      "page": "https://gamesdb.launchbox-app.com/games/images/6872-crackdown",
+      "url": "https://images.launchbox-app.com/r2_11d8c74e-6df6-447e-9c0f-7d49e1c99414.png",
+      "imageId": "1448184",
+      "label": "Crackdown - Disc Image (North America)",
+      "file": "artifacts\\artwork-audit\\xbox360-reference-only.png",
+      "width": 811,
+      "height": 811,
+      "hasAlpha": true,
+      "format": "png",
+      "bytes": 981274,
+      "status": "downloaded-for-audit"
+    }
+  ]
+}

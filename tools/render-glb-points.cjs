@@ -1,0 +1,19 @@
+// Offline point renderer for structural model QA when browser access is unavailable.
+const fs=require('fs'),path=require('path'),sharp=require('sharp');
+const{readGlb}=require('./model-lib.cjs');
+const[input,output,yawArg='35',pitchArg='18']=process.argv.slice(2);
+if(!input||!output)throw Error('Usage: node tools/render-glb-points.cjs input.glb output.png [yaw] [pitch]');
+const{json:g,bin}=readGlb(input),points=[];
+const identity=()=>[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1];
+const mul=(a,b)=>Array.from({length:16},(_,i)=>{const r=i%4,c=Math.floor(i/4);return a[r]*b[c*4]+a[r+4]*b[c*4+1]+a[r+8]*b[c*4+2]+a[r+12]*b[c*4+3];});
+function matrix(n){if(n.matrix)return n.matrix;const[x,y,z,w]=n.rotation||[0,0,0,1],[sx,sy,sz]=n.scale||[1,1,1],[tx,ty,tz]=n.translation||[0,0,0];return[(1-2*y*y-2*z*z)*sx,(2*x*y+2*z*w)*sx,(2*x*z-2*y*w)*sx,0,(2*x*y-2*z*w)*sy,(1-2*x*x-2*z*z)*sy,(2*y*z+2*x*w)*sy,0,(2*x*z+2*y*w)*sz,(2*y*z-2*x*w)*sz,(1-2*x*x-2*y*y)*sz,0,tx,ty,tz,1];}
+function readAccessor(index){const a=g.accessors[index],v=g.bufferViews[a.bufferView],components={SCALAR:1,VEC2:2,VEC3:3,VEC4:4}[a.type],width={5120:1,5121:1,5122:2,5123:2,5125:4,5126:4}[a.componentType],stride=v.byteStride||components*width,start=(v.byteOffset||0)+(a.byteOffset||0),values=[];for(let i=0;i<a.count;i++){const row=[];for(let c=0;c<components;c++){const o=start+i*stride+c*width;row.push(a.componentType===5126?bin.readFloatLE(o):a.componentType===5125?bin.readUInt32LE(o):a.componentType===5123?bin.readUInt16LE(o):bin[o]);}values.push(row);}return values;}
+function visit(index,parent){const n=g.nodes[index],world=mul(parent,matrix(n));if(n.mesh!==undefined)for(const p of g.meshes[n.mesh].primitives){const pos=readAccessor(p.attributes.POSITION),norm=p.attributes.NORMAL!==undefined?readAccessor(p.attributes.NORMAL):null;for(let i=0;i<pos.length;i++){const[x,y,z]=pos[i],nx=norm?.[i]?.[0]||0,ny=norm?.[i]?.[1]||1,nz=norm?.[i]?.[2]||0;points.push({p:[world[0]*x+world[4]*y+world[8]*z+world[12],world[1]*x+world[5]*y+world[9]*z+world[13],world[2]*x+world[6]*y+world[10]*z+world[14]],n:[world[0]*nx+world[4]*ny+world[8]*nz,world[1]*nx+world[5]*ny+world[9]*nz,world[2]*nx+world[6]*ny+world[10]*nz]});}}for(const child of n.children||[])visit(child,world);}
+for(const root of g.scenes[g.scene||0].nodes)visit(root,identity());
+const min=[Infinity,Infinity,Infinity],max=[-Infinity,-Infinity,-Infinity];for(const{p}of points)for(let i=0;i<3;i++){min[i]=Math.min(min[i],p[i]);max[i]=Math.max(max[i],p[i]);}const center=max.map((v,i)=>(v+min[i])/2),size=Math.max(...max.map((v,i)=>v-min[i]));
+const yaw=Number(yawArg)*Math.PI/180,pitch=Number(pitchArg)*Math.PI/180,right=[Math.cos(yaw),0,-Math.sin(yaw)],up=[-Math.sin(yaw)*Math.sin(pitch),Math.cos(pitch),-Math.cos(yaw)*Math.sin(pitch)],forward=[Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),Math.cos(yaw)*Math.cos(pitch)],light=[-.4,.75,.52];
+const W=1000,H=800,margin=55,scale=Math.min((W-2*margin)/size,(H-2*margin)/size),rgba=Buffer.alloc(W*H*4);for(let i=0;i<W*H;i++){rgba[i*4]=15;rgba[i*4+1]=22;rgba[i*4+2]=34;rgba[i*4+3]=255;}
+const projected=points.map(({p,n})=>{const v=p.map((x,i)=>x-center[i]),x=v[0]*right[0]+v[1]*right[1]+v[2]*right[2],y=v[0]*up[0]+v[1]*up[1]+v[2]*up[2],z=v[0]*forward[0]+v[1]*forward[1]+v[2]*forward[2],nl=Math.hypot(...n)||1,shade=Math.max(.12,(n[0]*light[0]+n[1]*light[1]+n[2]*light[2])/nl*.55+.45);return{x:Math.round(W/2+x*scale),y:Math.round(H/2-y*scale),z,shade};}).sort((a,b)=>a.z-b.z);
+const radius=points.length<20000?2:1;
+for(const q of projected){const c=Math.round(210*q.shade);for(let dy=-radius;dy<=radius;dy++)for(let dx=-radius;dx<=radius;dx++){const x=q.x+dx,y=q.y+dy;if(x<0||x>=W||y<0||y>=H)continue;const i=(y*W+x)*4;rgba[i]=c;rgba[i+1]=Math.round(c*.96);rgba[i+2]=Math.round(c*.89);}}
+sharp(rgba,{raw:{width:W,height:H,channels:4}}).png().toFile(output).then(()=>console.log(`${path.basename(output)}: ${points.length.toLocaleString()} points`));

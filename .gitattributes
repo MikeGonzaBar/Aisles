@@ -1,0 +1,26 @@
+# Git should never attempt line-ending normalisation on binary assets.
+# The repo ships images, icons and glTF binaries alongside its source.
+* text=auto
+
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.webp binary
+*.gif  binary
+*.ico  binary
+*.glb  binary
+*.gltf binary
+*.bin  binary
+*.zip  binary
+*.nupkg binary
+*.dll  binary
+*.exe  binary
+*.ttf  binary
+*.woff binary
+*.woff2 binary
+
+# Lockfiles and generated JSON should keep their exact bytes.
+package-lock.json  text eol=lf
+*.slnx             text eol=crlf
+*.csproj           text eol=crlf
+*.xaml             text eol=crlf

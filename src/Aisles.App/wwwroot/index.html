@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aisles</title>
+  <link rel="stylesheet" href="stage.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <span class="wordmark">AISLES</span>
+    <span class="phase">Phase 0 &middot; neutral stage</span>
+    <span class="badge" id="bridge-badge" data-state="waiting">bridge: waiting</span>
+  </header>
+
+  <main class="layout">
+    <section class="panel consoles" aria-label="Consoles">
+      <h2>Consoles</h2>
+      <ul id="console-list" class="list"></ul>
+    </section>
+
+    <section class="panel games" aria-label="Games">
+      <h2 id="games-heading">Games</h2>
+      <ul id="game-list" class="list"></ul>
+    </section>
+  </main>
+
+  <footer class="statusbar">
+    <span id="status">Starting&hellip;</span>
+    <span id="totals"></span>
+  </footer>
+
+  <script src="stage.js"></script>
+</body>
+</html>

@@ -1,0 +1,695 @@
+{
+  "schemaVersion": 1,
+  "notes": "Placement defaults are computed from transformed scene bounds. Visual orientation needs review.",
+  "models": [
+    {
+      "id": "ps1",
+      "name": "PlayStation",
+      "source": "/3d models/PS1/sony_playstation_one.glb",
+      "runtime": "/assets/models/ps1/console.glb",
+      "placement": {
+        "rotationDegrees": [
+          0,
+          0,
+          0
+        ],
+        "scale": 7.987551099056304,
+        "translation": [
+          0.0231144974420539,
+          0.2977979303340274,
+          3.0685819949588976e-8
+        ]
+      },
+      "bounds": {
+        "min": [
+          -0.0981568219140172,
+          -0.037282757461071014,
+          -0.1439740436617285
+        ],
+        "max": [
+          0.0923691913485527,
+          0.022369918879121542,
+          0.14397403597831726
+        ],
+        "size": [
+          0.1905260132625699,
+          0.059652676340192556,
+          0.28794807964004576
+        ]
+      },
+      "triangles": 7470,
+      "primitives": 40,
+      "sourceBytes": 38619756,
+      "runtimeBytes": 9986240,
+      "sourceSha256": "b217750762c200745ee0bf8f1523b215968a9739d4a8d972ecb417e547c3612e",
+      "runtimeSha256": "b881c17f0624f645d9194a8b27b628f57f60276d52dc1b1792d06bca7c91238f",
+      "images": [
+        {
+          "before": [
+            4096,
+            4096
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": true
+        },
+        {
+          "before": [
+            4096,
+            4096
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": true
+        },
+        {
+          "before": [
+            4096,
+            4096
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": true
+        },
+        {
+          "before": [
+            4096,
+            4096
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": true
+        }
+      ],
+      "estimatedTextureMiB": 85.33333333333333,
+      "credit": {
+        "author": "Vladimir_Sofyanov (https://sketchfab.com/vladimirsoufl)",
+        "title": "SONY PlayStation One",
+        "source": "https://sketchfab.com/3d-models/sony-playstation-one-4afd87cc153346f8a8400a1e8517a6c9",
+        "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)"
+      },
+      "commercialRestricted": false,
+      "materialChanges": [],
+      "materialReview": [],
+      "visualStatus": "pending"
+    },
+    {
+      "id": "ps2",
+      "name": "PlayStation 2",
+      "source": "/3d models/PS2/playstation_2.glb",
+      "runtime": "/assets/models/ps2/console.glb",
+      "placement": {
+        "rotationDegrees": [
+          0,
+          0,
+          0
+        ],
+        "scale": 1.038179667278873,
+        "translation": [
+          0.024549396578391662,
+          0.30946819529981917,
+          -0.005183669122891553
+        ]
+      },
+      "bounds": {
+        "min": [
+          -1.131354652376261,
+          -0.29808732058002313,
+          -0.6897514748934847
+        ],
+        "max": [
+          1.0840614961873385,
+          0.274569964738232,
+          0.6997375481836277
+        ],
+        "size": [
+          2.2154161485635995,
+          0.5726572853182551,
+          1.3894890230771124
+        ]
+      },
+      "triangles": 10839,
+      "primitives": 7,
+      "sourceBytes": 59619012,
+      "runtimeBytes": 44197732,
+      "sourceSha256": "99f159f8260fd9990ddf87ed77a8bbfd78e2e1bcaef365830cc8340a9f029fca",
+      "runtimeSha256": "f77ed49d772070056a44602c64234d0b807ae1432b7a130fc25a00b87cc29e66",
+      "images": [
+        {
+          "before": [
+            4096,
+            4096
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": true
+        },
+        {
+          "before": [
+            4096,
+            4096
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": true
+        },
+        {
+          "before": [
+            4096,
+            4096
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": true
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        }
+      ],
+      "estimatedTextureMiB": 469.33333333333314,
+      "credit": {
+        "author": "Smoggybeard (https://sketchfab.com/Smoggybeard)",
+        "title": "PlayStation 2",
+        "source": "https://sketchfab.com/3d-models/playstation-2-8c992e9f5c86496ca7bd7dfe109d3cc2",
+        "license": "CC-BY-NC-SA-4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)"
+      },
+      "commercialRestricted": true,
+      "materialChanges": [
+        {
+          "material": "Playstaion_Base_Plastic",
+          "from": "BLEND",
+          "to": "MASK",
+          "alphaCutoff": 0.5,
+          "reason": "Solid shell uses a mostly binary opacity map; MASK avoids transparent-object sorting artifacts while retaining cutouts."
+        }
+      ],
+      "materialReview": [],
+      "visualStatus": "pending"
+    },
+    {
+      "id": "ps3",
+      "name": "PlayStation 3",
+      "source": "/3d models/PS3/classic_ps3.glb",
+      "runtime": "/assets/models/ps3/console.glb",
+      "placement": {
+        "rotationDegrees": [
+          0,
+          0,
+          0
+        ],
+        "scale": 7.004227559085742,
+        "translation": [
+          0.047897629808973156,
+          0.36975443514792056,
+          -0.07658508902976562
+        ]
+      },
+      "bounds": {
+        "min": [
+          -0.17102494453583028,
+          -0.052790180220270336,
+          -0.12801984288739937
+        ],
+        "max": [
+          0.1573481673594973,
+          0.04685532658023091,
+          0.1498880898521688
+        ],
+        "size": [
+          0.3283731118953276,
+          0.09964550680050124,
+          0.27790793273956815
+        ]
+      },
+      "triangles": 32689,
+      "primitives": 9,
+      "sourceBytes": 3612096,
+      "runtimeBytes": 3611872,
+      "sourceSha256": "55ee3650be451c9b869bbd2c82059933f9db9ca698a726bec85b79f875d7bef1",
+      "runtimeSha256": "c5e77afbc5039f886be291a576eed21adec9d269a220f7b6939420d6c0f2fe43",
+      "images": [
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            1024,
+            512
+          ],
+          "after": [
+            1024,
+            512
+          ],
+          "resized": false
+        }
+      ],
+      "estimatedTextureMiB": 24,
+      "credit": {
+        "author": "jei3323 (https://sketchfab.com/jei3323)",
+        "title": "classic ps3",
+        "source": "https://sketchfab.com/3d-models/classic-ps3-7c3e84e5bf514bd1be45788f74dc3d1f",
+        "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)"
+      },
+      "commercialRestricted": false,
+      "materialChanges": [],
+      "materialReview": [],
+      "visualStatus": "pending"
+    },
+    {
+      "id": "wii",
+      "name": "Nintendo Wii",
+      "source": "/3d models/wii/nintendo_wii_rvl-001.glb",
+      "runtime": "/assets/models/wii/console.glb",
+      "placement": {
+        "rotationDegrees": [
+          0,
+          0,
+          0
+        ],
+        "scale": 1.8818094362866955,
+        "translation": [
+          0.01142691882754391,
+          0.8556903523974584,
+          -0.005182008175819611
+        ]
+      },
+      "bounds": {
+        "min": [
+          -0.13641503582364947,
+          -0.45471679326146874,
+          -0.6083602142431632
+        ],
+        "max": [
+          0.12427042797207846,
+          0.44341948162764344,
+          0.6138676881413121
+        ],
+        "size": [
+          0.26068546379572793,
+          0.8981362748891122,
+          1.2222279023844753
+        ]
+      },
+      "triangles": 32480,
+      "primitives": 5,
+      "sourceBytes": 2030688,
+      "runtimeBytes": 2030632,
+      "sourceSha256": "7489148af414085d28f5e813e0ac8bb5ae0cf83480bfd8bfb1b4e49d88993236",
+      "runtimeSha256": "8aa9353badc283815cade989e2014cf80e901bede5e6b7e4445fc85a4d95e61c",
+      "images": [],
+      "estimatedTextureMiB": 0,
+      "credit": {
+        "author": "Djsigksj (https://sketchfab.com/Djsigksj)",
+        "title": "Nintendo Wii (RVL-001)",
+        "source": "https://sketchfab.com/3d-models/nintendo-wii-rvl-001-84d7958819f34ab6ad4d30dbbaed11c3",
+        "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)"
+      },
+      "commercialRestricted": false,
+      "materialChanges": [],
+      "materialReview": [],
+      "visualStatus": "pending"
+    },
+    {
+      "id": "ds",
+      "name": "Nintendo DS Lite",
+      "source": "/3d models/nintendoDs/nintendo_ds_lite.glb",
+      "runtime": "/assets/models/ds/console.glb",
+      "placement": {
+        "rotationDegrees": [
+          0,
+          0,
+          0
+        ],
+        "scale": 0.020480222714795628,
+        "translation": [
+          -0.01824104623721144,
+          -0.025128561582583604,
+          0.16741697900575456
+        ]
+      },
+      "bounds": {
+        "min": [
+          -55.261066714141066,
+          1.2269672030680532,
+          -55.40871008598731
+        ],
+        "max": [
+          57.042399514202216,
+          67.43658549592024,
+          39.05957352266208
+        ],
+        "size": [
+          112.30346622834328,
+          66.20961829285218,
+          94.46828360864939
+        ]
+      },
+      "triangles": 1186,
+      "primitives": 3,
+      "sourceBytes": 3017900,
+      "runtimeBytes": 3017692,
+      "sourceSha256": "2ad0ddd6d18b429c1268251e0dbddeab878935db6df7e81f19e71a3b925dc449",
+      "runtimeSha256": "b31600125b52501534fc947ba5a752263100ac6aa1f863ee0a8bc404e5af5a06",
+      "images": [
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        },
+        {
+          "before": [
+            2048,
+            2048
+          ],
+          "after": [
+            2048,
+            2048
+          ],
+          "resized": false
+        }
+      ],
+      "estimatedTextureMiB": 64,
+      "credit": {
+        "author": "Cianon (https://sketchfab.com/Cianon)",
+        "title": "Nintendo DS Lite",
+        "source": "https://sketchfab.com/3d-models/nintendo-ds-lite-ca529eb7208746e89b7a28fd2246659d",
+        "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)"
+      },
+      "commercialRestricted": false,
+      "materialChanges": [],
+      "materialReview": [
+        {
+          "name": "07_-_Default",
+          "alphaMode": "BLEND",
+          "hasAlpha": true,
+          "isOpaque": false,
+          "alphaRange": [
+            0,
+            255
+          ],
+          "decision": "Retain pending visual review; nonopaque pixels may be intentional."
+        }
+      ],
+      "visualStatus": "pending"
+    },
+    {
+      "id": "xbox360",
+      "name": "Xbox 360",
+      "source": "/3d models/xbox360/xbox_360_black.glb",
+      "runtime": "/assets/models/xbox360/console.glb",
+      "placement": {
+        "rotationDegrees": [
+          0,
+          0,
+          0
+        ],
+        "scale": 0.007446579359646929,
+        "translation": [
+          -0.0003770387567161319,
+          2.9447008199978125e-7,
+          0.9609094179037445
+        ]
+      },
+      "bounds": {
+        "min": [
+          -41.43524169921875,
+          -0.00003954434214392677,
+          -258.078369140625
+        ],
+        "max": [
+          41.53650665283203,
+          308.8666076660156,
+          -0.002387538319453597
+        ],
+        "size": [
+          82.97174835205078,
+          308.86664721035777,
+          258.07598160230555
+        ]
+      },
+      "triangles": 159969,
+      "primitives": 1,
+      "sourceBytes": 6230612,
+      "runtimeBytes": 6230612,
+      "sourceSha256": "7bdb85e39178dc98ce72381bc0e9d7146afed280f2486d0bfffc5477f21fdca8",
+      "runtimeSha256": "7bdb85e39178dc98ce72381bc0e9d7146afed280f2486d0bfffc5477f21fdca8",
+      "images": [],
+      "estimatedTextureMiB": 0,
+      "credit": {
+        "author": "Rob Bryant Jr.",
+        "title": "Xbox 360 Black",
+        "source": "https://sketchfab.com/3d-models/xbox-360-black-3d-model-by-rob-bryant-jr-f65ac4721fd34dd8a8b63adfa712f5b8",
+        "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)"
+      },
+      "commercialRestricted": false,
+      "materialChanges": [],
+      "materialReview": [],
+      "visualStatus": "pending"
+    }
+  ]
+}

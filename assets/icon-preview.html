@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aisles — Aisles.ico</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; background:#171b29; color:#e8ecf5;
+         font-family:"Segoe UI",system-ui,sans-serif; padding:32px 36px 64px; }
+  h1 { font-size:15px; letter-spacing:.14em; text-transform:uppercase; color:#FFCE00; margin:0 0 6px; }
+  p.sub { margin:0 0 28px; color:#93a0bb; font-size:13px; max-width:78ch; line-height:1.6; }
+  h2 { font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:#9fb0d0; margin:0 0 12px; }
+  section { margin-bottom:36px; }
+  .panel { background:#0E1224; border-radius:14px; padding:22px 24px; box-shadow:inset 0 0 0 1px #232a3f; }
+  .files { display:flex; align-items:flex-end; gap:26px; flex-wrap:wrap; }
+  .cell { display:flex; flex-direction:column; align-items:center; gap:9px; }
+  .cell span { font-size:10px; letter-spacing:.1em; color:#8c9bb7; }
+  img { display:block; image-rendering:auto; }
+  /* taskbar mock */
+  .taskbar { display:flex; align-items:center; gap:14px; background:#1f1f1f;
+             border-radius:10px; padding:12px 18px; }
+  .tb-icon { width:32px; height:32px; }
+  .tb-icon.active { padding:0; background:#3a3a3a; border-radius:7px; }
+  .tb-sep { width:1px; height:28px; background:#3a3a3a; }
+  .win { display:flex; flex-direction:column; width:420px; border-radius:10px; overflow:hidden;
+         box-shadow:0 18px 44px rgba(0,0,0,.55); border:1px solid #2a3044; }
+  .win .titlebar { display:flex; align-items:center; gap:10px; background:#0b1626; padding:8px 12px; }
+  .win .titlebar img { width:16px; height:16px; }
+  .win .titlebar span { font-size:12px; color:#c8d3e6; }
+  .win .body { background:#0E1224; height:104px; display:flex; align-items:center; justify-content:center; }
+  .win .body b { color:#FFCE00; font-size:13px; letter-spacing:.16em; }
+  .note { font-size:12.5px; color:#93a0bb; border-left:2px solid #FFCE00; padding-left:14px;
+          line-height:1.7; max-width:78ch; }
+  .note b { color:#e8ecf5; }
+  code { background:#12192b; padding:1px 5px; border-radius:4px; color:#c8d3e6; font-size:12px; }
+</style>
+</head>
+<body>
+
+<h1>Aisles.ico</h1>
+<p class="sub">The real file, decoded by the browser's own ICO reader — an independent check that
+it isn't just well-formed on paper. Below it, each raster at 1:1, plus how it looks where it
+actually lives: the taskbar and a window title bar.</p>
+
+<section>
+  <h2>1 — The .ico itself</h2>
+  <div class="panel">
+    <div class="files">
+      <div class="cell"><img src="Aisles.ico" width="256" height="256" alt="Aisles icon 256"><span>256</span></div>
+      <div class="cell"><img src="Aisles.ico" width="128" height="128" alt="Aisles icon 128"><span>128</span></div>
+      <div class="cell"><img src="Aisles.ico" width="64" height="64" alt="Aisles icon 64"><span>64</span></div>
+      <div class="cell"><img src="Aisles.ico" width="48" height="48" alt="Aisles icon 48"><span>48</span></div>
+      <div class="cell"><img src="Aisles.ico" width="32" height="32" alt="Aisles icon 32"><span>32</span></div>
+      <div class="cell"><img src="Aisles.ico" width="24" height="24" alt="Aisles icon 24"><span>24</span></div>
+      <div class="cell"><img src="Aisles.ico" width="16" height="16" alt="Aisles icon 16"><span>16</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>2 — Each entry at exact size</h2>
+  <div class="panel">
+    <div class="files">
+      <div class="cell"><img src="png/aisles-16.png" width="16" height="16" alt=""><span>16 · flat</span></div>
+      <div class="cell"><img src="png/aisles-24.png" width="24" height="24" alt=""><span>24 · flat</span></div>
+      <div class="cell"><img src="png/aisles-32.png" width="32" height="32" alt=""><span>32 · flat</span></div>
+      <div class="cell"><img src="png/aisles-48.png" width="48" height="48" alt=""><span>48 · flat</span></div>
+      <div class="cell"><img src="png/aisles-64.png" width="64" height="64" alt=""><span>64 · rich</span></div>
+      <div class="cell"><img src="png/aisles-128.png" width="128" height="128" alt=""><span>128 · rich</span></div>
+      <div class="cell"><img src="png/aisles-256.png" width="256" height="256" alt=""><span>256 · rich</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>3 — In context</h2>
+  <div class="panel">
+    <div class="taskbar">
+      <img class="tb-icon" src="png/aisles-32.png" alt="">
+      <img class="tb-icon" src="png/aisles-32.png" alt="" style="filter:grayscale(1) opacity(.45)">
+      <img class="tb-icon" src="png/aisles-32.png" alt="" style="filter:grayscale(1) opacity(.45)">
+      <div class="tb-sep"></div>
+      <img class="tb-icon" src="png/aisles-32.png" alt="" style="filter:saturate(0) brightness(.5)">
+    </div>
+    <div style="height:18px"></div>
+    <div class="win">
+      <div class="titlebar">
+        <img src="png/aisles-16.png" alt="">
+        <span>Aisles</span>
+      </div>
+      <div class="body"><b>WALK THE AISLES</b></div>
+    </div>
+  </div>
+</section>
+
+<p class="note">
+  <b>What to check:</b> at <b>16</b> through <b>48</b> you should still read “a blue case on a yellow
+  shelf” — that's the flat vector mark doing its job. At <b>64</b> and up the rich mark takes over and
+  the shelf fills out into three objects. The handoff sits at 64 because that's where the rich mark
+  stops holding: measured on a scanline through the cases it keeps 39 distinct colour bands at 64,
+  drops to 33 by 48, and its rental yellow drifts from <code>#FFDE00</code> toward <code>#574400</code>
+  by 16.<br><br>
+  <b>Two sources, one file:</b> 16/24/32/48 are rendered from <code>prototype/icon-concept-a-small.svg</code>;
+  64/128/256 are downscaled from <code>prototype/icon-rich-source.png</code>. Move the handoff by
+  editing the <code>PLAN</code> array at the top of <code>tools/build-icon.js</code>.<br><br>
+  <b>Structure:</b> 7 entries — 6 uncompressed 32-bit DIBs (16→128) plus one PNG-compressed 256,
+  which is the convention Windows expects. Alpha is carried per-pixel, so the rounded corners are
+  genuinely transparent, not white.<br><br>
+  <b>Rebuild:</b> <code>node tools/build-icon.js</code> — swap a source or move the handoff, re-run, done.
+</p>
+
+</body>
+</html>

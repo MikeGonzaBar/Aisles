@@ -1,0 +1,204 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#131b38"/><stop offset="1" stop-color="#070a14"/>
+    </linearGradient>
+    <radialGradient id="warm" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FFCE00" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#FFCE00" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="cool" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#4b78d8" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#4b78d8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fadeTop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b1122" stop-opacity="1"/><stop offset="1" stop-color="#0b1122" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="fadeBot" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b1122" stop-opacity="0"/><stop offset="1" stop-color="#0b1122" stop-opacity="1"/>
+    </linearGradient>
+    <clipPath id="shelfClip"><rect x="24" y="196" width="788" height="492"/></clipPath>
+  </defs>
+
+  <rect width="1280" height="720" fill="url(#bg)"/>
+
+  <!-- ========== TOP BAR: configuration ========== -->
+  <rect x="0" y="0" width="1280" height="44" fill="#0a0f1f"/>
+  <line x1="0" y1="44" x2="1280" y2="44" stroke="#1b2442"/>
+  <text x="24" y="29" font-family="Segoe UI, sans-serif" font-size="17" font-weight="700" fill="#FFCE00">AISLES</text>
+  <rect x="966" y="10" width="150" height="24" rx="12" fill="#111933" stroke="#243052"/>
+  <text x="982" y="26" font-family="Segoe UI, sans-serif" font-size="11" fill="#5f6a85">Search collection</text>
+  <circle cx="1160" cy="22" r="10" fill="none" stroke="#3a4568"/>
+  <circle cx="1157" cy="19" r="4" fill="none" stroke="#5f6a85"/>
+  <line x1="1160" y1="23" x2="1164" y2="27" stroke="#5f6a85" stroke-width="1.5"/>
+  <circle cx="1196" cy="22" r="10" fill="none" stroke="#3a4568"/>
+  <circle cx="1196" cy="22" r="3" fill="none" stroke="#5f6a85"/>
+  <circle cx="1229" cy="22" r="3" fill="#3f7d55"/>
+  <text x="1240" y="26" font-family="Segoe UI, sans-serif" font-size="11" fill="#5f6a85">47</text>
+
+  <!-- ========== CONSOLE LINEUP (platform switcher) ========== -->
+  <text x="24" y="64" font-family="Segoe UI, sans-serif" font-size="9" fill="#4d5873">AVAILABLE CONSOLES &#183; selection scales up</text>
+  <rect x="24" y="150" width="1232" height="1" fill="#1b2442"/>
+  <ellipse cx="260" cy="132" rx="86" ry="66" fill="url(#warm)"/>
+
+  <g fill="#1a2338" stroke="#2c3a5c">
+    <rect x="82" y="124" width="76" height="24" rx="2"/>
+    <polygon points="82,124 89,118 165,118 158,124" fill="#22314c"/>
+  </g>
+  <text x="120" y="166" font-family="Segoe UI, sans-serif" font-size="10" fill="#6d7891" text-anchor="middle">PS1</text>
+
+  <g stroke="#FFCE00">
+    <rect x="198" y="148" width="124" height="8" rx="2" fill="#2a2210"/>
+    <rect x="206" y="110" width="108" height="38" rx="2" fill="#2b3448"/>
+    <polygon points="206,110 214,103 322,103 314,110" fill="#3b4866"/>
+    <line x1="222" y1="132" x2="298" y2="132" stroke="#0b1122" stroke-width="3"/>
+  </g>
+  <circle cx="306" cy="126" r="2.5" fill="#FFCE00" stroke="none"/>
+  <text x="260" y="166" font-family="Segoe UI, sans-serif" font-size="11" font-weight="700" fill="#FFCE00" text-anchor="middle">PS2</text>
+
+  <g fill="#1a2338" stroke="#2c3a5c">
+    <rect x="358" y="128" width="84" height="20" rx="2"/>
+    <polygon points="358,128 365,122 449,122 442,128" fill="#22314c"/>
+  </g>
+  <text x="400" y="166" font-family="Segoe UI, sans-serif" font-size="10" fill="#6d7891" text-anchor="middle">PS3</text>
+
+  <g fill="#20283a" stroke="#3a4568">
+    <rect x="525" y="70" width="30" height="78" rx="2"/>
+    <polygon points="525,70 531,64 561,64 555,70" fill="#2d3852"/>
+  </g>
+  <text x="540" y="166" font-family="Segoe UI, sans-serif" font-size="10" fill="#6d7891" text-anchor="middle">Wii</text>
+
+  <g fill="#1a2338" stroke="#2c3a5c">
+    <rect x="649" y="114" width="62" height="34" rx="2"/>
+    <polygon points="649,114 656,108 718,108 711,114" fill="#22314c"/>
+    <line x1="649" y1="131" x2="711" y2="131" stroke="#0d1526"/>
+  </g>
+  <text x="680" y="166" font-family="Segoe UI, sans-serif" font-size="10" fill="#6d7891" text-anchor="middle">DS</text>
+
+  <g fill="#1a2338" stroke="#2c3a5c">
+    <rect x="777" y="124" width="86" height="24" rx="2"/>
+    <polygon points="777,124 784,118 870,118 863,124" fill="#22314c"/>
+  </g>
+  <text x="820" y="166" font-family="Segoe UI, sans-serif" font-size="10" fill="#6d7891" text-anchor="middle">360</text>
+
+  <g fill="#1a2338" stroke="#2c3a5c">
+    <rect x="935" y="112" width="50" height="36" rx="2"/>
+    <polygon points="935,112 942,106 992,106 985,112" fill="#22314c"/>
+  </g>
+  <text x="960" y="166" font-family="Segoe UI, sans-serif" font-size="10" fill="#6d7891" text-anchor="middle">GC</text>
+
+  <g fill="#1a2338" stroke="#2c3a5c">
+    <rect x="1069" y="114" width="62" height="34" rx="2"/>
+    <polygon points="1069,114 1076,108 1138,108 1131,114" fill="#22314c"/>
+    <line x1="1069" y1="131" x2="1131" y2="131" stroke="#0d1526"/>
+  </g>
+  <text x="1100" y="166" font-family="Segoe UI, sans-serif" font-size="10" fill="#6d7891" text-anchor="middle">3DS</text>
+
+  <text x="1248" y="166" font-family="Segoe UI, sans-serif" font-size="9" fill="#4d5873" text-anchor="end">GC / 3DS model pending</text>
+
+  <!-- ========== INFINITE SHELF ========== -->
+  <text x="24" y="190" font-family="Segoe UI, sans-serif" font-size="10" fill="#5f6a85">SHELF &#183; infinite, follows the library</text>
+  <g clip-path="url(#shelfClip)">
+    <rect x="24" y="196" width="788" height="492" fill="#0b1122"/>
+    <rect x="24" y="196" width="10" height="492" fill="#241a0c"/>
+    <rect x="802" y="196" width="10" height="492" fill="#241a0c"/>
+
+    <!-- tier above (clipped, implies continuation) -->
+    <rect x="34" y="196" width="768" height="10" fill="#241a0c"/>
+    <g opacity="0.55">
+      <rect x="44" y="90" width="70" height="110" rx="2" fill="#2a3a5e" stroke="#070a14"/>
+      <rect x="118" y="90" width="70" height="110" rx="2" fill="#5e3232" stroke="#070a14"/>
+      <rect x="192" y="90" width="70" height="110" rx="2" fill="#26523f" stroke="#070a14"/>
+      <rect x="266" y="90" width="70" height="110" rx="2" fill="#3b3560" stroke="#070a14"/>
+    </g>
+
+    <!-- tier 1 -->
+    <rect x="34" y="350" width="768" height="10" fill="#241a0c" stroke="#3d2c13"/>
+    <g>
+      <rect x="44" y="240" width="70" height="110" rx="2" fill="#2c4166" stroke="#070a14"/><rect x="52" y="250" width="54" height="60" fill="#3d5a86"/>
+      <rect x="118" y="240" width="70" height="110" rx="2" fill="#5c2a2a" stroke="#070a14"/><rect x="126" y="250" width="54" height="60" fill="#7c3b3b"/>
+      <rect x="192" y="240" width="70" height="110" rx="2" fill="#26523f" stroke="#070a14"/><rect x="200" y="250" width="54" height="60" fill="#346d54"/>
+      <rect x="266" y="240" width="70" height="110" rx="2" fill="#3b3560" stroke="#070a14"/><rect x="274" y="250" width="54" height="60" fill="#514a80"/>
+      <rect x="340" y="240" width="70" height="110" rx="2" fill="#5a461f" stroke="#070a14"/><rect x="348" y="250" width="54" height="60" fill="#7a6029"/>
+      <rect x="414" y="240" width="70" height="110" rx="2" fill="#1f4553" stroke="#070a14"/><rect x="422" y="250" width="54" height="60" fill="#2b5d70"/>
+      <rect x="488" y="240" width="70" height="110" rx="2" fill="#34406b" stroke="#070a14"/><rect x="496" y="250" width="54" height="60" fill="#46568f"/>
+      <rect x="562" y="240" width="70" height="110" rx="2" fill="#6b3a2a" stroke="#070a14"/><rect x="570" y="250" width="54" height="60" fill="#8d4e39"/>
+      <rect x="636" y="240" width="70" height="110" rx="2" fill="#2f5a3a" stroke="#070a14"/><rect x="644" y="250" width="54" height="60" fill="#3f774e"/>
+    </g>
+
+    <!-- tier 2 -->
+    <rect x="34" y="510" width="768" height="10" fill="#241a0c" stroke="#3d2c13"/>
+    <g>
+      <rect x="44" y="400" width="70" height="110" rx="2" fill="#463a6e" stroke="#070a14"/><rect x="52" y="410" width="54" height="60" fill="#5d4e91"/>
+      <rect x="118" y="400" width="70" height="110" rx="2" fill="#6a5222" stroke="#070a14"/><rect x="126" y="410" width="54" height="60" fill="#8c6d2d"/>
+      <rect x="192" y="400" width="70" height="110" rx="2" fill="#245060" stroke="#070a14"/><rect x="200" y="410" width="54" height="60" fill="#306a7e"/>
+      <rect x="266" y="400" width="70" height="110" rx="2" fill="#2a3a5e" stroke="#070a14"/><rect x="274" y="410" width="54" height="60" fill="#3b507e"/>
+      <rect x="340" y="400" width="70" height="110" rx="2" fill="#5e3232" stroke="#070a14"/><rect x="348" y="410" width="54" height="60" fill="#7d4444"/>
+      <rect x="414" y="400" width="70" height="110" rx="2" fill="#26523f" stroke="#070a14"/><rect x="422" y="410" width="54" height="60" fill="#346d54"/>
+      <rect x="488" y="400" width="70" height="110" rx="2" fill="#3b3560" stroke="#070a14"/><rect x="496" y="410" width="54" height="60" fill="#514a80"/>
+      <rect x="562" y="400" width="70" height="110" rx="2" fill="#5a461f" stroke="#070a14"/><rect x="570" y="410" width="54" height="60" fill="#7a6029"/>
+    </g>
+
+    <!-- tier 3: partial, and the selected slot is empty -->
+    <rect x="34" y="670" width="768" height="10" fill="#241a0c" stroke="#3d2c13"/>
+    <g>
+      <rect x="44" y="560" width="70" height="110" rx="2" fill="#34406b" stroke="#070a14"/><rect x="52" y="570" width="54" height="60" fill="#46568f"/>
+      <rect x="118" y="560" width="70" height="110" rx="2" fill="#2f5a3a" stroke="#070a14"/><rect x="126" y="570" width="54" height="60" fill="#3f774e"/>
+      <rect x="192" y="560" width="70" height="110" rx="2" fill="none" stroke="#FFCE00" stroke-opacity="0.30" stroke-dasharray="4 4"/>
+      <text x="227" y="618" font-family="Segoe UI, sans-serif" font-size="8" fill="#FFCE00" fill-opacity="0.40" text-anchor="middle">OUT</text>
+      <rect x="266" y="560" width="70" height="110" rx="2" fill="#245060" stroke="#070a14"/><rect x="274" y="570" width="54" height="60" fill="#306a7e"/>
+      <rect x="340" y="560" width="70" height="110" rx="2" fill="#6a5222" stroke="#070a14"/><rect x="348" y="570" width="54" height="60" fill="#8c6d2d"/>
+    </g>
+
+    <rect x="24" y="196" width="788" height="40" fill="url(#fadeTop)"/>
+    <rect x="24" y="648" width="788" height="40" fill="url(#fadeBot)"/>
+  </g>
+  <text x="802" y="206" font-family="Segoe UI, sans-serif" font-size="10" fill="#5f6a85" text-anchor="end">17 games</text>
+
+  <!-- ========== SELECTED GAME ========== -->
+  <ellipse cx="1140" cy="330" rx="130" ry="130" fill="url(#cool)"/>
+  <ellipse cx="936" cy="440" rx="120" ry="16" fill="#000" opacity="0.5"/>
+
+  <rect x="856" y="210" width="160" height="225" rx="3" fill="#26523f" stroke="#FFCE00" stroke-width="2"/>
+  <rect x="868" y="222" width="136" height="150" fill="#346d54"/>
+  <rect x="868" y="384" width="136" height="39" fill="#1d4031"/>
+  <text x="936" y="408" font-family="Segoe UI, sans-serif" font-size="10" fill="#cfe3d8" text-anchor="middle">PERSONA 3 FES</text>
+
+  <circle cx="1140" cy="330" r="72" fill="#121a2c" stroke="#33456e"/>
+  <circle cx="1140" cy="330" r="24" fill="#0a0f1f" stroke="#33456e"/>
+  <circle cx="1140" cy="330" r="6" fill="#1b2442"/>
+  <path d="M1140 258 A72 72 0 0 1 1212 330" fill="none" stroke="#4b78d8" stroke-opacity="0.55" stroke-width="2"/>
+  <text x="1140" y="418" font-family="Segoe UI, sans-serif" font-size="9" fill="#4d5873" text-anchor="middle">medium &#183; real shape per platform</text>
+
+  <text x="856" y="478" font-family="Segoe UI, sans-serif" font-size="18" font-weight="700" fill="#F4EFE4">Persona 3 FES</text>
+  <text x="856" y="497" font-family="Segoe UI, sans-serif" font-size="11" fill="#8a94ad">PlayStation 2 &#183; 2007</text>
+  <rect x="1096" y="458" width="144" height="42" rx="6" fill="#FFCE00"/>
+  <text x="1168" y="485" font-family="Segoe UI, sans-serif" font-size="15" font-weight="700" fill="#0E1224" text-anchor="middle">LAUNCH</text>
+
+  <!-- ========== INFO / STATS / ACHIEVEMENTS ========== -->
+  <text x="856" y="528" font-family="Segoe UI, sans-serif" font-size="9" fill="#4d5873">INFORMATION</text>
+  <line x1="856" y1="534" x2="1240" y2="534" stroke="#1b2442"/>
+
+  <text x="856" y="552" font-family="Segoe UI, sans-serif" font-size="10" fill="#5f6a85">Game ID</text>
+  <text x="936" y="552" font-family="Segoe UI, sans-serif" font-size="10" fill="#c9d2e4">SLUS-21621</text>
+  <text x="1052" y="552" font-family="Segoe UI, sans-serif" font-size="10" fill="#5f6a85">Region</text>
+  <text x="1120" y="552" font-family="Segoe UI, sans-serif" font-size="10" fill="#c9d2e4">NTSC-U</text>
+  <text x="856" y="570" font-family="Segoe UI, sans-serif" font-size="10" fill="#5f6a85">Emulator</text>
+  <text x="936" y="570" font-family="Segoe UI, sans-serif" font-size="10" fill="#c9d2e4">PCSX2</text>
+  <text x="1052" y="570" font-family="Segoe UI, sans-serif" font-size="10" fill="#5f6a85">Case</text>
+  <text x="1120" y="570" font-family="Segoe UI, sans-serif" font-size="10" fill="#c9d2e4">DVD keep case</text>
+
+  <text x="856" y="596" font-family="Segoe UI, sans-serif" font-size="9" fill="#4d5873">PLAYED</text>
+  <line x1="856" y1="602" x2="1240" y2="602" stroke="#1b2442"/>
+  <text x="856" y="620" font-family="Segoe UI, sans-serif" font-size="13" font-weight="600" fill="#F4EFE4">9h 02m</text>
+  <text x="926" y="620" font-family="Segoe UI, sans-serif" font-size="10" fill="#8a94ad">last played 11 Dec 2025</text>
+  <text x="1240" y="620" font-family="Segoe UI, sans-serif" font-size="9" fill="#4d5873" text-anchor="end">PCSX2 playtime.dat</text>
+
+  <text x="856" y="646" font-family="Segoe UI, sans-serif" font-size="9" fill="#4d5873">ACHIEVEMENTS</text>
+  <line x1="856" y1="652" x2="1240" y2="652" stroke="#1b2442"/>
+  <text x="856" y="672" font-family="Segoe UI, sans-serif" font-size="11" fill="#6d7891">Supported &#183; not linked</text>
+  <text x="1240" y="672" font-family="Segoe UI, sans-serif" font-size="9" fill="#4d5873" text-anchor="end">Phase 6</text>
+
+  <line x1="836" y1="196" x2="836" y2="700" stroke="#1b2442"/>
+  <text x="856" y="690" font-family="Segoe UI, sans-serif" font-size="9" fill="#3f4a66">Empty platforms show the console, an empty shelf and a drop-folder hint.</text>
+</svg>

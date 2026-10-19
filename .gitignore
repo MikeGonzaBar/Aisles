@@ -1,0 +1,27 @@
+# --- .NET build output ---
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.userprefs
+
+# --- Node (asset + workshop tooling) ---
+node_modules/
+.cache/
+.tmp-model-review/
+.tmp-model-import/
+
+# --- Raw downloaded console model sources (560 MB, one file at 176 MB) ---
+# Reproducible via tools/ import + prepare scripts; assets/models/ holds the
+# optimised runtime copies that the app actually ships.
+3d models/
+
+# --- Local runtime state ---
+# Aisles' own metadata/artwork cache is machine-local, never a source artifact.
+appdata/
+
+# --- OS noise ---
+Thumbs.db
+desktop.ini
+.DS_Store

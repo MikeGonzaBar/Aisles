@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aisles — icon comparison</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; background:#171b29; color:#e8ecf5;
+         font-family:"Segoe UI",system-ui,sans-serif; padding:32px 36px 64px; }
+  h1 { font-size:15px; letter-spacing:.14em; text-transform:uppercase; color:#FFCE00; margin:0 0 6px; }
+  p.sub { margin:0 0 30px; color:#93a0bb; font-size:13px; max-width:80ch; line-height:1.65; }
+  h2 { font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:#9fb0d0; margin:0 0 4px; }
+  h2 em { font-style:normal; color:#6f7d99; text-transform:none; letter-spacing:0; }
+  section { margin-bottom:40px; }
+  .row { display:flex; align-items:flex-end; gap:26px; padding:20px 22px; border-radius:14px; }
+  .row + .row { margin-top:8px; }
+  .row.dark  { background:#0E1224; box-shadow:inset 0 0 0 1px #232a3f; }
+  .row.light { background:#ffffff; }
+  .cell { display:flex; flex-direction:column; align-items:center; gap:9px; }
+  .cell span { font-size:10px; letter-spacing:.1em; color:#8c9bb7; }
+  .row.light .cell span { color:#5a6273; }
+  img { display:block; }
+  .strip { display:flex; gap:44px; padding:22px 24px; background:#0E1224;
+           box-shadow:inset 0 0 0 1px #232a3f; border-radius:14px; align-items:flex-end; }
+  .strip .col { display:flex; flex-direction:column; gap:12px; }
+  .strip .col h4 { margin:0; font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+                   color:#6f7d99; font-weight:600; }
+  .strip .pair { display:flex; align-items:flex-end; gap:16px; }
+  table { border-collapse:collapse; font-size:12px; margin-top:4px; }
+  th, td { text-align:right; padding:6px 14px 6px 0; border-bottom:1px solid #232a3f; }
+  th { color:#6f7d99; font-weight:600; letter-spacing:.08em; font-size:10px; text-transform:uppercase; }
+  td:first-child, th:first-child { text-align:left; color:#c8d3e6; }
+  .bad { color:#e06c6c; } .ok { color:#7ec97e; } .mid { color:#e0c05a; }
+  .note { font-size:12.5px; color:#93a0bb; border-left:2px solid #FFCE00;
+          padding-left:14px; line-height:1.7; max-width:80ch; }
+  .note b { color:#e8ecf5; }
+  code { background:#12192b; padding:1px 5px; border-radius:4px; color:#c8d3e6; font-size:12px; }
+</style>
+</head>
+<body>
+
+<h1>Icon comparison — AI mark vs flat mark</h1>
+<p class="sub">Same seven sizes, same backgrounds. <b>Rich</b> is the AI-generated mark you
+dropped in <code>prototype/</code>. <b>Flat&nbsp;full</b> and <b>Flat&nbsp;small</b> are the two
+vector marks already baked into <code>assets/Aisles.ico</code>. The bottom strip is the only
+row that decides anything.</p>
+
+<!-- ============================ RICH ============================ -->
+<section>
+  <h2>Rich <em>— AI mark, 1254px source downscaled</em></h2>
+  <div class="row dark">
+    <div class="cell"><img src="compare/rich-256.png" width="256" height="256" alt=""><span>256</span></div>
+    <div class="cell"><img src="compare/rich-128.png" width="128" height="128" alt=""><span>128</span></div>
+    <div class="cell"><img src="compare/rich-64.png" width="64" height="64" alt=""><span>64</span></div>
+    <div class="cell"><img src="compare/rich-48.png" width="48" height="48" alt=""><span>48</span></div>
+    <div class="cell"><img src="compare/rich-32.png" width="32" height="32" alt=""><span>32</span></div>
+    <div class="cell"><img src="compare/rich-24.png" width="24" height="24" alt=""><span>24</span></div>
+    <div class="cell"><img src="compare/rich-16.png" width="16" height="16" alt=""><span>16</span></div>
+  </div>
+  <div class="row light">
+    <div class="cell"><img src="compare/rich-256.png" width="256" height="256" alt=""><span>256</span></div>
+    <div class="cell"><img src="compare/rich-128.png" width="128" height="128" alt=""><span>128</span></div>
+    <div class="cell"><img src="compare/rich-64.png" width="64" height="64" alt=""><span>64</span></div>
+    <div class="cell"><img src="compare/rich-48.png" width="48" height="48" alt=""><span>48</span></div>
+    <div class="cell"><img src="compare/rich-32.png" width="32" height="32" alt=""><span>32</span></div>
+    <div class="cell"><img src="compare/rich-24.png" width="24" height="24" alt=""><span>24</span></div>
+    <div class="cell"><img src="compare/rich-16.png" width="16" height="16" alt=""><span>16</span></div>
+  </div>
+</section>
+
+<!-- ============================ FLAT ============================ -->
+<section>
+  <h2>Flat <em>— vector marks, crisp at every size</em></h2>
+  <div class="row dark">
+    <div class="cell"><img src="../assets/png/aisles-256.png" width="256" height="256" alt=""><span>256 · full</span></div>
+    <div class="cell"><img src="../assets/png/aisles-128.png" width="128" height="128" alt=""><span>128 · full</span></div>
+    <div class="cell"><img src="../assets/png/aisles-64.png" width="64" height="64" alt=""><span>64 · full</span></div>
+    <div class="cell"><img src="../assets/png/aisles-48.png" width="48" height="48" alt=""><span>48 · full</span></div>
+    <div class="cell"><img src="../assets/png/aisles-32.png" width="32" height="32" alt=""><span>32 · small</span></div>
+    <div class="cell"><img src="../assets/png/aisles-24.png" width="24" height="24" alt=""><span>24 · small</span></div>
+    <div class="cell"><img src="../assets/png/aisles-16.png" width="16" height="16" alt=""><span>16 · small</span></div>
+  </div>
+  <div class="row light">
+    <div class="cell"><img src="../assets/png/aisles-256.png" width="256" height="256" alt=""><span>256 · full</span></div>
+    <div class="cell"><img src="../assets/png/aisles-128.png" width="128" height="128" alt=""><span>128 · full</span></div>
+    <div class="cell"><img src="../assets/png/aisles-64.png" width="64" height="64" alt=""><span>64 · full</span></div>
+    <div class="cell"><img src="../assets/png/aisles-48.png" width="48" height="48" alt=""><span>48 · full</span></div>
+    <div class="cell"><img src="../assets/png/aisles-32.png" width="32" height="32" alt=""><span>32 · small</span></div>
+    <div class="cell"><img src="../assets/png/aisles-24.png" width="24" height="24" alt=""><span>24 · small</span></div>
+    <div class="cell"><img src="../assets/png/aisles-16.png" width="16" height="16" alt=""><span>16 · small</span></div>
+  </div>
+</section>
+
+<!-- ============================ DECIDES ============================ -->
+<section>
+  <h2>The decisive row <em>— taskbar sizes, 1:1</em></h2>
+  <div class="strip">
+    <div class="col">
+      <h4>Rich</h4>
+      <div class="pair">
+        <img src="compare/rich-32.png" width="32" height="32" alt="">
+        <img src="compare/rich-24.png" width="24" height="24" alt="">
+        <img src="compare/rich-16.png" width="16" height="16" alt="">
+      </div>
+    </div>
+    <div class="col">
+      <h4>Flat full</h4>
+      <div class="pair">
+        <img src="../assets/png/aisles-32.png" width="32" height="32" alt="">
+        <img src="../assets/png/aisles-24.png" width="24" height="24" alt="">
+        <img src="../assets/png/aisles-16.png" width="16" height="16" alt="">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Objective check <em>— distinct colour bands on a scanline through the cases</em></h2>
+  <table>
+    <tr><th>Size</th><th>Bands</th><th>Reading</th></tr>
+    <tr><td>256</td><td>47</td><td class="ok">everything present</td></tr>
+    <tr><td>128</td><td>45</td><td class="ok">everything present</td></tr>
+    <tr><td>64</td><td>39</td><td class="ok">still clean</td></tr>
+    <tr><td>48</td><td>33</td><td class="mid">starting to blend</td></tr>
+    <tr><td>32</td><td>25</td><td class="mid">colours muddying</td></tr>
+    <tr><td>24</td><td>21</td><td class="bad">detail gone</td></tr>
+    <tr><td>16</td><td>14</td><td class="bad">shape only</td></tr>
+  </table>
+  <p class="note" style="margin-top:18px">
+    Bands counts runs of distinct colour along one row, so it over-counts anti-aliasing —
+    read the <b>trend</b>, not the number. What matters is the palette at the bottom: at
+    16px the mark's rental yellow <code>#FFDE00</code> has become <code>#574400</code> and the
+    bright blue <code>#0052BC</code> has become <code>#4C6C96</code>. The colours have turned to mud,
+    which is exactly what a vector doesn't do.
+  </p>
+</section>
+
+<p class="note">
+  <b>My read:</b> the rich mark is genuinely good from <b>64px up</b> — it's the best-looking
+  version of this logo so far, and it should be the 256/128/64 entries. Below 64 the flat
+  vector wins outright, because it's drawn at the size it's displayed rather than shrunk
+  toward it. That's the tiered structure, confirmed by measurement rather than taste.
+</p>
+
+</body>
+</html>

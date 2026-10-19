@@ -1,0 +1,16 @@
+{
+  "name": "aisles-model-preview",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "preview": "node tools/serve-model-audit.cjs",
+    "test": "node --test tools/artwork-workshop.test.cjs",
+    "import:models": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/import-downloaded-models.ps1",
+    "prepare:models": "node tools/prepare-models.cjs",
+    "check:models": "node tools/check-models.cjs"
+  },
+  "dependencies": {
+    "sharp": "0.35.5",
+    "three": "0.180.0"
+  }
+}

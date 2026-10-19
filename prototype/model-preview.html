@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aisles · Console workshop</title>
+<link rel="stylesheet" href="/prototype/model-preview.css">
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script></head>
+<body><header><div><span class="eyebrow">AISLES / ASSET PREPARATION</span><h1>Console workshop</h1></div><p><a href="/prototype/media-preview.html">Media workshop</a><br>Inspect the collection.</p></header>
+<main><aside><label for="console">Console</label><select id="console"></select>
+<label for="variant">Asset version</label><select id="variant"><option value="runtime">Prepared · max 2K textures</option><option value="source">Original download</option></select>
+<label for="lighting">Lighting</label><select id="lighting"><option value="studio">Studio</option><option value="store">Rental store · warm</option><option value="neutral">Neutral inspection</option></select>
+<fieldset><legend>View</legend><div class="views"><button data-view="front">Front</button><button data-view="back">Back</button><button data-view="left">Left</button><button data-view="right">Right</button><button data-view="top">Top</button><button data-view="under">Under</button></div><button id="reset">Reset view</button></fieldset>
+<label class="check"><input id="shelf" type="checkbox" checked> Representative game shelf</label>
+<label class="check"><input id="wireframe" type="checkbox"> Wireframe</label>
+<label class="check"><input id="spin" type="checkbox"> Rotate console</label>
+<fieldset><legend>Orientation adjustment (degrees)</legend><div class="rotations"><label>X<input id="rx" type="number" value="0" step="90"></label><label>Y<input id="ry" type="number" value="0" step="90"></label><label>Z<input id="rz" type="number" value="0" step="90"></label></div><button id="export">Export placement settings</button></fieldset>
+<p class="help">Drag to orbit · scroll to zoom · right-drag to pan. Version changes retain the camera for comparison.</p></aside>
+<section class="stage"><div id="viewport" aria-label="Interactive console preview"></div><div class="badge" id="status" role="status">Starting preview…</div><div class="stage-label"><span id="model-name">—</span><small>CONSOLE + 36 SAMPLE CASES</small></div></section>
+<aside class="details"><h2>Asset details</h2><dl id="asset-stats"></dl><h2>Live rendering</h2><dl id="live-stats"></dl><p class="help">FPS describes this browser and machine. Frame times include browser scheduling; texture memory is an estimate, not a GPU measurement.</p><h2>Attribution</h2><div id="credit"></div><p class="license-note" id="license-note"></p><p class="help">No lid, tray or media-insertion animations. Material corrections await visual review.</p></aside></main>
+<script type="module" src="/prototype/model-preview.js"></script>
+<script>
+const showError=message=>document.querySelector('#status').textContent='Preview error: '+message;
+window.addEventListener('error',event=>{if(event.message)showError(event.message)});
+window.addEventListener('unhandledrejection',event=>showError(event.reason?.message||String(event.reason)));
+setTimeout(()=>{if(!window.aislesPreviewStarted)document.querySelector('#status').textContent='Preview library unavailable. Run npm install, then npm run preview. See docs/model-preparation.md.'},8000);
+</script>
+</body></html>

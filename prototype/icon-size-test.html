@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aisles — icon size test</title>
+<style>
+  :root { --navy:#0E1224; --yellow:#FFCE00; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#171b29; color:#e8ecf5;
+         font-family:"Segoe UI",system-ui,-apple-system,sans-serif; padding:32px 36px 60px; }
+  h1 { font-size:15px; letter-spacing:.14em; text-transform:uppercase; color:var(--yellow); margin:0 0 6px; }
+  p.sub { margin:0 0 30px; color:#93a0bb; font-size:13px; max-width:74ch; line-height:1.6; }
+  h2 { font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:#9fb0d0; margin:0 0 10px; }
+  h3 { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#6f7d99; margin:14px 0 8px; font-weight:600; }
+  section { margin-bottom:38px; }
+  .row { display:flex; align-items:flex-end; gap:28px; padding:22px 24px; border-radius:14px; }
+  .row + .row { margin-top:8px; }
+  .row.dark  { background:var(--navy); box-shadow:inset 0 0 0 1px #232a3f; }
+  .row.light { background:#ffffff; }
+  .cell { display:flex; flex-direction:column; align-items:center; gap:9px; }
+  .cell span { font-size:10px; letter-spacing:.1em; color:#8c9bb7; }
+  .row.light .cell span { color:#5a6273; }
+  svg { display:block; }
+  .vs { display:flex; gap:56px; padding:22px 24px; background:var(--navy);
+        box-shadow:inset 0 0 0 1px #232a3f; border-radius:14px; align-items:flex-end; }
+  .vs .col { display:flex; flex-direction:column; gap:14px; align-items:flex-start; }
+  .vs .col h4 { margin:0; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:#6f7d99; font-weight:600; }
+  .vs .pair { display:flex; align-items:flex-end; gap:18px; }
+  .note { font-size:12.5px; color:#93a0bb; border-left:2px solid var(--yellow);
+          padding-left:14px; line-height:1.7; max-width:76ch; }
+  .note b { color:#e8ecf5; }
+  .win { color:var(--yellow); font-weight:700; }
+</style>
+</head>
+<body>
+
+<h1>Aisles — icon size test</h1>
+<p class="sub">One mark, two levels of detail. The <b>full</b> mark carries the shelf; the
+<b>small</b> mark drops to a single case so the silhouette survives the taskbar. Find the
+size where each one stops saying “games on a shelf.”</p>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="full" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="116" fill="#0E1224"/>
+    <path d="M48 356 L464 356 L436 322 L76 322 Z" fill="#FFD62E"/>
+    <rect x="48" y="356" width="416" height="34" rx="9" fill="#FFCE00"/>
+    <rect x="58" y="390" width="396" height="16" rx="8" fill="#D4A700"/>
+    <rect x="92" y="140" width="72" height="190" rx="8" fill="#00387B"/>
+    <rect x="106" y="162" width="44" height="110" rx="5" fill="#F4EFE4"/>
+    <rect x="180" y="152" width="72" height="178" rx="8" fill="#F4EFE4"/>
+    <rect x="194" y="174" width="44" height="96" rx="5" fill="#00387B"/>
+    <rect x="326" y="172" width="148" height="196" rx="18" fill="#050912" opacity="0.5"/>
+    <g transform="rotate(-8 400 258)">
+      <rect x="300" y="160" width="148" height="196" rx="18" fill="#0B4EA2"/>
+      <rect x="316" y="178" width="116" height="108" rx="10" fill="#F4EFE4"/>
+      <g fill="#0E1224">
+        <rect x="330" y="206" width="88" height="44" rx="22"/>
+        <rect x="340" y="223" width="19" height="7" rx="3.5" fill="#F4EFE4"/>
+        <rect x="346" y="217" width="7" height="19" rx="3.5" fill="#F4EFE4"/>
+        <circle cx="396" cy="219" r="5" fill="#FFCE00"/>
+        <circle cx="406" cy="232" r="5" fill="#FFCE00"/>
+      </g>
+      <rect x="316" y="300" width="116" height="16" rx="5" fill="#FFCE00"/>
+      <rect x="316" y="324" width="78" height="16" rx="5" fill="#FFCE00" opacity="0.45"/>
+    </g>
+  </symbol>
+
+  <symbol id="small" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="116" fill="#0E1224"/>
+    <rect x="40" y="392" width="432" height="16" rx="8" fill="#D4A700"/>
+    <rect x="40" y="340" width="432" height="68" rx="18" fill="#FFCE00"/>
+    <rect x="40" y="340" width="432" height="14" rx="7" fill="#FFD62E"/>
+    <rect x="104" y="136" width="80" height="204" rx="10" fill="#00387B"/>
+    <rect x="120" y="160" width="48" height="108" rx="6" fill="#F4EFE4"/>
+    <rect x="252" y="120" width="196" height="220" rx="22" fill="#0B4EA2"/>
+    <rect x="276" y="144" width="148" height="126" rx="12" fill="#F4EFE4"/>
+    <g fill="#0E1224">
+      <rect x="300" y="184" width="100" height="50" rx="25"/>
+      <rect x="313" y="203" width="22" height="8" rx="4" fill="#F4EFE4"/>
+      <rect x="320" y="196" width="8" height="22" rx="4" fill="#F4EFE4"/>
+      <circle cx="372" cy="200" r="6" fill="#FFCE00"/>
+      <circle cx="384" cy="216" r="6" fill="#FFCE00"/>
+    </g>
+    <rect x="276" y="290" width="148" height="18" rx="6" fill="#FFCE00"/>
+  </symbol>
+</svg>
+
+<section>
+  <h2>1 — Full mark <span style="color:#6f7d99">(use at 128px and up)</span></h2>
+  <div class="row dark">
+    <div class="cell"><svg width="256" height="256" viewBox="0 0 512 512"><use href="#full"/></svg><span>256</span></div>
+    <div class="cell"><svg width="128" height="128" viewBox="0 0 512 512"><use href="#full"/></svg><span>128</span></div>
+    <div class="cell"><svg width="64" height="64" viewBox="0 0 512 512"><use href="#full"/></svg><span>64</span></div>
+    <div class="cell"><svg width="48" height="48" viewBox="0 0 512 512"><use href="#full"/></svg><span>48</span></div>
+    <div class="cell"><svg width="32" height="32" viewBox="0 0 512 512"><use href="#full"/></svg><span>32</span></div>
+    <div class="cell"><svg width="16" height="16" viewBox="0 0 512 512"><use href="#full"/></svg><span>16</span></div>
+  </div>
+  <div class="row light">
+    <div class="cell"><svg width="256" height="256" viewBox="0 0 512 512"><use href="#full"/></svg><span>256</span></div>
+    <div class="cell"><svg width="128" height="128" viewBox="0 0 512 512"><use href="#full"/></svg><span>128</span></div>
+    <div class="cell"><svg width="64" height="64" viewBox="0 0 512 512"><use href="#full"/></svg><span>64</span></div>
+    <div class="cell"><svg width="48" height="48" viewBox="0 0 512 512"><use href="#full"/></svg><span>48</span></div>
+    <div class="cell"><svg width="32" height="32" viewBox="0 0 512 512"><use href="#full"/></svg><span>32</span></div>
+    <div class="cell"><svg width="16" height="16" viewBox="0 0 512 512"><use href="#full"/></svg><span>16</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>2 — Small mark <span style="color:#6f7d99">(use at 16–48px)</span></h2>
+  <div class="row dark">
+    <div class="cell"><svg width="256" height="256" viewBox="0 0 512 512"><use href="#small"/></svg><span>256</span></div>
+    <div class="cell"><svg width="128" height="128" viewBox="0 0 512 512"><use href="#small"/></svg><span>128</span></div>
+    <div class="cell"><svg width="64" height="64" viewBox="0 0 512 512"><use href="#small"/></svg><span>64</span></div>
+    <div class="cell"><svg width="48" height="48" viewBox="0 0 512 512"><use href="#small"/></svg><span>48</span></div>
+    <div class="cell"><svg width="32" height="32" viewBox="0 0 512 512"><use href="#small"/></svg><span>32</span></div>
+    <div class="cell"><svg width="16" height="16" viewBox="0 0 512 512"><use href="#small"/></svg><span>16</span></div>
+  </div>
+  <div class="row light">
+    <div class="cell"><svg width="256" height="256" viewBox="0 0 512 512"><use href="#small"/></svg><span>256</span></div>
+    <div class="cell"><svg width="128" height="128" viewBox="0 0 512 512"><use href="#small"/></svg><span>128</span></div>
+    <div class="cell"><svg width="64" height="64" viewBox="0 0 512 512"><use href="#small"/></svg><span>64</span></div>
+    <div class="cell"><svg width="48" height="48" viewBox="0 0 512 512"><use href="#small"/></svg><span>48</span></div>
+    <div class="cell"><svg width="32" height="32" viewBox="0 0 512 512"><use href="#small"/></svg><span>32</span></div>
+    <div class="cell"><svg width="16" height="16" viewBox="0 0 512 512"><use href="#small"/></svg><span>16</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>3 — The handoff point</h2>
+  <div class="vs">
+    <div class="col">
+      <h4>Full</h4>
+      <div class="pair">
+        <svg width="48" height="48" viewBox="0 0 512 512"><use href="#full"/></svg>
+        <svg width="32" height="32" viewBox="0 0 512 512"><use href="#full"/></svg>
+        <svg width="16" height="16" viewBox="0 0 512 512"><use href="#full"/></svg>
+      </div>
+    </div>
+    <div class="col">
+      <h4>Small</h4>
+      <div class="pair">
+        <svg width="48" height="48" viewBox="0 0 512 512"><use href="#small"/></svg>
+        <svg width="32" height="32" viewBox="0 0 512 512"><use href="#small"/></svg>
+        <svg width="16" height="16" viewBox="0 0 512 512"><use href="#small"/></svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<p class="note">
+  <b>Reading it:</b> the full mark holds down to about <span class="win">48px</span>, then the two
+  spines blur together and the case loses its edge. The small mark stays legible to
+  <span class="win">16px</span> because there's one shape and one idea.<br><br>
+  <b>The rule to ship with:</b> 256/128/64/48/32 → <b>full</b>. 24/16 → <b>small</b>. Windows will
+  pick the right one from a multi-size <code>.ico</code> automatically, so build both into one file.<br><br>
+  <b>Still flat-colour vectors</b> — no gradients, no outlines that vanish when scaled, nothing that
+  needs anti-aliasing to survive. That's why they hold up.
+</p>
+
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Aisles · Library workshop</title>
+  <link rel="stylesheet" href="/prototype/library-preview.css">
+  <script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script>
+</head>
+<body>
+  <header>
+    <div><span class="eyebrow">AISLES / LOCAL LIBRARY</span><h1>Collection workshop</h1></div>
+    <nav><a href="/prototype/media-preview.html">Media workshop</a><a href="/prototype/model-preview.html">Console workshop</a></nav>
+  </header>
+  <main>
+    <aside>
+      <label for="platform">Platform</label>
+      <select id="platform"></select>
+      <button id="rescan">Rescan local library</button>
+      <label class="check"><input id="wireframe" type="checkbox"> Wireframe</label>
+      <label class="check"><input id="rotate" type="checkbox"> Rotate shelf</label>
+      <fieldset><legend>View</legend><div class="views"><button data-view="front">Front</button><button data-view="back">Back</button><button data-view="left">Left</button><button data-view="right">Right</button><button data-view="top">Top</button><button data-view="perspective">Perspective</button></div><button id="reset">Reset view</button></fieldset>
+      <p class="help">Click a case to pull it forward and inspect its playable medium. The scan reads local files and emulator metadata; artwork stays in its original folder.</p>
+    </aside>
+    <section class="stage">
+      <div id="viewport" aria-label="Interactive local game collection preview"></div>
+      <div class="badge" id="status" role="status">Scanning local library…</div>
+      <div class="stage-label"><span id="shelf-title">—</span><small id="shelf-count">LOCAL GAMES</small></div>
+    </section>
+    <aside class="details">
+      <h2>Selected game</h2><img id="art-preview" alt="Selected game artwork preview" hidden><dl id="game-details"></dl>
+      <h2>Artwork</h2><p id="artwork">—</p>
+      <label class="check"><input id="auto-artwork" type="checkbox" checked> Look online for missing artwork</label>
+      <button id="find-artwork">Find selected game's missing artwork</button>
+      <button id="find-media-artwork">Fetch missing box and disc artwork</button>
+      <p id="artwork-status" role="status"></p>
+      <div id="artwork-options"></div>
+      <h2>Scan source</h2><p id="source">—</p>
+      <p class="help">The front cover is used only when the local artwork matches a physical box format. PS3 menu icons remain available as metadata but are not stretched over a Blu-ray case.</p>
+    </aside>
+  </main>
+<script type="module" src="/prototype/library-preview.js?v=library-workshop-6"></script>
+  <script>
+    const showError=message=>document.querySelector('#status').textContent='Workshop error: '+message;
+    const ignorableError=message=>/^ResizeObserver loop completed with undelivered notifications\.?$/.test(message||'');
+    window.addEventListener('error',event=>event.message&&!ignorableError(event.message)&&showError(event.message));
+    window.addEventListener('unhandledrejection',event=>showError(event.reason?.message||String(event.reason)));
+  </script>
+</body>
+</html>
