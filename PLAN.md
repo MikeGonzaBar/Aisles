@@ -65,7 +65,7 @@ which is why the rendering stack below was chosen.
 
 | Decision | Choice |
 |---|---|
-| Shell | **WinUI 3** (native window / `.exe`); WPF is the low-risk fallback (see §9) |
+| Shell | **WinUI 3** (native window / `.exe`), settled in §9 |
 | 3D rendering | **WebView2 + Three.js** (PBR, shadows, reflections, animation) |
 | 3D assets | **Downloaded console GLBs** with optimized runtime copies and attribution; procedural media meshes. GameCube/3DS assets remain missing. |
 | Library presentation | **3D shelf** of the platform's real media |
@@ -268,8 +268,9 @@ Separation of concerns:
       "year": "1994",
       "media": "JewelCase",            // JewelCase | DvdCase | BluRayCase | MiniDiscCase | CartridgeCase
       "scan": "CuePerFolder",          // FlatFiles | CuePerFolder | FileInFolder | DiscFolders
+      "scanMarker": "PS3_DISC.SFB",    // DiscFolders only: the file that marks a disc root
       "gamesPath": "D:\\Emulation\\PS1\\Games",
-      "extensions": [".cue", ".bin", ".chd"],
+      "extensions": [".cue"],          // launch targets only, one per game
       "emulatorPath": "C:\\Emulation\\Duckstation\\duckstation-qt-x64-ReleaseLTCG.exe",
       "arguments": "\"{0}\"",
       "accentColor": "#4A4F5A",
@@ -281,6 +282,12 @@ Separation of concerns:
 
 Adding a new platform = editing this file, no recompile.
 
+`scanMarker` is required by `DiscFolders` only, and the launch target is the
+folder *holding* the marker, never the marker itself — anchoring on it is what
+keeps the PS3 decoy `PARAM.SFO` files from being counted as games (§3.1).
+`extensions` lists launch targets only, not companion files: a PS1 entry lists
+`.cue` and never `.bin` or `.chd`, or one game would appear three times.
+
 ### 5.2 Host ⇄ Web message protocol
 
 | Direction | Message | Payload |
@@ -291,6 +298,7 @@ Adding a new platform = editing this file, no recompile.
 | web → host | `selectGame` | `gameId` |
 | host → web | `gameDetails` | `{ gameId, playTime?, lastPlayed?, achievements }` — drives the details rail (§3.5) |
 | web → host | `launchGame` | `gameId` (on double-click / LAUNCH) |
+| host → web | `launchResult` | `{ gameId, started, message }` — outcome of a launch attempt, including "emulator not found" |
 | web → host | `revealGame` | `gameId` |
 | web → host | `openSettings` | — (top-bar settings) |
 | host → web | `scanResult` | refreshed games for a console |
@@ -388,7 +396,7 @@ media-insertion animations remain excluded.
 
 | # | Phase | Deliverable | Est. |
 |---|---|---|---|
-| 0 | Skeleton | WinUI 3 window + WebView2 + message bridge + `consoles.json` loading | ½–1 day |
+| 0 | Skeleton ✅ | WinUI 3 window + WebView2 + message bridge + `consoles.json` loading | done |
 | 1 | Discovery | Correct scanning of all four shapes, clean titles, cover-art discovery | ½–1 day |
 | 2 | **Launching** | Select a game (2D list first) → emulator opens it → **usable app** | ½ day |
 | 3 | 3D consoles | Three.js stage + fixed camera + console lineup (low-LOD pipeline) + lighting | 1–2 days |
@@ -408,7 +416,7 @@ before integrating the rest**), after Phase 4 (full shelf).
 | Risk | Mitigation |
 |---|---|
 | 3D look is subjective | Build **one** console (PS2) + one media type first; get sign-off before scaling to all 8 |
-| WinUI 3 CLI scaffolding/Windows App SDK setup can be fiddly | Fall back to a **WPF shell** — the 3D is in WebView2, so the shell choice barely affects the result (§9) |
+| WinUI 3 CLI scaffolding/Windows App SDK setup can be fiddly | Resolved — WinUI 3 builds and runs unpackaged on .NET 10 (§9); the WPF fallback went unused |
 | WebView2 runtime absent on older Windows | Detect and offer the evergreen bootstrapper; Windows 11 ships it |
 | Emulator CLI flags differ / change | Per-console `arguments` in config; smoke-test each emulator in Phase 2 |
 | Large libraries overwhelm a 3D shelf | **Paged bays** — only the current bay and its immediate neighbours are resident; a 2D grid mode stays an option |
@@ -419,14 +427,23 @@ before integrating the rest**), after Phase 4 (full shelf).
 | Many cover images hurting startup | Virtual-host mapping + lazy texture loading |
 | RA file→game hash matching (Phase 6) | Defer; start with filename matching, add `rcheevos` hashing only if needed |
 
-## 9. Open implementation choice: WinUI 3 vs WPF shell
+## 9. Shell choice: WinUI 3 (settled)
 
 The 3D lives in WebView2, so the shell only provides window chrome and host duties
-(scanning, launching, settings, the WebView2 bridge). WinUI 3 gives the more
-modern Fluent look; WPF is faster to
-scaffold and build from the CLI with no Windows App SDK setup. **Plan: attempt
-WinUI 3 in Phase 0; if the toolchain fights us, switch to WPF with no impact on
-the 3D.** To be settled during Phase 0.
+(scanning, launching, settings, the WebView2 bridge). **Settled in Phase 0: WinUI 3.**
+
+It builds and runs unpackaged on .NET 10 against Windows App SDK 2.0.1 with zero
+warnings, so the WPF fallback was never needed. Two things to remember about this
+combination:
+
+- The WinUI 3 build references the **CsWinRT projection** of WebView2
+  (`Microsoft.Web.WebView2.Core.Projection.dll`), whose API differs from the classic
+  .NET library. `CoreWebView2Environment.CreateAsync` cannot be called the usual way,
+  so the control builds its own environment and `WEBVIEW2_USER_DATA_FOLDER` redirects
+  it to `%LOCALAPPDATA%\Aisles\WebView2`.
+- Build the solution with `dotnet build Aisles.slnx -c Debug`. Passing
+  `-p:Platform=x64` is rejected as an invalid solution configuration; the `.slnx`
+  resolves x64 from the project.
 
 ## 10. Explicitly out of scope for v1
 
