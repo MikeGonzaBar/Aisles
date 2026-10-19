@@ -10,7 +10,7 @@
         "meshes": 41,
         "materials": 2,
         "triangles": 7482,
-        "x": -5.075
+        "x": -4.244
       },
       {
         "id": "ps2",
@@ -20,7 +20,7 @@
         "meshes": 8,
         "materials": 8,
         "triangles": 10851,
-        "x": -3.625
+        "x": -2.864
       },
       {
         "id": "ps3",
@@ -30,7 +30,7 @@
         "meshes": 10,
         "materials": 10,
         "triangles": 32701,
-        "x": -2.175
+        "x": -1.484
       },
       {
         "id": "wii",
@@ -40,7 +40,7 @@
         "meshes": 6,
         "materials": 2,
         "triangles": 32492,
-        "x": -0.725
+        "x": -0.397
       },
       {
         "id": "gamecube",
@@ -50,7 +50,7 @@
         "meshes": 1,
         "materials": 1,
         "triangles": 12,
-        "x": 0.725
+        "x": 0.689
       },
       {
         "id": "ds",
@@ -60,7 +60,7 @@
         "meshes": 4,
         "materials": 3,
         "triangles": 1198,
-        "x": 2.175
+        "x": 2.069
       },
       {
         "id": "3ds",
@@ -70,7 +70,7 @@
         "meshes": 1,
         "materials": 1,
         "triangles": 12,
-        "x": 3.625
+        "x": 3.449
       },
       {
         "id": "xbox360",
@@ -80,23 +80,76 @@
         "meshes": 2,
         "materials": 2,
         "triangles": 159981,
-        "x": 5.075
+        "x": 4.537
       }
     ],
-    "drawCalls": 80,
-    "trianglesRendered": 246481,
+    "drawCalls": 87,
+    "trianglesRendered": 246495,
     "textures": 34,
-    "programs": 21,
+    "programs": 22,
     "canvas": {
       "width": 1329,
       "height": 210
     },
     "selectedId": "ps1",
+    "sizing": {
+      "boxes": [
+        {
+          "id": "ps1",
+          "width": 0.928,
+          "height": 0.192
+        },
+        {
+          "id": "ps2",
+          "width": 0.8,
+          "height": 0.207
+        },
+        {
+          "id": "ps3",
+          "width": 0.8,
+          "height": 0.243
+        },
+        {
+          "id": "wii",
+          "width": 0.213,
+          "height": 0.735
+        },
+        {
+          "id": "gamecube",
+          "width": 0.8,
+          "height": 0.2
+        },
+        {
+          "id": "ds",
+          "width": 0.8,
+          "height": 0.472
+        },
+        {
+          "id": "3ds",
+          "width": 0.8,
+          "height": 0.2
+        },
+        {
+          "id": "xbox360",
+          "width": 0.215,
+          "height": 0.8
+        }
+      ],
+      "gaps": [
+        0.516,
+        0.58,
+        0.58,
+        0.58,
+        0.58,
+        0.58,
+        0.58
+      ]
+    },
     "spotlight": {
-      "x": -5.07,
-      "targetX": -5.07,
+      "x": -4.24,
+      "targetX": -4.24,
       "intensity": 30,
-      "expectedX": -5.075
+      "expectedX": -4.244096724487681
     }
   },
   "problems": []
