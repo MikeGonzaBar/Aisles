@@ -10,8 +10,16 @@ public sealed record GameEntry
     /// <summary>What gets substituted into the console's <c>{0}</c> argument template.</summary>
     public required string LaunchTarget { get; init; }
 
-    /// <summary>Disc serial or ROM ID, once the Phase 1 metadata adapters supply it.</summary>
+    /// <summary>
+    /// Disc serial or ROM game code, when the platform records one: "SLUS-20946" for a
+    /// PS2 disc, "BCUS98148" for a PS3 title, "YIMP" for a DS cartridge.
+    /// </summary>
     public string? Serial { get; init; }
 
-    public string? Region { get; init; }
+    /// <summary>
+    /// Which rule produced <see cref="Title"/>. Titles are derived from names and
+    /// emulator caches rather than a catalogue, so keeping the provenance makes the
+    /// heuristics auditable instead of mysterious.
+    /// </summary>
+    public string? TitleSource { get; init; }
 }

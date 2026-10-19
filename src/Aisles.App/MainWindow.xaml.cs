@@ -140,7 +140,12 @@ public sealed partial class MainWindow : Window
                 console.GamesPath,
                 console.GamesPathExists,
                 console.EmulatorExists,
-                games.Select(game => new GamePayload(game.Id, game.Title, game.LaunchTarget)).ToList()));
+                games.Select(game => new GamePayload(
+                    game.Id,
+                    game.Title,
+                    game.LaunchTarget,
+                    game.Serial,
+                    game.TitleSource)).ToList()));
         }
 
         return new LibraryPayload(null, consoles);

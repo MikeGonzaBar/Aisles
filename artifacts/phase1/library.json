@@ -1,0 +1,347 @@
+{
+  "consoles": [
+    {
+      "id": "ps1",
+      "short": "PS1",
+      "gamesPathExists": true,
+      "emulatorExists": true,
+      "games": [
+        {
+          "title": "A bugs life",
+          "serial": null,
+          "source": "name",
+          "target": "D:\\Emulation\\PS1\\Games\\A bugs life\\A_BUGS_LIFE.CUE"
+        },
+        {
+          "title": "Harry Potter and The Sorcerer Stone",
+          "serial": null,
+          "source": "name",
+          "target": "D:\\Emulation\\PS1\\Games\\Harry Potter and The Sorcerer Stone\\HARRY_POTTER.CUE"
+        },
+        {
+          "title": "Madden - NFL 2000",
+          "serial": null,
+          "source": "name",
+          "target": "D:\\Emulation\\PS1\\Games\\Madden - NFL 2000\\MADDEN_NFL_2000.CUE"
+        },
+        {
+          "title": "Monster Rancher 2",
+          "serial": null,
+          "source": "name",
+          "target": "D:\\Emulation\\PS1\\Games\\Monster Rancher 2\\MONSTERRANCER2.CUE"
+        },
+        {
+          "title": "Ridge Racer",
+          "serial": null,
+          "source": "name",
+          "target": "D:\\Emulation\\PS1\\Games\\Ridge Racer\\RIDGERACERUSA.CUE"
+        },
+        {
+          "title": "Rugrats - Search for Reptar",
+          "serial": null,
+          "source": "name",
+          "target": "D:\\Emulation\\PS1\\Games\\Rugrats - Search for Reptar\\SLUS_00650.CUE"
+        },
+        {
+          "title": "Sim City - 2000",
+          "serial": null,
+          "source": "name",
+          "target": "D:\\Emulation\\PS1\\Games\\Sim City - 2000\\SimCity2000.cue"
+        },
+        {
+          "title": "WWF War Zone",
+          "serial": null,
+          "source": "name",
+          "target": "D:\\Emulation\\PS1\\Games\\WWF War Zone\\WWF_WAR_ZONE.CUE"
+        }
+      ]
+    },
+    {
+      "id": "ps2",
+      "short": "PS2",
+      "gamesPathExists": true,
+      "emulatorExists": true,
+      "games": [
+        {
+          "title": "Disney/Pixar Cars",
+          "serial": "SLUS-21151",
+          "source": "pcsx2-gamelist",
+          "target": "D:\\Emulation\\PS2\\ISOs\\CarsPS2.iso"
+        },
+        {
+          "title": "Dragon Ball Z - Budokai 3",
+          "serial": "SLUS-20998",
+          "source": "pcsx2-gamelist",
+          "target": "D:\\Emulation\\PS2\\ISOs\\DRAGON BALL BUDOKAI 3.ISO"
+        },
+        {
+          "title": "DreamWorks Shrek the Third",
+          "serial": "SLUS-21454",
+          "source": "pcsx2-gamelist",
+          "target": "D:\\Emulation\\PS2\\ISOs\\DreamWorks Shrek the Third (USA).iso"
+        },
+        {
+          "title": "FIFA Soccer 08",
+          "serial": "SLUS-21648",
+          "source": "pcsx2-gamelist",
+          "target": "D:\\Emulation\\PS2\\ISOs\\FIFA08PS2.ISO"
+        },
+        {
+          "title": "Gran Turismo 4",
+          "serial": "SCUS-97328",
+          "source": "pcsx2-gamelist",
+          "target": "D:\\Emulation\\PS2\\ISOs\\GranTurismo4PS2.iso"
+        },
+        {
+          "title": "Hot Shots Golf FORE!",
+          "serial": "SCUS-97401",
+          "source": "pcsx2-gamelist",
+          "target": "D:\\Emulation\\PS2\\ISOs\\HotShotGolfForePS2.iso"
+        },
+        {
+          "title": "I-Ninja",
+          "serial": "SCES-52099",
+          "source": "pcsx2-gamelist",
+          "target": "D:\\Emulation\\PS2\\ISOs\\I-Ninja (Europe) (En,Fr,De,Es,It)-patched.iso"
+        },
+        {
+          "title": "Metal Gear Solid 2 - Sons of Liberty",
+          "serial": "SLUS-20144",
+          "source": "pcsx2-gamelist",
+          "target": "D:\\Emulation\\PS2\\ISOs\\MGS2-PS2.ISO"
+        },
+        {
+          "title": "Mountain Bike Adrenaline",
+          "serial": "SLUS-21666",
+          "source": "pcsx2-gamelist",
+          "target": "D:\\Emulation\\PS2\\ISOs\\MountainBikeAdrenaline.iso"
+        },
+        {
+          "title": "Grand Theft Auto - San Andreas",
+          "serial": "SLUS-20946",
+          "source": "pcsx2-gamelist",
+          "target": "D:\\Emulation\\PS2\\ISOs\\SAN_ANDREAS.ISO"
+        },
+        {
+          "title": "WWE SmackDown! vs. Raw 2008",
+          "serial": "SLUS-21645",
+          "source": "pcsx2-gamelist",
+          "target": "D:\\Emulation\\PS2\\ISOs\\SmackdownVSRaw2008PS2.iso"
+        },
+        {
+          "title": "Sonic Heroes",
+          "serial": "SLUS-20718",
+          "source": "pcsx2-gamelist",
+          "target": "D:\\Emulation\\PS2\\ISOs\\SonicHeroesPS2.iso"
+        },
+        {
+          "title": "Sonic Riders",
+          "serial": "SLUS-21331",
+          "source": "pcsx2-gamelist",
+          "target": "D:\\Emulation\\PS2\\ISOs\\SONICRIDERSPS2.ISO"
+        },
+        {
+          "title": "SSX Tricky",
+          "serial": "SLUS-20326",
+          "source": "pcsx2-gamelist",
+          "target": "D:\\Emulation\\PS2\\ISOs\\SSXTrickyPS2.iso"
+        },
+        {
+          "title": "Suzuki TT Superbikes - Real Road Racing",
+          "serial": "SLUS-20912",
+          "source": "pcsx2-gamelist",
+          "target": "D:\\Emulation\\PS2\\ISOs\\SusukiSuperBikesPS2.iso"
+        },
+        {
+          "title": "Nickelodeon Tak and the Guardians of Gross",
+          "serial": "SLUS-21797",
+          "source": "pcsx2-gamelist",
+          "target": "D:\\Emulation\\PS2\\ISOs\\TakPS2.iso"
+        },
+        {
+          "title": "Teen Titans",
+          "serial": "SLUS-21183",
+          "source": "pcsx2-gamelist",
+          "target": "D:\\Emulation\\PS2\\ISOs\\TeenTitansPS2.iso"
+        }
+      ]
+    },
+    {
+      "id": "ps3",
+      "short": "PS3",
+      "gamesPathExists": true,
+      "emulatorExists": true,
+      "games": [
+        {
+          "title": "LittleBigPlanet",
+          "serial": "BCUS98148",
+          "source": "name",
+          "target": "D:\\Emulation\\PS3\\ISO\\LittleBigPlanet (USA) (En,Ja,Fr,De,Es,It,Nl,Pt,Sv,No,Da,Fi,Zh,Ko) (v02.00)\\LittleBigPlanet (USA) (En,Ja,Fr,De,Es,It,Nl,Pt,Sv,No,Da,Fi,Zh,Ko) (v02.00)"
+        },
+        {
+          "title": "LittleBigPlanet 2",
+          "serial": "BCUS98245",
+          "source": "name",
+          "target": "D:\\Emulation\\PS3\\ISO\\LittleBigPlanet (USA) (En,Ja,Fr,De,Es,It,Nl,Pt,Sv,No,Da,Fi,Zh,Ko) (v02.00)\\LittleBigPlanet 2 (USA) (En,Fr,Es,Pt)"
+        }
+      ]
+    },
+    {
+      "id": "wii",
+      "short": "Wii",
+      "gamesPathExists": true,
+      "emulatorExists": true,
+      "games": [
+        {
+          "title": "ABC Wipeout 2",
+          "serial": null,
+          "source": "name",
+          "target": "D:\\Emulation\\WII\\ABC Wipeout 2 (USA).rvz"
+        },
+        {
+          "title": "Guitar Hero - Warriors of Rock",
+          "serial": null,
+          "source": "name",
+          "target": "D:\\Emulation\\WII\\Guitar Hero - Warriors of Rock (USA) (En,Fr).rvz"
+        },
+        {
+          "title": "LEGO Rock Band",
+          "serial": null,
+          "source": "name",
+          "target": "D:\\Emulation\\WII\\LEGO Rock Band (USA) (En,Fr,Es).rvz"
+        },
+        {
+          "title": "Mario Kart Wii",
+          "serial": null,
+          "source": "name",
+          "target": "D:\\Emulation\\WII\\Mario Kart Wii (USA) (En,Fr,Es).rvz"
+        },
+        {
+          "title": "New Super Mario Bros. Wii",
+          "serial": null,
+          "source": "name",
+          "target": "D:\\Emulation\\WII\\New Super Mario Bros. Wii (USA) (En,Fr,Es) (Rev 2).rvz"
+        },
+        {
+          "title": "Super Smash Bros. Brawl",
+          "serial": null,
+          "source": "name",
+          "target": "D:\\Emulation\\WII\\Super Smash Bros. Brawl (USA) (Rev 2).rvz"
+        },
+        {
+          "title": "Wii Sports",
+          "serial": null,
+          "source": "name",
+          "target": "D:\\Emulation\\WII\\Wii Sports (USA) (Rev 1).rvz"
+        },
+        {
+          "title": "Wii Sports Resort",
+          "serial": null,
+          "source": "name",
+          "target": "D:\\Emulation\\WII\\Wii Sports Resort (USA) (En,Fr,Es) (Rev 1).rvz"
+        }
+      ]
+    },
+    {
+      "id": "gamecube",
+      "short": "GC",
+      "gamesPathExists": false,
+      "emulatorExists": true,
+      "games": []
+    },
+    {
+      "id": "ds",
+      "short": "DS",
+      "gamesPathExists": true,
+      "emulatorExists": true,
+      "games": [
+        {
+          "title": "Iron Man",
+          "serial": "YIMP",
+          "source": "name",
+          "target": "D:\\Emulation\\Nintendo DS\\Games\\2269 - Iron Man (E)(SQUiRE)\\2269 - Iron Man (E)(SQUiRE).nds"
+        },
+        {
+          "title": "X-Men Origins - Wolverine",
+          "serial": "CWUE",
+          "source": "name",
+          "target": "D:\\Emulation\\Nintendo DS\\Games\\3703 - X-Men Origins - Wolverine (US)(M2)(XenoPhobia)\\3703 - X-Men Origins - Wolverine (US)(M2)(XenoPhobia).nds"
+        },
+        {
+          "title": "Cooking Mama 3 - Shop & Chop",
+          "serial": "B3CE",
+          "source": "name",
+          "target": "D:\\Emulation\\Nintendo DS\\Games\\4309 - Cooking Mama 3 - Shop & Chop (US)\\4309 - Cooking Mama 3 - Shop & Chop (US).nds"
+        },
+        {
+          "title": "Avatar: The Last Airbender - Into the Inferno",
+          "serial": "CAVE",
+          "source": "name",
+          "target": "D:\\Emulation\\Nintendo DS\\Games\\Avatar_ The Last Airbender - Into the Inferno\\Avatar - The Last Airbender - Into the Inferno (USA).nds"
+        },
+        {
+          "title": "Bakugan: Battle Brawlers",
+          "serial": "B6RE",
+          "source": "name",
+          "target": "D:\\Emulation\\Nintendo DS\\Games\\Bakugan_ Battle Brawlers\\Bakugan - Battle Brawlers (USA) (En,Fr).nds"
+        },
+        {
+          "title": "Ben 10 Triple Pack",
+          "serial": "B7NE",
+          "source": "name",
+          "target": "D:\\Emulation\\Nintendo DS\\Games\\Ben 10 Triple Pack\\Ben 10 Triple Pack (USA) (En,Fr,De,Es,It).nds"
+        },
+        {
+          "title": "LEGO Rock Band",
+          "serial": "BLRE",
+          "source": "name",
+          "target": "D:\\Emulation\\Nintendo DS\\Games\\LEGO Rock Band\\LEGO Rock Band (USA) (En,Fr,De,Es,It,Da).nds"
+        },
+        {
+          "title": "Mario Kart DS",
+          "serial": "AMCE",
+          "source": "name",
+          "target": "D:\\Emulation\\Nintendo DS\\Games\\Mario Kart DS\\Mario Kart DS (USA) (En,Fr,De,Es,It).nds"
+        },
+        {
+          "title": "Sea Monsters: A Prehistoric Adventure",
+          "serial": "YS3E",
+          "source": "name",
+          "target": "D:\\Emulation\\Nintendo DS\\Games\\Sea Monsters_ A Prehistoric Adventure\\Sea Monsters - A Prehistoric Adventure (USA).nds"
+        },
+        {
+          "title": "Speed Racer: The Videogame",
+          "serial": "YYRE",
+          "source": "name",
+          "target": "D:\\Emulation\\Nintendo DS\\Games\\Speed Racer_ The Videogame\\Speed Racer - The Videogame (USA) (En,Fr,Es,Pt).nds"
+        },
+        {
+          "title": "Transformers Animated: The Game",
+          "serial": "CTFE",
+          "source": "name",
+          "target": "D:\\Emulation\\Nintendo DS\\Games\\Transformers Animated_ The Game\\Transformers Animated - The Game (USA).nds"
+        },
+        {
+          "title": "WWE SmackDown vs Raw 2009 featuring ECW",
+          "serial": "CW9E",
+          "source": "name",
+          "target": "D:\\Emulation\\Nintendo DS\\Games\\WWE SmackDown vs Raw 2009 featuring ECW\\WWE SmackDown vs Raw 2009 featuring ECW (USA) (En,Fr).nds"
+        }
+      ]
+    },
+    {
+      "id": "3ds",
+      "short": "3DS",
+      "gamesPathExists": false,
+      "emulatorExists": true,
+      "games": []
+    },
+    {
+      "id": "xbox360",
+      "short": "360",
+      "gamesPathExists": true,
+      "emulatorExists": true,
+      "games": []
+    }
+  ]
+}

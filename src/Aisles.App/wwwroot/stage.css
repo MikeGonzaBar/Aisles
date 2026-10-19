@@ -184,17 +184,43 @@ body {
   box-shadow: inset 2px 0 0 var(--yellow);
 }
 
+.game .text {
+  min-width: 0;
+}
+
 .game .title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.game .path {
-  display: block;
+.game .meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   margin-top: 2px;
   font-size: 11px;
   color: var(--dim);
+  min-width: 0;
+}
+
+.game .serial {
+  flex: none;
+  font-family: Consolas, monospace;
+  color: var(--muted);
+}
+
+.game .source {
+  flex: none;
+  padding: 0 6px;
+  border: 1px solid #1e2a4a;
+  border-radius: 999px;
+  font-size: 10px;
+  color: #4d5878;
+}
+
+.game .path {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

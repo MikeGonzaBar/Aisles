@@ -72,6 +72,12 @@ function renderConsoles() {
       flag.className = 'flag';
       flag.textContent = 'emulator missing';
       item.append(flag);
+    } else if (console.games.length === 0) {
+      item.classList.add('is-empty');
+      const flag = document.createElement('span');
+      flag.className = 'flag';
+      flag.textContent = 'no games found';
+      item.append(flag);
     }
 
     item.addEventListener('click', () => selectConsole(console.id));
@@ -115,17 +121,38 @@ function renderGames() {
     item.setAttribute('aria-selected', String(game.id === state.selectedGameId));
 
     const text = document.createElement('span');
+    text.className = 'text';
 
     const title = document.createElement('span');
     title.className = 'title';
     title.textContent = game.title;
 
+    const meta = document.createElement('span');
+    meta.className = 'meta';
+
+    if (game.serial) {
+      const serial = document.createElement('span');
+      serial.className = 'serial';
+      serial.textContent = game.serial;
+      meta.append(serial);
+    }
+
+    // Titles are derived rather than catalogued, so the row says where each came from.
+    if (game.titleSource) {
+      const source = document.createElement('span');
+      source.className = 'source';
+      source.textContent = game.titleSource;
+      source.title = `title resolved from ${game.titleSource}`;
+      meta.append(source);
+    }
+
     const path = document.createElement('span');
     path.className = 'path';
     path.textContent = game.launchTarget;
     path.title = game.launchTarget;
+    meta.append(path);
 
-    text.append(title, path);
+    text.append(title, meta);
 
     const launch = document.createElement('button');
     launch.className = 'launch';

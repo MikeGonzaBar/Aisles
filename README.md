@@ -8,7 +8,7 @@ real media — and launches the correct emulator when you pick a game.
 
 ## Status
 
-**Phase 0 complete — the native shell runs.** `Aisles.exe` opens a WinUI 3 window hosting WebView2, loads `consoles.json`, scans all eight platforms (47 games found) and drives a live host↔web message bridge. The 3D stage is not built yet, and the launch path is wired but not yet fired. Alongside the app, six console GLBs have prepared runtime copies and local comparison viewers, and a second workshop generates true-scale cases, discs and the DS cartridge procedurally. See `docs/model-preparation.md` and `docs/media-models.md`.
+**Phases 0–1 complete — it is a working launcher.** `Aisles.exe` opens a WinUI 3 window hosting WebView2, loads `consoles.json`, finds all 47 games across eight platforms with real titles and serials, launches the right emulator, and drives a live host↔web message bridge. The 3D stage is not built yet. Alongside the app, six console GLBs have prepared runtime copies and local comparison viewers, and a second workshop generates true-scale cases, discs and the DS cartridge procedurally. See `docs/phase0-verification.md`, `docs/phase1-discovery.md`, `docs/model-preparation.md` and `docs/media-models.md`.
 
 ## Repository layout
 
@@ -20,6 +20,7 @@ real media — and launches the correct emulator when you pick a game.
 | `src/Aisles.App/consoles.json` | The editable platform catalog — copied beside the exe on build |
 | `src/Aisles.App/wwwroot/` | The web layer, served to WebView2 over `https://aisles.local` |
 | `docs/ui/ui-blockout3.png` | The agreed UI blockout (SVG source alongside); `ui-blockout2.png` is the earlier infinite-scroll draft |
+| `docs/phase0-verification.md`, `docs/phase1-discovery.md` | Acceptance evidence for the first two phases, with screenshots under `artifacts/` |
 | `prototype/model-preview.html` | Console workshop: original/prepared comparison, lighting, orbit controls, sample shelf and rendering counters |
 | `prototype/media-preview.html` | Media workshop: true-scale procedural cases, optical discs and DS cartridge, with comparison and GLB export |
 | `prototype/library-preview.html` | Collection workshop: emulator scan, per-asset online artwork fallback, saved choices and selectable 3D shelf |
@@ -74,7 +75,7 @@ dotnet build Aisles.slnx -c Debug
 dotnet run --project src/Aisles.App
 ```
 
-Do not pass `-p:Platform` when building the solution — it resolves x64 from the project, and passing it explicitly is rejected as an invalid solution configuration.
+Every build form lands in the same place, `src/Aisles.App/bin/Debug/net10.0-windows10.0.19041.0/`, because the project sets `AppendPlatformToOutputPath` to false. Without that, a solution build and a `-p:Platform=x64` build disagree about the output folder.
 
 The window hosts WebView2. The page is served from `wwwroot` over a virtual host (`https://aisles.local`) rather than `file://`, so it stays a normal https origin with working module and fetch semantics. WebView2's data folder is redirected to `%LOCALAPPDATA%\Aisles\WebView2` so nothing is written beside the exe.
 

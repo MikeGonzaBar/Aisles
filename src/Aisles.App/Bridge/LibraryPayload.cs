@@ -20,4 +20,9 @@ public sealed record ConsolePayload(
     bool EmulatorExists,
     IReadOnlyList<GamePayload> Games);
 
-public sealed record GamePayload(string Id, string Title, string LaunchTarget);
+public sealed record GamePayload(
+    string Id,
+    string Title,
+    string LaunchTarget,
+    string? Serial,
+    string? TitleSource);

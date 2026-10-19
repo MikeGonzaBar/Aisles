@@ -397,7 +397,7 @@ media-insertion animations remain excluded.
 | # | Phase | Deliverable | Est. |
 |---|---|---|---|
 | 0 | Skeleton ✅ | WinUI 3 window + WebView2 + message bridge + `consoles.json` loading | done |
-| 1 | Discovery | Correct scanning of all four shapes, clean titles, cover-art discovery | ½–1 day |
+| 1 | Discovery ◐ | Correct scanning of all four shapes ✅, clean titles and serials ✅, cover-art discovery outstanding | ½ day left |
 | 2 | **Launching** | Select a game (2D list first) → emulator opens it → **usable app** | ½ day |
 | 3 | 3D consoles | Three.js stage + fixed camera + console lineup (low-LOD pipeline) + lighting | 1–2 days |
 | 4 | 3D shelf | Paged shelf bays (18 per bay, ~400 ms slide), procedural media models, sticker textures, hit-testing, select-vs-launch wiring | 1–2 days |
@@ -441,9 +441,10 @@ combination:
   .NET library. `CoreWebView2Environment.CreateAsync` cannot be called the usual way,
   so the control builds its own environment and `WEBVIEW2_USER_DATA_FOLDER` redirects
   it to `%LOCALAPPDATA%\Aisles\WebView2`.
-- Build the solution with `dotnet build Aisles.slnx -c Debug`. Passing
-  `-p:Platform=x64` is rejected as an invalid solution configuration; the `.slnx`
-  resolves x64 from the project.
+- `AppendPlatformToOutputPath` is set to false in the project. Without it, `Platform=AnyCPU`
+  (what a solution build resolves) writes to `bin\Debug` while `Platform=x64` writes to
+  `bin\x64\Debug`, and launching a stale binary from the wrong tree is an easy mistake to
+  make. There is now exactly one output path, whatever drives the build.
 
 ## 10. Explicitly out of scope for v1
 
