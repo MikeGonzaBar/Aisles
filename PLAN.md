@@ -398,7 +398,7 @@ media-insertion animations remain excluded.
 |---|---|---|---|
 | 0 | Skeleton ✅ | WinUI 3 window + WebView2 + message bridge + `consoles.json` loading | done |
 | 1 | Discovery ◐ | Correct scanning of all four shapes ✅, clean titles and serials ✅, cover-art discovery outstanding | ½ day left |
-| 2 | **Launching** | Select a game (2D list first) → emulator opens it → **usable app** | ½ day |
+| 2 | **Launching** ✅ | Select a game (2D list first) → emulator opens it → **usable app** | done |
 | 3 | 3D consoles | Three.js stage + fixed camera + console lineup (low-LOD pipeline) + lighting | 1–2 days |
 | 4 | 3D shelf | Paged shelf bays (18 per bay, ~400 ms slide), procedural media models, sticker textures, hit-testing, select-vs-launch wiring | 1–2 days |
 | 5 | Polish | Details rail (information / played / achievements), transitions, settings, error states, icon | 1–2 days |
