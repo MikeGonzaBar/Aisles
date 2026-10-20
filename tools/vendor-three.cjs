@@ -18,6 +18,7 @@ const files = [
   ['examples/jsm/loaders/GLTFLoader.js', 'addons/loaders/GLTFLoader.js'],
   ['examples/jsm/utils/BufferGeometryUtils.js', 'addons/utils/BufferGeometryUtils.js'],
   ['examples/jsm/environments/RoomEnvironment.js', 'addons/environments/RoomEnvironment.js'],
+  ['examples/jsm/geometries/RoundedBoxGeometry.js', 'addons/geometries/RoundedBoxGeometry.js'],
   ['LICENSE', 'LICENSE-three.txt'],
 ];
 

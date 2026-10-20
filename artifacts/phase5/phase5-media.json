@@ -1,0 +1,28 @@
+{
+  "phase": 5,
+  "captured": "2026-10-20",
+  "lighting": {
+    "shelf": { "exposure": 0.92, "key": 2.0, "fill": 0.6, "rim": 0.34, "environment": 0.25, "wood": "#744c35" },
+    "hero": { "exposure": 0.96, "key": 2.35, "fill": 0.82, "rim": 0.38, "environment": 0.28 },
+    "stage": { "exposure": 0.96, "key": 2.1, "fill": 0.64, "rim": 0.36, "environment": 0.36, "spot": 26 }
+  },
+  "spin": {
+    "disc": { "axis": "z", "radiansPerSecond": 0.55 },
+    "card": { "axis": "y", "amplitudeRadians": 0.3, "mode": "sway" },
+    "probe": {
+      "ps1": { "start": 0.6609350000262274, "end": 1.827650000026225, "elapsedSeconds": 2.0 },
+      "ds": { "angle": 0.2999362844197312 }
+    }
+  },
+  "selections": ["ps1", "ps2", "ps3", "ds", "gamecube"],
+  "tests": {
+    "build": "0 warnings, 0 errors",
+    "settings": "11 assertions passed",
+    "workshop": "13 passed"
+  },
+  "captures": {
+    "2560": ["hero-ps1-2560.png", "hero-ps2-2560.png", "hero-ps3-2560.png", "hero-ds-2560.png"],
+    "1280": ["hero-ps2-1280.png", "hero-ds-1280.png", "hero-gamecube-empty-1280.png", "shelf-ds-1280.png"],
+    "comparison": ["tone-before-ps2-1280.png", "tone-before-after.png"]
+  }
+}

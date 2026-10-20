@@ -12,10 +12,11 @@ One scene unit equals 100 mm. This keeps every family in a common scale while re
 | PlayStation 2 | black DVD keep case | 135 x 190 x 14 mm | 120 x 1.2 mm DVD-ROM or CD-ROM |
 | PlayStation 3 | short Blu-ray case | 135 x 171.5 x 13 mm | 120 x 1.2 mm Blu-ray Disc |
 | Wii | white DVD keep case | 135 x 190 x 14 mm | 120 x 1.2 mm Wii optical disc |
-| Nintendo DS | compact DS case | 135 x 122 x 15 mm | 35 x 33 x 3.8 mm DS Game Card |
+| Nintendo DS | compact DS case | 122 x 135 x 15 mm | 33 x 35 x 3.8 mm DS Game Card |
+| Nintendo 3DS | compact 3DS case | 122 x 135 x 14 mm | 35 x 33 x 3.8 mm 3DS Game Card |
 | Xbox 360 | green DVD keep case | 135 x 190 x 14 mm | 120 x 1.2 mm DVD-ROM |
 
-The DVD geometry is shared by PS2, Wii and Xbox 360; only its shell and label materials change. Optical media share one annular extruded-disc generator with a physical center hole. The DS cartridge is a beveled extruded shape with the characteristic upper corner profile, label recess and molded grooves. Cases include a separate cover plane and spine plane so artwork can change without rebuilding geometry.
+The DVD geometry is shared by PS2, Wii and Xbox 360; only its shell and label materials change. Optical media share one annular extruded-disc generator with a physical center hole. The DS cartridge is a beveled extruded shape with the characteristic upper corner profile, label recess and molded grooves; the DS card is portrait (33 x 35 mm) while the 3DS card is landscape (35 x 33 mm). Cases include a separate cover plane and spine plane so artwork can change without rebuilding geometry.
 
 ## Workshop behavior
 

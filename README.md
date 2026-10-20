@@ -8,7 +8,7 @@ real media — and launches the correct emulator when you pick a game.
 
 ## Status
 
-**Phases 0–1 complete — it is a working launcher.** `Aisles.exe` opens a WinUI 3 window hosting WebView2, loads `consoles.json`, finds all 47 games across eight platforms with real titles and serials, launches the right emulator, and drives a live host↔web message bridge. The 3D stage is not built yet. Alongside the app, six console GLBs have prepared runtime copies and local comparison viewers, and a second workshop generates true-scale cases, discs and the DS cartridge procedurally. See `docs/phase0-verification.md`, `docs/phase1-discovery.md`, `docs/model-preparation.md` and `docs/media-models.md`.
+**Phases 0–4 complete; Phase 5 is in progress.** `Aisles.exe` opens a WinUI 3 window hosting WebView2, loads `consoles.json`, finds all 47 games across eight platforms with real titles and serials, launches the right emulator, and drives a live host↔web message bridge. The 3D console lineup, the paged shelf and the hero are built; the media pass draws true-scale cases, discs and cards from one preset table, resolves local and online artwork into a cache, and keeps selection across pages. The hero's details rail and achievements are next. Alongside the app, six console GLBs have prepared runtime copies, and a workshop generates the cases, discs and DS cartridge procedurally. See `docs/phase0-verification.md`, `docs/phase1-discovery.md`, `docs/phase3-stage.md`, `docs/model-preparation.md`, `docs/media-models.md` and `docs/phase5-media.md`.
 
 ## Repository layout
 
@@ -29,6 +29,7 @@ real media — and launches the correct emulator when you pick a game.
 | `tools/prepare-models.cjs` | Reproducible texture resizing and GLB repacking |
 | `docs/model-preparation.md` | Setup, preparation results and remaining visual checks |
 | `docs/media-models.md` | Physical dimensions, procedural construction and artwork integration rules |
+| `docs/phase5-media.md` | True-scale shelf/hero media, artwork resolution, the idle medium turn and the exposure pass |
 | `docs/library-workshop.md` | Current local scanner adapter, artwork route and native-host handoff |
 | `tools/artwork-workshop.cjs` | Artwork resolver, bounded provider lookup, local cache and saved selections |
 | `docs/artwork-endpoints.md` | Workshop API contracts, provider URLs, region mappings, errors and request limits |

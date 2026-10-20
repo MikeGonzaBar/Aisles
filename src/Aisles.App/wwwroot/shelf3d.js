@@ -15,18 +15,29 @@
 
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import {
+  SHELF_UNIT,
+  presetFor,
+  shelfItemFor,
+  buildCase,
+  buildCartridge,
+  generatedCoverTexture,
+  stickerFromImage,
+  loadImage,
+  loadTexture,
+  fitTexture,
+  disposeTree,
+} from './media.js';
 
 /** A bay holds eighteen games: three tiers of six. */
 const COLUMNS = 6;
 const TIERS = 3;
 const PER_BAY = COLUMNS * TIERS;
 
-/** Slot spacing inside a bay, and how far apart two bays stand. */
-const SLOT_GAP = 0.016;
+/** Furniture is proportional to the media, so a shelf of DS cards is not a DVD shelf. */
+const SLOT_GAP_RATIO = 0.05;
 const HEADROOM = 0.10;
-const BAY_GAP = 0.4;
-const BOARD = 0.03;
-const PANEL = 0.06;
+const BAY_GAP_RATIO = 1.27;
 
 /** Camera: nearly head-on, a little above, so each tier's board shows its top face. */
 const FOV = 32;
@@ -36,24 +47,11 @@ const TILT = THREE.MathUtils.degToRad(7);
 const SLIDE_MS = 400;
 
 /**
- * Media shapes, keyed by the `media` value in consoles.json. Widths and heights are the
- * real packaging ratios, shrunk: a DVD case is 19 x 13.5 cm, a jewel case 14.2 x 12.5 cm,
- * a GameCube mini-disc case 15 x 13 cm. Sizes differ per platform, never within one, so a
- * bay always reads as a tidy row.
- *
- * The numbers are relative to the case, so a platform's shelf is built around its own
- * packaging: a jewel case gets a shallower bay than a DVD case rather than a bay with a
- * hand's width of empty air over every shelf.
+ * The shelf stands at 0.0022 units per millimetre, so a DVD case is the 0.30 x 0.42 the
+ * bay was originally tuned around. Everything else - jewel case, Blu-ray, DS card -
+ * follows from the one real table in media.js. A DS shelf therefore holds the 33 x 35 mm
+ * card itself, and the bay becomes a card shelf rather than a DVD shelf with small props.
  */
-const MEDIA = {
-  DvdCase: { width: 0.3, height: 0.42, depth: 0.028 },
-  BluRayCase: { width: 0.285, height: 0.4, depth: 0.026 },
-  JewelCase: { width: 0.3, height: 0.32, depth: 0.024 },
-  MiniDiscCase: { width: 0.28, height: 0.3, depth: 0.044 },
-  CartridgeCase: { width: 0.245, height: 0.34, depth: 0.026 },
-};
-
-const DEFAULT_MEDIA = MEDIA.DvdCase;
 
 const canvas = document.getElementById('shelf-canvas');
 const pagerRoot = document.getElementById('shelf-pager');
@@ -69,15 +67,16 @@ if (canvas) {
 }
 
 function start(canvas) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  // The carpet remains scenery around the live, paged shelf rather than an image of it.
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.06;
+  renderer.toneMappingExposure = 0.92;
+  renderer.setClearColor(0x000000, 0);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0d1430);
 
   const camera = new THREE.PerspectiveCamera(FOV, 1, 0.05, 40);
 
@@ -85,12 +84,14 @@ function start(canvas) {
   const pmrem = new THREE.PMREMGenerator(renderer);
   const environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
   scene.environment = environment;
-  scene.environmentIntensity = 0.3;
+  scene.environmentIntensity = 0.25;
   pmrem.dispose();
 
-  // Key from above and left to cast the cases onto their boards; a cool fill on the
-  // right and a yellow rim from behind so spines separate from the back panel.
-  const key = new THREE.DirectionalLight(0xfff2dd, 2.4);
+  // Warm shop lighting gives the shelving a lived-in rental-store character; the cool
+  // fill keeps printed covers accurate and prevents the dark bays from closing up. The
+  // levels sit below the workshop's studio setup so the wood reads as furniture and the
+  // covers stay the brightest thing in the room.
+  const key = new THREE.DirectionalLight(0xfff0dc, 2.0);
   key.position.set(-1.9, 3.4, 2.6);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
@@ -104,11 +105,11 @@ function start(canvas) {
   key.shadow.normalBias = 0.02;
   scene.add(key);
 
-  const fill = new THREE.DirectionalLight(0x9ab6ff, 0.75);
+  const fill = new THREE.DirectionalLight(0x9ab6ff, 0.6);
   fill.position.set(2.8, 1.6, 2.4);
   scene.add(fill);
 
-  const rim = new THREE.DirectionalLight(0xffd62e, 0.55);
+  const rim = new THREE.DirectionalLight(0xffd62e, 0.34);
   rim.position.set(0.4, 1.4, -3.2);
   scene.add(rim);
 
@@ -118,20 +119,18 @@ function start(canvas) {
   // able to free everything it owns without pulling a material out from under the next bay.
   let wood;
   let back;
-  let plastic;
   let outTexture;
 
   function makeMaterials() {
-    // One furniture material for every board, side and cornice, so the shelf reads as a
-    // single piece of wood rather than an assembly.
-    wood = new THREE.MeshStandardMaterial({ color: 0x4a3c22, roughness: 0.68, metalness: 0.06 });
-    back = new THREE.MeshStandardMaterial({ color: 0x0c1220, roughness: 0.9, metalness: 0.02 });
+    const loader = new THREE.TextureLoader();
+    const oak = loader.load('art/retail-wood-v1/oak-laminate.webp');
+    oak.colorSpace = THREE.SRGBColorSpace;
+    oak.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
-    plastic = new THREE.MeshStandardMaterial({
-      color: state.bodyColor,
-      roughness: 0.44,
-      metalness: 0.06,
-    });
+    // The fixture is walnut-stained wood, kept darker than the cover art so the media is
+    // still the first thing someone sees when browsing a shelf.
+    wood = new THREE.MeshStandardMaterial({ map: oak, color: 0x744c35, roughness: 0.72, metalness: 0.02 });
+    back = new THREE.MeshStandardMaterial({ color: 0x1b120d, roughness: 0.92, metalness: 0 });
 
     outTexture = labelTexture('OUT');
   }
@@ -147,10 +146,12 @@ function start(canvas) {
   const state = {
     games: [],
     selectedGameId: null,
-    media: DEFAULT_MEDIA,
+    preset: null,
+    // The object the shelf holds: the closed case, or the card itself for DS/3DS.
+    media: { width: 0.3, height: 0.42, depth: 0.028 },
     cartridge: false,
-    bodyColor: 0x1b1b1f,
-    accentColor: 0xffce00,
+    body: '#2E2E34',
+    accent: '#FFCE00',
     platformId: null,
     bay: 0,
     bayCount: 1,
@@ -166,17 +167,25 @@ function start(canvas) {
    * is not a DVD shelf with three empty bands in it. One bay is always three tiers of six.
    */
   function measure() {
-    const spec = state.media;
-    const slot = spec.width + SLOT_GAP;
-    const tier = spec.height * (1 + HEADROOM);
+    const item = state.media;
+    const slot = item.width * (1 + SLOT_GAP_RATIO);
+    const tier = item.height * (1 + HEADROOM);
+    const panel = item.height * 0.14;
 
     return {
+      item,
       slot,
       tier,
+      panel,
+      board: item.height * 0.07,
+      plinth: item.height * 0.165,
+      cornice: item.height * 0.13,
+      depth: item.height * 0.71,
+      margin: item.height * 0.048,
+      bayGap: slot * BAY_GAP_RATIO,
       innerWidth: COLUMNS * slot,
       innerHeight: TIERS * tier,
-      depth: 0.3,
-      outerWidth: COLUMNS * slot + PANEL * 2,
+      outerWidth: COLUMNS * slot + panel * 2,
     };
   }
 
@@ -188,28 +197,39 @@ function start(canvas) {
     const innerHeight = plan.innerHeight;
     const halfWidth = innerWidth / 2;
     const depth = plan.depth;
+    const board = plan.board;
+    const panelWidth = plan.panel;
+    const plinth = plan.plinth;
+    const offset = plan.item.height * 0.03;
 
-    const backPanel = new THREE.Mesh(new THREE.BoxGeometry(innerWidth, innerHeight, 0.02), back);
-    backPanel.position.set(0, innerHeight / 2, -depth / 2 - 0.01);
+    const backPanel = new THREE.Mesh(
+      new THREE.BoxGeometry(innerWidth, innerHeight, plan.item.height * 0.07),
+      back,
+    );
+    backPanel.position.set(0, innerHeight / 2, -depth / 2 - plan.item.height * 0.035);
     backPanel.receiveShadow = true;
     group.add(backPanel);
 
     // One board under each tier, plus the top board and the plinth.
     for (let tier = 0; tier <= TIERS; tier++) {
-      const plinth = tier === 0;
-      const top = tier === TIERS;
+      const isPlinth = tier === 0;
+      const isTop = tier === TIERS;
       const stand = new THREE.Mesh(
         new THREE.BoxGeometry(
-          innerWidth + PANEL * 2,
-          plinth ? 0.07 : BOARD,
-          depth + (plinth ? 0.06 : 0.02),
+          innerWidth + panelWidth * 2,
+          isPlinth ? plinth : board,
+          depth + (isPlinth ? offset * 2 : offset),
         ),
         wood,
       );
       stand.position.set(
         0,
-        plinth ? -0.035 : top ? innerHeight - BOARD / 2 : tier * plan.tier - BOARD / 2,
-        plinth ? 0 : 0.01,
+        isPlinth
+          ? -plinth / 2
+          : isTop
+            ? innerHeight - board / 2
+            : tier * plan.tier - board / 2,
+        isPlinth ? 0 : depth * 0.03,
       );
       stand.castShadow = true;
       stand.receiveShadow = true;
@@ -218,20 +238,33 @@ function start(canvas) {
 
     // Side panels, visible on purpose.
     for (const side of [-1, 1]) {
-      const panel = new THREE.Mesh(new THREE.BoxGeometry(PANEL, innerHeight + 0.07, depth), wood);
-      panel.position.set(side * (halfWidth + PANEL / 2), innerHeight / 2, 0.01);
+      const panel = new THREE.Mesh(
+        new THREE.BoxGeometry(panelWidth, innerHeight + plinth, depth),
+        wood,
+      );
+      panel.position.set(side * (halfWidth + panelWidth / 2), innerHeight / 2, depth * 0.03);
       panel.castShadow = true;
       panel.receiveShadow = true;
       group.add(panel);
     }
 
-    const cornice = new THREE.Mesh(new THREE.BoxGeometry(innerWidth + PANEL * 2 + 0.05, 0.055, depth + 0.06), wood);
-    cornice.position.set(0, innerHeight + 0.045, 0.03);
+    const cornice = new THREE.Mesh(
+      new THREE.BoxGeometry(
+        innerWidth + panelWidth * 2 + offset * 1.6,
+        plan.cornice,
+        depth + offset * 2,
+      ),
+      wood,
+    );
+    cornice.position.set(0, innerHeight + plan.cornice * 0.82, depth * 0.1);
     cornice.castShadow = true;
     cornice.receiveShadow = true;
     group.add(cornice);
 
-    baySize = { width: plan.outerWidth + 0.05, height: innerHeight + 0.1 };
+    baySize = {
+      width: plan.outerWidth + offset * 1.6,
+      height: innerHeight + plan.cornice * 1.4,
+    };
 
     return group;
   }
@@ -239,189 +272,70 @@ function start(canvas) {
   /* ---------- media ---------- */
 
   /**
-   * Covers arrive at whatever size the person's artwork folder holds - often a thousand
-   * pixels square. A case on a shelf is a few hundred pixels at most, and a screenful of
-   * full-size covers is enough texture memory to push the compositor over a limit, so the
-   * sheet is drawn once into a bounded canvas and the original is dropped.
+   * One shelf object: the closed case with its cover at the real inlay size, or the card
+   * itself for DS/3DS. Printed faces are unlit, so cover art is read rather than lit; the
+   * shell keeps the room's light.
    */
-  function loadCover(url, accept) {
-    const image = new Image();
-    image.crossOrigin = 'anonymous';
-    image.decoding = 'async';
-
-    image.addEventListener('load', () => {
-      const limit = 512;
-      const scale = Math.min(1, limit / Math.max(image.naturalWidth, image.naturalHeight));
-      const sheet = document.createElement('canvas');
-      sheet.width = Math.max(1, Math.round(image.naturalWidth * scale));
-      sheet.height = Math.max(1, Math.round(image.naturalHeight * scale));
-      sheet.getContext('2d').drawImage(image, 0, 0, sheet.width, sheet.height);
-
-      const texture = new THREE.CanvasTexture(sheet);
-      texture.colorSpace = THREE.SRGBColorSpace;
-      texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-      accept(texture);
-    });
-
-    image.addEventListener('error', () => {
-      // The generated case stays. A missing file is not a shelf with a hole in it.
-    });
-
-    image.src = url;
-  }
-
-  /**
-   * A case's front face is unlit. Printed art is meant to be read, not lit, and a
-   * standard material under a 2.4-intensity key blows highlights out. The body stays lit
-   * so the plastic still catches the room.
-   */
-  function makeCase(game) {
-    const spec = state.media;
+  function makeItem(game) {
     const group = new THREE.Group();
+    let built;
 
-    const front = new THREE.MeshBasicMaterial({ map: generatedCover(game) });
-    const geometry = new THREE.BoxGeometry(spec.width, spec.height, spec.depth);
-
-    // BoxGeometry material order: +x, -x, +y, -y, +z, -z.
-    const mesh = new THREE.Mesh(geometry, [plastic, plastic, plastic, plastic, front, plastic]);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    mesh.userData.gameId = game.id;
-    group.add(mesh);
-
-    if (game.frontCoverUrl) {
-      loadCover(game.frontCoverUrl, (texture) => {
-        front.map?.dispose();
-        front.map = texture;
-        front.needsUpdate = true;
+    if (state.cartridge) {
+      built = buildCartridge(state.preset, SHELF_UNIT, {
+        body: state.preset.mediumBody ?? '#2b2b31',
+        face: null,
+        detail: false,
+        labelAspect: game.mediumLabelRect ? game.mediumLabelRect[2] / game.mediumLabelRect[3] : null,
+      });
+    } else {
+      built = buildCase(state.preset, SHELF_UNIT, {
+        body: state.body,
+        cover: generatedCoverTexture(state.preset, { accentColor: state.accent }, game, 320),
+        detail: false,
       });
     }
 
+    group.add(built.group);
     group.userData.gameId = game.id;
-    group.userData.case = mesh;
+    group.traverse((node) => {
+      if (node.isMesh) {
+        node.castShadow = true;
+        node.receiveShadow = true;
+      }
+    });
+
+    if (state.cartridge) {
+      // A box cover is not a cartridge label (PLAN.md section 3.3): only a resolved
+      // cartridge label may print on the card. Everything else stays a blank body.
+      if (game.mediumLabelUrl) {
+        loadImage(game.mediumLabelUrl)
+          .then((image) => {
+            const texture = stickerFromImage(image, game.mediumLabelRect, 512);
+            built.faceMaterial.map?.dispose();
+            built.faceMaterial.map = texture;
+            built.faceMaterial.needsUpdate = true;
+            built.sticker.visible = true;
+          })
+          .catch(() => {});
+      }
+    } else if (game.frontCoverUrl) {
+      loadTexture(game.frontCoverUrl, 512)
+        .then((texture) => {
+          fitTexture(texture, state.preset.inlay[0] / state.preset.inlay[1]);
+          built.coverMaterial.map?.dispose();
+          built.coverMaterial.map = texture;
+          built.coverMaterial.needsUpdate = true;
+        })
+        .catch(() => {
+          // The generated case stays. A missing file is not a shelf with a hole in it.
+        });
+    }
+
     return group;
   }
 
-  /**
-   * The DS/3DS shelf holds the card itself rather than a box, so a card with no artwork
-   * is drawn as a blank card: shell, label recess, grip ridges, no print. A sticker is a
-   * later pass, and inventing type here would pretend the card already has one.
-   */
-  function blankCartridge() {
-    const width = 320;
-    const height = Math.round(width * (state.media.height / state.media.width));
-    const body = `#${state.bodyColor.toString(16).padStart(6, '0')}`;
-
-    const source = document.createElement('canvas');
-    source.width = width;
-    source.height = height;
-    const context = source.getContext('2d');
-
-    const shell = context.createLinearGradient(0, 0, width * 0.4, height);
-    shell.addColorStop(0, tint(body, 0.18));
-    shell.addColorStop(0.52, body);
-    shell.addColorStop(1, tint(body, -0.3));
-    context.fillStyle = shell;
-    context.fillRect(0, 0, width, height);
-
-    // The grip ridges at both ends.
-    context.fillStyle = 'rgba(0,0,0,0.16)';
-    rounded(context, width / 2 - 46, 20, 92, 11, 5.5);
-    rounded(context, width / 2 - 46, height - 31, 92, 11, 5.5);
-
-    // The recess the sticker will eventually sit in. Empty on purpose.
-    const panel = { x: 34, y: 58, width: width - 68, height: height - 158 };
-    context.fillStyle = 'rgba(255,255,255,0.07)';
-    rounded(context, panel.x, panel.y, panel.width, panel.height, 9);
-    context.strokeStyle = 'rgba(0,0,0,0.34)';
-    context.lineWidth = 3;
-    rounded(context, panel.x, panel.y, panel.width, panel.height, 9, true);
-
-    const texture = new THREE.CanvasTexture(source);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    return texture;
-  }
-
-  function rounded(context, x, y, width, height, radius, stroke = false) {
-    context.beginPath();
-    context.roundRect(x, y, width, height, radius);
-    if (stroke) {
-      context.stroke();
-    } else {
-      context.fill();
-    }
-  }
-
-  /** `amount` runs -1 (black) to 1 (white). */
-  function tint(hex, amount) {
-    const value = Number.parseInt(hex.slice(1), 16);
-    const channels = [(value >> 16) & 255, (value >> 8) & 255, value & 255].map((channel) =>
-      Math.round(amount >= 0 ? channel + (255 - channel) * amount : channel * (1 + amount)),
-    );
-    return `rgb(${channels.join(', ')})`;
-  }
-
-  function generatedCover(game) {
-    return state.cartridge ? blankCartridge() : titleCase(game);
-  }
-
-  /**
-   * The "generated" rung of the artwork policy (PLAN.md section 3.3.1): a typographic
-   * case in the platform's accent colour, so a game with no local cover is still a case
-   * on a shelf rather than a hole.
-   */
-  function titleCase(game) {
-    const width = 320;
-    const height = 440;
-    const source = document.createElement('canvas');
-    source.width = width;
-    source.height = height;
-
-    const context = source.getContext('2d');
-    const accent = `#${state.accentColor.toString(16).padStart(6, '0')}`;
-
-    context.fillStyle = accent;
-    context.fillRect(0, 0, width, 46);
-
-    const wash = context.createLinearGradient(0, 46, 0, height);
-    wash.addColorStop(0, '#1a2340');
-    wash.addColorStop(1, '#0c1220');
-    context.fillStyle = wash;
-    context.fillRect(0, 46, width, height - 46);
-
-    context.fillStyle = '#f4efe4';
-    context.font = '600 26px "Segoe UI", sans-serif';
-    context.textBaseline = 'top';
-
-    const words = String(game.title).split(/\s+/);
-    let line = '';
-    let y = 92;
-
-    for (const word of words) {
-      const next = line ? `${line} ${word}` : word;
-      if (context.measureText(next).width > width - 56 && line) {
-        context.fillText(line, 28, y);
-        y += 34;
-        line = word;
-      } else {
-        line = next;
-      }
-    }
-    if (line) {
-      context.fillText(line, 28, y);
-    }
-
-    // The platform accent as a foot band, so an unlabelled case still says which shelf
-    // it belongs to.
-    context.fillStyle = accent;
-    context.fillRect(0, height - 18, width, 18);
-
-    const texture = new THREE.CanvasTexture(source);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    return texture;
-  }
-
-  function labelTexture(text) {    // Drawn at the case's real proportion, so the dashes stay square whatever the
+  function labelTexture(text) {
+    // Drawn at the case's real proportion, so the dashes stay square whatever the
     // platform's packaging is.
     const spec = state.media;
     const width = 256;
@@ -466,7 +380,7 @@ function start(canvas) {
 
   function placeCase(holder, game) {
     const spec = state.media;
-    const group = makeCase(game);
+    const group = makeItem(game);
 
     // The dashed OUT outline that stays behind when the case lifts out. Same footprint
     // as the case, so the gap reads as a missing item, not as a gap in the furniture.
@@ -492,18 +406,19 @@ function start(canvas) {
     const platform = window.aislesSnapshot?.platform;
     state.games = window.aislesSnapshot?.games ?? [];
     state.platformId = platform?.id ?? null;
-    state.media = MEDIA[platform?.media] ?? DEFAULT_MEDIA;
-    state.cartridge = platform?.media === 'CartridgeCase';
-    state.bodyColor = new THREE.Color(platform?.bodyColor ?? '#1b1b1f').getHex();
-    state.accentColor = new THREE.Color(platform?.accentColor ?? '#ffce00').getHex();
+    state.preset = presetFor(platform);
+    state.cartridge = state.preset.medium.kind === 'card';
+    state.media = shelfItemFor(state.preset, SHELF_UNIT);
+    state.body = platform?.bodyColor ?? '#1b1b1f';
+    state.accent = platform?.accentColor ?? '#ffce00';
     state.bayCount = Math.max(1, Math.ceil(state.games.length / PER_BAY));
     state.bay = 0;
 
     makeMaterials();
 
     const plan = measure();
-    const bayPitch = plan.outerWidth + BAY_GAP;
-    const caseZ = plan.depth / 2 - state.media.depth / 2 - 0.02;
+    const bayPitch = plan.bayGap;
+    const caseZ = plan.depth / 2 - state.media.depth / 2 - plan.margin;
 
     for (let index = 0; index < state.bayCount; index++) {
       const group = makeBay();
@@ -530,7 +445,7 @@ function start(canvas) {
       bays.push({ group });
     }
 
-    baySize = { width: plan.outerWidth + 0.05, height: plan.innerHeight + 0.1 };
+    // makeBay already sized this from the furniture it built.
     state.bayPitch = bayPitch;
     applySelection();
     frameCamera();
@@ -563,12 +478,12 @@ function start(canvas) {
     const aspect = Math.max(width / height, 0.4);
 
     // Just enough margin that the cornice and the plinth are inside the frame.
-    const halfHeight = baySize.height / 2 + 0.09;
-    const halfWidth = baySize.width / 2 + 0.08;
+    const halfHeight = baySize.height / 2 + baySize.height * 0.06;
+    const halfWidth = baySize.width / 2 + baySize.width * 0.04;
     const tan = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
 
     const distance = Math.max(halfHeight / tan, halfWidth / (tan * aspect));
-    const target = new THREE.Vector3(0, baySize.height / 2 - 0.06, 0);
+    const target = new THREE.Vector3(0, baySize.height / 2 - baySize.height * 0.04, 0);
 
     camera.position.set(0, target.y + Math.sin(TILT) * distance, Math.cos(TILT) * distance);
     camera.lookAt(target);
@@ -875,25 +790,6 @@ function roomBackdrop() {
   const texture = new THREE.CanvasTexture(source);
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
-}
-
-function disposeTree(root) {
-  root.traverse((node) => {
-    if (!node.isMesh && !node.isLine) {
-      return;
-    }
-
-    node.geometry?.dispose();
-
-    for (const material of [].concat(node.material ?? [])) {
-      for (const value of Object.values(material)) {
-        if (value && value.isTexture) {
-          value.dispose();
-        }
-      }
-      material.dispose();
-    }
-  });
 }
 
 function fail(error) {

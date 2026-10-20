@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="320" viewBox="0 0 2560 320">
+  <defs>
+    <linearGradient id="wall" x2="0" y2="1">
+      <stop stop-color="#68452f"/>
+      <stop offset=".48" stop-color="#95613d"/>
+      <stop offset="1" stop-color="#523324"/>
+    </linearGradient>
+    <linearGradient id="counter" x2="0" y2="1">
+      <stop stop-color="#3b2317"/>
+      <stop offset=".45" stop-color="#21120b"/>
+      <stop offset="1" stop-color="#0d0604"/>
+    </linearGradient>
+    <pattern id="slats" width="2560" height="39" patternUnits="userSpaceOnUse">
+      <rect width="2560" height="39" fill="url(#wall)"/>
+      <path d="M0 35H2560" stroke="#382116" stroke-width="3"/>
+      <path d="M0 38H2560" stroke="#bf8550" stroke-width="1" opacity=".45"/>
+    </pattern>
+    <radialGradient id="pool" cx="50%" cy="8%" r="70%">
+      <stop stop-color="#f5c27a" stop-opacity=".32"/>
+      <stop offset="1" stop-color="#f5c27a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="2560" height="240" fill="url(#slats)"/>
+  <rect width="2560" height="240" fill="url(#pool)"/>
+  <rect y="240" width="2560" height="80" fill="url(#counter)"/>
+  <path d="M0 240H2560" stroke="#a66d44" stroke-width="3" opacity=".55"/>
+</svg>

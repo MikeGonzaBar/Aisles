@@ -35,6 +35,9 @@ const GAP = 0.58;
 const SELECTED_SCALE = 1.16;
 const SELECTED_LIFT = 0.055;
 const HOVER_LIFT = 0.02;
+const HOVER_SCALE = 1.025;
+const SELECTED_BOB = 0.012;
+const SELECTED_FORWARD = 0.018;
 
 /** Narrow vertical field of view, so the row reads as a lineup rather than a wide-angle. */
 const FOV = 27;
@@ -77,11 +80,13 @@ if (canvas && labelsRoot) {
 }
 
 function start(canvas, labelsRoot) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  // Slatwall is supplied by the responsive CSS background behind the live models.
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.12;
+  renderer.toneMappingExposure = 0.96;
+  renderer.setClearColor(0x000000, 0);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -100,11 +105,12 @@ function start(canvas, labelsRoot) {
   const pmrem = new THREE.PMREMGenerator(renderer);
   const environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
   scene.environment = environment;
-  scene.environmentIntensity = 0.42;
+  scene.environmentIntensity = 0.36;
   pmrem.dispose();
 
-  // One warm key casts the shadows; a cool fill and a yellow rim shape the silhouettes.
-  const key = new THREE.DirectionalLight(0xfff2dd, 2.5);
+  // Tungsten-like key light and a cooler fill echo a 1990s rental shop without making
+  // dark consoles disappear into the walnut counter.
+  const key = new THREE.DirectionalLight(0xfff0dc, 2.1);
   key.position.set(-2.6, 4.2, 3.4);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
@@ -118,11 +124,11 @@ function start(canvas, labelsRoot) {
   key.shadow.normalBias = 0.02;
   scene.add(key);
 
-  const fill = new THREE.DirectionalLight(0x8fb0ff, 0.7);
+  const fill = new THREE.DirectionalLight(0x9ab6ff, 0.64);
   fill.position.set(4.5, 2.2, 3.4);
   scene.add(fill);
 
-  const rim = new THREE.DirectionalLight(0xffd62e, 0.5);
+  const rim = new THREE.DirectionalLight(0xffd62e, 0.36);
   rim.position.set(0, 1.6, -5);
   scene.add(rim);
 
@@ -132,9 +138,8 @@ function start(canvas, labelsRoot) {
   scene.add(spot, spot.target);
   let spotTargetX = 0;
 
-  // There is deliberately no opaque ground plane. The band's backdrop is the CSS gradient
-  // showing through a transparent canvas; an opaque floor cuts that gradient with a hard
-  // horizon, and any camera movement then slides the horizon line under the consoles.
+  // There is deliberately no opaque ground plane. The band's slatwall shows through the
+  // transparent canvas; an opaque floor would cut it with a hard horizon.
   // A ShadowMaterial plane receives the contact shadows and paints nothing else, so each
   // console appears to stand on its own patch of stage.
   const ground = new THREE.Mesh(
@@ -157,6 +162,7 @@ function start(canvas, labelsRoot) {
   const labelPoint = new THREE.Vector3();
 
   const state = { consoles: [], selectedId: null, hoveredId: null };
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
   let builtSignature = null;
   let modelledIds = null;
   let rowWidth = 0;
@@ -218,6 +224,15 @@ function start(canvas, labelsRoot) {
       x: 0,
       width: TARGET_SIZE,
       depth: 0.5,
+      motion: {
+        scale: 1,
+        y: 0,
+        z: 0,
+        targetScale: 1,
+        targetY: 0,
+        targetZ: 0,
+        phase: slots.size * 0.83,
+      },
     };
     sizePlatform(slot, slot.width, slot.depth);
     slots.set(platform.id, slot);
@@ -408,8 +423,11 @@ function start(canvas, labelsRoot) {
       const selected = slot.console.id === state.selectedId;
       const hovered = !selected && slot.console.id === state.hoveredId;
 
-      slot.holder.scale.setScalar(selected ? SELECTED_SCALE : 1);
-      slot.holder.position.y = selected ? SELECTED_LIFT : hovered ? HOVER_LIFT : 0;
+      // Targets are eased in the frame loop. Hover therefore feels physical rather than
+      // snapping upward, while the selected console has a quiet display-case bob.
+      slot.motion.targetScale = selected ? SELECTED_SCALE : hovered ? HOVER_SCALE : 1;
+      slot.motion.targetY = selected ? SELECTED_LIFT : hovered ? HOVER_LIFT : 0;
+      slot.motion.targetZ = selected ? SELECTED_FORWARD : 0;
 
       slot.platform.material.color.set(selected ? 0x4a3c14 : 0x232c52);
       slot.platform.material.emissive.set(selected ? 0x241a00 : 0x000000);
@@ -419,7 +437,7 @@ function start(canvas, labelsRoot) {
     }
 
     spotTargetX = slots.get(state.selectedId)?.x ?? 0;
-    spot.intensity = slots.has(state.selectedId) ? 30 : 0;
+    spot.intensity = slots.has(state.selectedId) ? 26 : 0;
 
     // Lift and scale change shadows, so the baked map has to catch up.
     renderer.shadowMap.needsUpdate = true;
@@ -557,7 +575,7 @@ function start(canvas, labelsRoot) {
 
   /* ---------- frame loop ---------- */
 
-  function tick() {
+  function tick(now) {
     // The camera stays where frameCamera put it. It used to drift on a slow sine, which
     // moved every console together and made the row read as one sliding object; a stage
     // that holds still lets each console sit on its own.
@@ -565,6 +583,21 @@ function start(canvas, labelsRoot) {
 
     spot.position.x += (spotTargetX - spot.position.x) * 0.12;
     spot.target.position.x = spot.position.x;
+
+    for (const slot of slots.values()) {
+      const selected = slot.console.id === state.selectedId;
+      const bob = selected && !reducedMotion
+        ? Math.sin(now / 460 + slot.motion.phase) * SELECTED_BOB
+        : 0;
+      const easing = reducedMotion ? 1 : 0.15;
+
+      slot.motion.scale += (slot.motion.targetScale - slot.motion.scale) * easing;
+      slot.motion.y += (slot.motion.targetY + bob - slot.motion.y) * easing;
+      slot.motion.z += (slot.motion.targetZ - slot.motion.z) * easing;
+      slot.holder.scale.setScalar(slot.motion.scale);
+      slot.holder.position.y = slot.motion.y;
+      slot.holder.position.z = slot.motion.z;
+    }
 
     updateLabels();
     renderer.render(scene, camera);

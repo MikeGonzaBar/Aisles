@@ -4,6 +4,8 @@ using Aisles.App.Domain;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.Web.WebView2.Core;
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Windows.Storage.Pickers;
@@ -22,6 +24,9 @@ public sealed partial class MainWindow : Window
     private readonly EmulatorLauncher _launcher = new();
     private readonly ConsoleSettingsStore _settingsStore = new(Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Aisles", "settings.json"));
+    private readonly ArtworkResolver _artwork = new(Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Aisles", "artwork"));
+    private readonly ConcurrentDictionary<string, byte> _searchedConsoles = new(StringComparer.OrdinalIgnoreCase);
 
     private ConsoleCatalog? _catalog;
     private ConsoleCatalog? _catalogDefaults;
@@ -89,6 +94,13 @@ public sealed partial class MainWindow : Window
         // Artwork is referenced in place and served over its own hosts, so the page
         // can use ordinary <img> tags instead of base64 (PLAN.md section 5.3).
         RegisterAssetHosts(core);
+
+        // Provider images are downloads, so they live in Aisles' own cache rather than
+        // in a user folder. One host for the cache; the file name is its hash.
+        core.SetVirtualHostNameToFolderMapping(
+            ArtworkResolver.Host,
+            _artwork.CacheRoot,
+            CoreWebView2HostResourceAccessKind.Allow);
 
         _bridge.Attach(core, OnMessageFromWeb);
         core.Navigate($"https://{WebHostName}/index.html");
@@ -264,15 +276,27 @@ public sealed partial class MainWindow : Window
                 console.GamesPath,
                 console.GamesPathExists,
                 console.EmulatorExists,
-                games.Select(game => new GamePayload(
-                    game.Id,
-                    game.Title,
-                    game.LaunchTarget,
-                    game.Serial,
-                    game.TitleSource,
-                    game.FrontCover is { } cover ? UrlForArtwork(console.Id, cover) : null,
-                    game.FrontCover?.Match,
-                    game.FrontCover?.Source)).ToList()));
+                games.Select(game =>
+                {
+                    var art = _artwork.Resolve(
+                        game,
+                        console,
+                        game.FrontCover is { } cover ? UrlForArtwork(console.Id, cover) : null);
+
+                    return new GamePayload(
+                        game.Id,
+                        game.Title,
+                        game.LaunchTarget,
+                        game.Serial,
+                        game.TitleSource,
+                        art.FrontCover.Url,
+                        art.FrontCover.Match,
+                        art.FrontCover.Source,
+                        art.Medium.Url,
+                        art.Medium.Match,
+                        art.Medium.Source,
+                        art.Medium.LabelRect);
+                }).ToList()));
         }
 
         return new LibraryPayload(null, consoles);
@@ -289,6 +313,7 @@ public sealed partial class MainWindow : Window
         {
             case "ready":
                 _bridge.Send("library", BuildLibraryPayload());
+                _ = SearchArtworkAsync();
                 break;
 
             case "getSettings":
@@ -326,6 +351,9 @@ public sealed partial class MainWindow : Window
                 break;
 
             case "selectConsole":
+                _ = SearchConsoleArtworkAsync(message.ReadString("consoleId"));
+                break;
+
             case "selectGame":
                 break;
         }
@@ -436,10 +464,70 @@ public sealed partial class MainWindow : Window
             var library = await Task.Run(BuildLibraryPayload);
             _bridge.Send("library", library);
             _bridge.Send("scanResult", new { requestId, succeeded = true });
+
+            // New games need their first provider pass; games already searched are
+            // skipped by the resolver.
+            _searchedConsoles.Clear();
+            _ = SearchArtworkAsync();
         }
         catch (Exception ex)
         {
             _bridge.Send("scanResult", new { requestId, succeeded = false, error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Searches the console the user is looking at. Called on the first load and whenever
+    /// a console is selected; each console is searched at most once per session, and the
+    /// resolver itself skips games whose slots are already resolved. Browsing never waits
+    /// on the network: the payload is sent before this starts.
+    /// </summary>
+    private async Task SearchArtworkAsync()
+    {
+        if (_catalog is null || _catalog.Consoles.Count == 0)
+        {
+            return;
+        }
+
+        await SearchConsoleArtworkAsync(_catalog.Consoles[0].Id);
+    }
+
+    private async Task SearchConsoleArtworkAsync(string? consoleId)
+    {
+        if (_catalog is null || string.IsNullOrWhiteSpace(consoleId))
+        {
+            return;
+        }
+
+        var console = _catalog.Consoles.FirstOrDefault(candidate =>
+            candidate.Id.Equals(consoleId, StringComparison.OrdinalIgnoreCase));
+
+        if (console is null || !console.GamesPathExists || !_searchedConsoles.TryAdd(console.Id, 0))
+        {
+            return;
+        }
+
+        try
+        {
+            var games = new LibraryScanner().Scan(console);
+
+            if (games.Count == 0)
+            {
+                return;
+            }
+
+            await _artwork.SearchConsoleAsync(
+                console,
+                games,
+                game => game.FrontCover is { } cover ? UrlForArtwork(console.Id, cover) : null,
+                CancellationToken.None);
+
+            var library = await Task.Run(BuildLibraryPayload);
+            _bridge.Send("library", library);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Artwork search for {console.Id} failed: {ex}");
         }
     }
 

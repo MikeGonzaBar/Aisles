@@ -490,21 +490,12 @@ window.aislesLaunchGame = launchGame;
 
 /* ---------- hero ---------- */
 
-/* ---------- the hero's medium ----------
- * The disc or cartridge beside the selected case. Drawn as SVG rather than a second WebGL
- * context: a medium is a printed object, and a printed object is exactly what SVG is for -
- * it scales to the column, costs no texture memory and needs no per-frame work.
- *
- * Shapes are the real ones (a 12 cm disc, a DS card that is 33 x 35 mm, a 3DS card that is
- * 35 x 33), and the label is always generated. A cover is not a disc label (PLAN.md
- * section 3.3), and there is no local disc art yet, so nothing is borrowed from the box.
+/* ---------- the hero ----------
+ * The case and the medium are the workshop's real objects, drawn by hero3d.js from the
+ * same millimetre table the shelf uses. This file keeps only the copy and the launch
+ * button; the objects are handed over whole, so the hero cannot drift away from the
+ * shelf's packaging or invent a second set of proportions.
  */
-
-/** Card footprints, width over height, keyed by the platform they belong to. */
-const CARD_SHAPES = {
-  ds: [200, 212],
-  '3ds': [212, 200],
-};
 
 /** What the medium is called, keyed by the `media` value in consoles.json. */
 const MEDIUM_NAMES = {
@@ -514,372 +505,6 @@ const MEDIUM_NAMES = {
   MiniDiscCase: 'miniDVD',
   CartridgeCase: 'Game card',
 };
-
-/** The hero case's front, width over height, per packaging. The shelf uses the same. */
-const CASE_ASPECTS = {
-  JewelCase: 0.9375,
-  DvdCase: 0.714,
-  BluRayCase: 0.7125,
-  MiniDiscCase: 0.933,
-  CartridgeCase: 0.72,
-};
-
-const SVG_NS = 'http://www.w3.org/2000/svg';
-
-function svgNode(tag, attributes, text) {
-  const node = document.createElementNS(SVG_NS, tag);
-  for (const [key, value] of Object.entries(attributes ?? {})) {
-    node.setAttribute(key, String(value));
-  }
-  if (text !== undefined) {
-    node.textContent = text;
-  }
-  return node;
-}
-
-function hexToRgb(hex) {
-  const digits = String(hex ?? '').replace('#', '').trim();
-  const full = digits.length === 3 ? [...digits].map((digit) => digit + digit).join('') : digits;
-  const value = Number.parseInt(full, 16);
-  return full.length === 6 && Number.isFinite(value)
-    ? { r: (value >> 16) & 255, g: (value >> 8) & 255, b: value & 255 }
-    : { r: 27, g: 27, b: 31 };
-}
-
-/** `amount` runs -1 (black) to 1 (white); 0 leaves the colour alone. */
-function shade({ r, g, b }, amount) {
-  const channel = (value) =>
-    Math.round(amount >= 0 ? value + (255 - value) * amount : value * (1 + amount));
-  return `rgb(${channel(r)}, ${channel(g)}, ${channel(b)})`;
-}
-
-/** The ink that stays readable on a field: cream on dark, near-black on light. */
-function inkFor({ r, g, b }) {
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6 ? '#141824' : '#f4efe4';
-}
-
-/** Words wrapped to fit a label, and an ellipsis rather than a fourth line. */
-function labelLines(title, maxChars, maxLines) {
-  const words = String(title ?? '')
-    .replace(/[®™©]/g, ' ')
-    .split(/\s+/)
-    .filter(Boolean);
-  if (!words.length) {
-    return ['Untitled'];
-  }
-
-  const lines = [];
-  let line = '';
-
-  for (const word of words) {
-    const candidate = line ? `${line} ${word}` : word;
-    if (line && candidate.length > maxChars) {
-      lines.push(line);
-      line = word;
-    } else {
-      line = candidate;
-    }
-  }
-  if (line) {
-    lines.push(line);
-  }
-
-  if (lines.length <= maxLines) {
-    return lines;
-  }
-
-  const kept = lines.slice(0, maxLines);
-  kept[maxLines - 1] = `${kept[maxLines - 1].slice(0, Math.max(1, maxChars - 1))}…`;
-  return kept;
-}
-
-function labelText(lines, ink, y, lineHeight, size) {
-  const group = svgNode('g', {});
-
-  lines.forEach((line, index) => {
-    group.append(
-      svgNode(
-        'text',
-        {
-          x: 100,
-          y: y + index * lineHeight,
-          'text-anchor': 'middle',
-          'font-family': '"Segoe UI", sans-serif',
-          'font-size': size,
-          'font-weight': 700,
-          fill: ink,
-        },
-        line,
-      ),
-    );
-  });
-
-  return group;
-}
-
-/**
- * A disc: 120 mm of polycarbonate, printed from the hub out to the edge, with the clear
- * clamping ring and the 15 mm hole that make it read as a disc and not as a coin.
- */
-function discMedium(console, game) {
-  const body = hexToRgb(console.bodyColor);
-  const accent = hexToRgb(console.accentColor);
-  const ink = inkFor(accent);
-
-  const svg = svgNode('svg', { viewBox: '0 0 200 200', 'aria-hidden': 'true', focusable: 'false' });
-  const defs = svgNode('defs');
-
-  const plastic = svgNode('radialGradient', { id: 'disc-plastic', cx: '38%', cy: '30%', r: '78%' });
-  plastic.append(svgNode('stop', { offset: '0', 'stop-color': shade(body, 0.42) }));
-  plastic.append(svgNode('stop', { offset: '0.55', 'stop-color': shade(body, 0.04) }));
-  plastic.append(svgNode('stop', { offset: '1', 'stop-color': shade(body, -0.42) }));
-
-  const print = svgNode('linearGradient', { id: 'disc-print', x1: '0', y1: '0', x2: '0.35', y2: '1' });
-  print.append(svgNode('stop', { offset: '0', 'stop-color': shade(accent, 0.16) }));
-  print.append(svgNode('stop', { offset: '0.62', 'stop-color': shade(accent, -0.04) }));
-  print.append(svgNode('stop', { offset: '1', 'stop-color': shade(accent, -0.26) }));
-
-  const sheen = svgNode('linearGradient', { id: 'disc-sheen', x1: '0', y1: '0', x2: '0', y2: '1' });
-  sheen.append(svgNode('stop', { offset: '0', 'stop-color': '#ffffff', 'stop-opacity': '0.34' }));
-  sheen.append(svgNode('stop', { offset: '1', 'stop-color': '#ffffff', 'stop-opacity': '0' }));
-
-  defs.append(plastic, print, sheen);
-
-  svg.append(defs);
-  svg.append(svgNode('circle', { cx: 100, cy: 100, r: 100, fill: 'url(#disc-plastic)' }));
-  svg.append(svgNode('circle', { cx: 100, cy: 100, r: 97, fill: 'url(#disc-print)' }));
-  // The label stops at the clamping ring, so the print is an annulus, not a full face.
-  svg.append(svgNode('circle', { cx: 100, cy: 100, r: 40, fill: 'url(#disc-plastic)' }));
-  svg.append(
-    svgNode('circle', {
-      cx: 100,
-      cy: 100,
-      r: 39,
-      fill: 'none',
-      stroke: '#ffce00',
-      'stroke-opacity': '0.55',
-      'stroke-width': 1.6,
-    }),
-  );
-  svg.append(
-    svgNode('circle', {
-      cx: 100,
-      cy: 100,
-      r: 22,
-      fill: 'none',
-      stroke: '#ffffff',
-      'stroke-opacity': '0.3',
-      'stroke-width': 1.4,
-    }),
-  );
-  svg.append(svgNode('circle', { cx: 100, cy: 100, r: 8, fill: '#0a0f1f' }));
-  svg.append(
-    svgNode('ellipse', {
-      cx: 60,
-      cy: 48,
-      rx: 56,
-      ry: 30,
-      fill: 'url(#disc-sheen)',
-      transform: 'rotate(-34 60 48)',
-    }),
-  );
-  svg.append(
-    svgNode('circle', {
-      cx: 100,
-      cy: 100,
-      r: 99,
-      fill: 'none',
-      stroke: '#ffffff',
-      'stroke-opacity': '0.16',
-      'stroke-width': 1.6,
-    }),
-  );
-
-  // The print zone is the annulus above the clamping ring: no type on the hub, the way
-  // a real disc is printed.
-  const lines = labelLines(game.title, 17, 3);
-  const startY = 40 - ((lines.length - 1) * 18) / 2;
-  const printed = labelText(lines, ink, startY, 18, 15);
-
-  if (game.serial) {
-    printed.append(
-      svgNode(
-        'text',
-        {
-          x: 100,
-          y: 162,
-          'text-anchor': 'middle',
-          'font-family': '"Cascadia Mono", Consolas, monospace',
-          'font-size': 9,
-          'letter-spacing': 0.6,
-          fill: ink,
-          'fill-opacity': 0.62,
-        },
-        game.serial,
-      ),
-    );
-  }
-
-  svg.append(printed);
-
-  return svg;
-}
-
-/**
- * A game card: the platform's own footprint, a recessed label panel, and the grip ridge
- * that keeps it from being a rectangle.
- */
-function cartridgeMedium(console, game) {
-  const body = hexToRgb(console.bodyColor);
-  const accent = hexToRgb(console.accentColor);
-  const ink = inkFor(accent);
-  const bodyInk = inkFor(body);
-  const [width, height] = CARD_SHAPES[console.id] ?? [200, 212];
-
-  const svg = svgNode('svg', {
-    viewBox: `0 0 ${width} ${height}`,
-    'aria-hidden': 'true',
-    focusable: 'false',
-  });
-  const defs = svgNode('defs');
-
-  const shell = svgNode('linearGradient', { id: 'card-shell', x1: '0', y1: '0', x2: '0.3', y2: '1' });
-  shell.append(svgNode('stop', { offset: '0', 'stop-color': shade(body, 0.24) }));
-  shell.append(svgNode('stop', { offset: '0.5', 'stop-color': shade(body, -0.04) }));
-  shell.append(svgNode('stop', { offset: '1', 'stop-color': shade(body, -0.34) }));
-
-  const label = svgNode('linearGradient', { id: 'card-label', x1: '0', y1: '0', x2: '0.4', y2: '1' });
-  label.append(svgNode('stop', { offset: '0', 'stop-color': shade(accent, 0.14) }));
-  label.append(svgNode('stop', { offset: '1', 'stop-color': shade(accent, -0.22) }));
-
-  defs.append(shell, label);
-  svg.append(defs);
-
-  const inset = 4;
-  svg.append(
-    svgNode('rect', {
-      x: inset,
-      y: inset,
-      width: width - inset * 2,
-      height: height - inset * 2,
-      rx: 9,
-      fill: 'url(#card-shell)',
-      stroke: '#000000',
-      'stroke-opacity': '0.4',
-      'stroke-width': 1,
-    }),
-  );
-
-  // Grip ridges top and bottom: the card is held by its edges, and it shows.
-  for (const y of [inset + 9, height - inset - 15]) {
-    svg.append(
-      svgNode('rect', {
-        x: width / 2 - 26,
-        y,
-        width: 52,
-        height: 6,
-        rx: 3,
-        fill: '#000000',
-        'fill-opacity': '0.16',
-      }),
-    );
-  }
-
-  // A DS/3DS label is a sticker on the shell, not a full face: the body has to show on
-  // every side, and the recess is smaller than the card.
-  const panel = {
-    x: (width - 140) / 2,
-    y: (height - 104) / 2 - 4,
-    width: 140,
-    height: 104,
-  };
-  svg.append(
-    svgNode('rect', {
-      ...panel,
-      rx: 6,
-      fill: 'url(#card-label)',
-      stroke: '#000000',
-      'stroke-opacity': '0.28',
-    }),
-  );
-  svg.append(
-    svgNode('rect', {
-      x: panel.x + 6,
-      y: panel.y + 6,
-      width: panel.width - 12,
-      height: panel.height - 12,
-      rx: 4,
-      fill: 'none',
-      stroke: '#ffce00',
-      'stroke-opacity': '0.5',
-      'stroke-width': 1.5,
-    }),
-  );
-
-  const lines = labelLines(game.title, 18, 3);
-  const centreX = panel.x + panel.width / 2;
-  const baseY = panel.y + panel.height / 2 - ((lines.length - 1) * 20) / 2;
-
-  const text = svgNode('g', {});
-  lines.forEach((line, index) => {
-    text.append(
-      svgNode(
-        'text',
-        {
-          x: centreX,
-          y: baseY + index * 20 + 6,
-          'text-anchor': 'middle',
-          'font-family': '"Segoe UI", sans-serif',
-          'font-size': 17,
-          'font-weight': 700,
-          fill: ink,
-        },
-        line,
-      ),
-    );
-  });
-  svg.append(text);
-
-  if (game.serial) {
-    svg.append(
-      svgNode(
-        'text',
-        {
-          x: width / 2,
-          y: height - 26,
-          'text-anchor': 'middle',
-          'font-family': '"Cascadia Mono", Consolas, monospace',
-          'font-size': 10,
-          'letter-spacing': 0.6,
-          fill: bodyInk,
-          'fill-opacity': 0.6,
-        },
-        game.serial,
-      ),
-    );
-  }
-
-  return svg;
-}
-
-/**
- * The medium element. `data-shape` carries the kind for CSS and for the tests, and the
- * caption names what the object is, the way a shelf label would.
- */
-function mediumFor(console, game) {
-  const cartridge = console.media === 'CartridgeCase';
-  const figure = document.createElement('figure');
-  figure.className = 'hero-medium';
-  figure.dataset.shape = cartridge ? 'cartridge' : 'disc';
-
-  figure.append(cartridge ? cartridgeMedium(console, game) : discMedium(console, game));
-
-  const caption = document.createElement('figcaption');
-  caption.textContent = MEDIUM_NAMES[console.media] ?? 'Media';
-  figure.append(caption);
-
-  return figure;
-}
 
 function renderHero() {
   if (!elements.hero) {
@@ -891,10 +516,11 @@ function renderHero() {
   elements.hero.replaceChildren();
 
   if (!game) {
-    const art = document.createElement('div');
-    art.className = 'hero-art';
-    art.dataset.state = 'empty';
-    art.textContent = console ? 'Pick a case' : 'Pick a console';
+    window.aislesHero3d?.clear();
+
+    const stage = document.createElement('div');
+    stage.className = 'hero-stage hero-stage-empty';
+    stage.textContent = console ? 'Pick a case' : 'Pick a console';
 
     const title = document.createElement('div');
     title.className = 'hero-title';
@@ -912,34 +538,16 @@ function renderHero() {
     launch.textContent = 'LAUNCH';
     launch.disabled = true;
 
-    elements.hero.append(art, title, meta, launch);
+    elements.hero.append(stage, title, meta, launch);
     return;
   }
 
-  const art = document.createElement('div');
-  art.className = 'hero-art';
-  art.dataset.layout = 'medium';
-  art.style.setProperty('--case-aspect', String(CASE_ASPECTS[console?.media] ?? 0.704));
+  const row = document.createElement('div');
+  row.className = 'hero-row';
 
-  const fallback = document.createElement('div');
-  fallback.className = 'hero-fallback';
-  fallback.style.setProperty('--accent', console?.accentColor ?? '#0b4ea2');
-
-  // The hero's copy of the generated rung: the same accent bands and title the shelf
-  // draws, so a game with no cover is still a designed case at this size, not a hole.
-  const fallbackTitle = document.createElement('span');
-  fallbackTitle.className = 'hero-fallback-title';
-  fallbackTitle.textContent = game.title;
-  fallback.append(fallbackTitle);
-  art.append(fallback);
-
-  if (game.frontCoverUrl) {
-    const image = document.createElement('img');
-    image.src = game.frontCoverUrl;
-    image.alt = '';
-    image.addEventListener('error', () => image.remove());
-    art.append(image);
-  }
+  const stage = document.createElement('div');
+  stage.className = 'hero-stage';
+  row.append(stage);
 
   const title = document.createElement('div');
   title.className = 'hero-title';
@@ -951,6 +559,11 @@ function renderHero() {
   const platform = document.createElement('span');
   platform.textContent = console ? `${console.name} · ${console.year}` : '';
   meta.append(platform);
+
+  const medium = document.createElement('span');
+  medium.className = 'medium-name';
+  medium.textContent = MEDIUM_NAMES[console?.media] ?? 'Media';
+  meta.append(medium);
 
   if (game.serial) {
     const serial = document.createElement('span');
@@ -965,14 +578,18 @@ function renderHero() {
   launch.textContent = 'LAUNCH';
   launch.addEventListener('click', () => launchGame(game.id));
 
-  // The case and its medium sit side by side, the way the blockout has them: the box
-  // carries the art, the medium carries the platform's real shape.
-  const row = document.createElement('div');
-  row.className = 'hero-row';
-  row.append(art, console ? mediumFor(console, game) : document.createElement('span'));
-
   elements.hero.append(row, title, meta, launch);
+
+  const hero = window.aislesHero3d;
+  if (hero) {
+    stage.append(hero.canvas);
+    hero.show(console, game);
+  } else {
+    stage.textContent = 'The 3D view is unavailable.';
+  }
 }
+
+window.addEventListener('aisles:hero3d', renderHero);
 
 /* ---------- pager ---------- */
 
@@ -1052,7 +669,7 @@ function onLibrary(payload) {
       (sum, console) => sum + console.games.filter((game) => game.frontCoverUrl).length,
       0,
     );
-    setStatus(`Library loaded · ${games} games · ${covers} local covers`);
+    setStatus(`Library loaded · ${games} games · ${covers} with a cover`);
   }
 
 

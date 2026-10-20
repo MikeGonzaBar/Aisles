@@ -28,4 +28,8 @@ public sealed record GamePayload(
     string? TitleSource,
     string? FrontCoverUrl,
     string? FrontCoverMatch,
-    string? FrontCoverSource);
+    string? FrontCoverSource,
+    string? MediumLabelUrl,
+    string? MediumLabelMatch,
+    string? MediumLabelSource,
+    double[]? MediumLabelRect);
