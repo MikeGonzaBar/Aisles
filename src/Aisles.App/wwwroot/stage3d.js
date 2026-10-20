@@ -167,6 +167,16 @@ function start(canvas, labelsRoot) {
   let modelledIds = null;
   let rowWidth = 0;
 
+  function whenIdle() {
+    return new Promise((resolve) => {
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(resolve, { timeout: 1000 });
+      } else {
+        setTimeout(resolve, 0);
+      }
+    });
+  }
+
   function buildSlot(platform) {
     const root = new THREE.Group();
     root.userData.consoleId = platform.id;
@@ -263,7 +273,7 @@ function start(canvas, labelsRoot) {
     if (!platform.gamesPathExists || platform.games.length === 0) {
       const note = document.createElement('span');
       note.className = 'pending';
-      note.textContent = platform.gamesPathExists ? 'no games' : 'no games folder';
+      note.textContent = 'drop games here';
       slot.label.append(note);
       return;
     }
@@ -283,21 +293,36 @@ function start(canvas, labelsRoot) {
       modelledIds = new Set((catalog.models ?? []).map((model) => model.id));
     }
 
-    await Promise.all(
-      [...slots.values()].map(async (slot) => {
-        if (!modelledIds.has(slot.console.id)) {
-          return;
-        }
+    const candidates = [...slots.values()].filter((slot) => modelledIds.has(slot.console.id));
+    const selected = candidates.find((slot) => slot.console.id === state.selectedId);
 
-        try {
-          const gltf = await loader.loadAsync(`models/${slot.console.id}/lineup.glb`);
+    async function load(slot) {
+      try {
+        const gltf = await loader.loadAsync(`models/${slot.console.id}/lineup.glb`);
+        if (slots.get(slot.console.id) === slot) {
           attachModel(slot, gltf.scene);
-        } catch (error) {
-          // A missing LOD falls back to the placeholder already in the slot.
-          console.warn(`Aisles: lineup model ${slot.console.id} failed`, error);
+        } else {
+          disposeTree(gltf.scene);
         }
-      }),
-    );
+      } catch (error) {
+        // A missing LOD falls back to the placeholder already in the slot.
+        console.warn(`Aisles: lineup model ${slot.console.id} failed`, error);
+      }
+    }
+
+    if (selected) {
+      await load(selected);
+      layout();
+      applyVisualState();
+    }
+
+    for (const slot of candidates) {
+      if (slot === selected) continue;
+      await whenIdle();
+      await load(slot);
+      layout();
+      applyVisualState();
+    }
 
     // Widths are only known once each model has been measured, so the row is packed and
     // framed again here instead of settling on the default widths.
@@ -463,7 +488,15 @@ function start(canvas, labelsRoot) {
     const halfWidth = Math.max(0.9, rowWidth / 2 + 0.42);
     const halfHeight = 0.72;
     const tan = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
-    const distance = Math.max(halfWidth / (tan * aspect), halfHeight / tan);
+
+    // The row is framed at the look-at plane, but the console bodies sit in front of it.
+    // At a wide aspect the camera is close enough that perspective would push the end
+    // consoles past the edge; pull back by half the deepest model plus a little margin.
+    const nearHalfDepth = MAX_DEPTH / 2 + 0.08;
+    const distance = Math.max(
+      halfWidth / (tan * aspect) + nearHalfDepth,
+      halfHeight / tan,
+    );
 
     const tilt = THREE.MathUtils.degToRad(10);
     basePosition.set(0, LOOK_AT.y + Math.sin(tilt) * distance, Math.cos(tilt) * distance);

@@ -20,10 +20,7 @@ import {
   presetFor,
   shelfItemFor,
   buildCase,
-  buildCartridge,
   generatedCoverTexture,
-  stickerFromImage,
-  loadImage,
   loadTexture,
   fitTexture,
   disposeTree,
@@ -48,9 +45,9 @@ const SLIDE_MS = 400;
 
 /**
  * The shelf stands at 0.0022 units per millimetre, so a DVD case is the 0.30 x 0.42 the
- * bay was originally tuned around. Everything else - jewel case, Blu-ray, DS card -
- * follows from the one real table in media.js. A DS shelf therefore holds the 33 x 35 mm
- * card itself, and the bay becomes a card shelf rather than a DVD shelf with small props.
+ * bay was originally tuned around. Everything else - jewel case, Blu-ray, DS and 3DS
+ * case - follows from the one real table in media.js. Playable discs and cards appear
+ * beside the selected case in the hero rather than loose on the retail shelf.
  */
 
 const canvas = document.getElementById('shelf-canvas');
@@ -147,9 +144,8 @@ function start(canvas) {
     games: [],
     selectedGameId: null,
     preset: null,
-    // The object the shelf holds: the closed case, or the card itself for DS/3DS.
+    // The object the retail shelf holds: the closed case for every platform.
     media: { width: 0.3, height: 0.42, depth: 0.028 },
-    cartridge: false,
     body: '#2E2E34',
     accent: '#FFCE00',
     platformId: null,
@@ -272,28 +268,17 @@ function start(canvas) {
   /* ---------- media ---------- */
 
   /**
-   * One shelf object: the closed case with its cover at the real inlay size, or the card
-   * itself for DS/3DS. Printed faces are unlit, so cover art is read rather than lit; the
-   * shell keeps the room's light.
+   * One shelf object: the closed retail case with its cover at the real inlay size.
+   * Printed faces are unlit, so cover art is read rather than lit; the shell keeps the
+   * room's light.
    */
   function makeItem(game) {
     const group = new THREE.Group();
-    let built;
-
-    if (state.cartridge) {
-      built = buildCartridge(state.preset, SHELF_UNIT, {
-        body: state.preset.mediumBody ?? '#2b2b31',
-        face: null,
-        detail: false,
-        labelAspect: game.mediumLabelRect ? game.mediumLabelRect[2] / game.mediumLabelRect[3] : null,
-      });
-    } else {
-      built = buildCase(state.preset, SHELF_UNIT, {
-        body: state.body,
-        cover: generatedCoverTexture(state.preset, { accentColor: state.accent }, game, 320),
-        detail: false,
-      });
-    }
+    const built = buildCase(state.preset, SHELF_UNIT, {
+      body: state.body,
+      cover: generatedCoverTexture(state.preset, { accentColor: state.accent }, game, 320),
+      detail: false,
+    });
 
     group.add(built.group);
     group.userData.gameId = game.id;
@@ -304,21 +289,7 @@ function start(canvas) {
       }
     });
 
-    if (state.cartridge) {
-      // A box cover is not a cartridge label (PLAN.md section 3.3): only a resolved
-      // cartridge label may print on the card. Everything else stays a blank body.
-      if (game.mediumLabelUrl) {
-        loadImage(game.mediumLabelUrl)
-          .then((image) => {
-            const texture = stickerFromImage(image, game.mediumLabelRect, 512);
-            built.faceMaterial.map?.dispose();
-            built.faceMaterial.map = texture;
-            built.faceMaterial.needsUpdate = true;
-            built.sticker.visible = true;
-          })
-          .catch(() => {});
-      }
-    } else if (game.frontCoverUrl) {
+    if (game.frontCoverUrl) {
       loadTexture(game.frontCoverUrl, 512)
         .then((texture) => {
           fitTexture(texture, state.preset.inlay[0] / state.preset.inlay[1]);
@@ -407,7 +378,6 @@ function start(canvas) {
     state.games = window.aislesSnapshot?.games ?? [];
     state.platformId = platform?.id ?? null;
     state.preset = presetFor(platform);
-    state.cartridge = state.preset.medium.kind === 'card';
     state.media = shelfItemFor(state.preset, SHELF_UNIT);
     state.body = platform?.bodyColor ?? '#1b1b1f';
     state.accent = platform?.accentColor ?? '#ffce00';

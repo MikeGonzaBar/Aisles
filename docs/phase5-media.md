@@ -17,8 +17,8 @@ the workshop's idle medium turn.
 | Jewel | 142 × 125 × 10 | 120 × 1.2 CD-ROM |
 | DVD | 135 × 190 × 14 | 120 × 1.2 DVD-ROM |
 | Blu-ray | 135 × 171.5 × 13 | 120 × 1.2 Blu-ray |
-| DS | 122 × 135 × 15 | 33 × 35 × 3.8 game card |
-| 3DS | 122 × 135 × 14 | 35 × 33 × 3.8 game card |
+| DS | 135 × 122 × 15 | 33 × 35 × 3.8 game card |
+| 3DS | 135 × 122 × 14 | 35 × 33 × 3.8 game card |
 | Xbox 360 | 135 × 190 × 14 | 120 × 1.2 DVD-ROM |
 | GameCube | 135 × 190 × 14 | 80 × 1.2 miniDVD |
 
@@ -29,9 +29,10 @@ and another on the shelf. Covers are fitted to the inlay aspect with a centre cr
 (`fitTexture`); they are never stretched. Spines and backs are generated from the same
 cover.
 
-On the shelf the **object is the media itself**: a closed case for disc platforms, the
-card for DS/3DS. The furniture is derived from that object rather than from a fixed
-template — `slot = width × 1.05`, tier headroom `0.10 × height`, panels `0.14 × height`,
+On the shelf the object is always the **closed retail case**, including DS/3DS. The
+playable disc or cartridge appears beside the selected case in the hero. The furniture
+is derived from the case rather than from a fixed template — `slot = width × 1.05`,
+tier headroom `0.10 × height`, panels `0.14 × height`,
 boards `0.07 × height`, plinth `0.165 × height`, cornice `0.13 × height`, depth
 `0.71 × height`, and a `1.27 × slot` gap between bays. One bay is always three tiers of
 six; the pager only appears when the console has more than 18 games. The shelf slides
@@ -39,7 +40,8 @@ with an ease-out cubic over `SLIDE_MS` (400 ms), snaps exactly to the bay centre
 pre-renders the incoming bay before the slide. Selection survives the page: its slot
 keeps a dashed `OUT` outline and the hero keeps the selected game.
 
-![The DS shelf with blank cards and resolved stickers](../artifacts/phase5/look/shelf-ds-1280.png)
+The DS and 3DS bays use their compact 135 × 122 mm case dimensions, so they remain
+smaller than DVD cases while still reading as retail packaging.
 
 ## The hero
 
@@ -51,10 +53,49 @@ resize and while the idle turn runs.
 
 The medium has a slow idle turn borrowed from the workshop's **Spin media** control. A
 disc turns in its own plane at `0.55 rad/s` (the workshop's speed), so its label reads
-like a record. A DS/3DS card sways ±`0.30 rad` on its vertical axis instead of making a
-full revolution: the workshop could show the back, but the hero's job is to keep the
-label readable. `prefers-reduced-motion` stops both, and the turn stops while the
-document is hidden. Only the medium moves; the case stays still.
+like a record. A DS/3DS card makes the workshop's full revolution on its vertical axis.
+`prefers-reduced-motion` stops both, and the turn stops while the document is hidden.
+Only the medium moves; the case stays still.
+
+## The details rail
+
+Below the title and LAUNCH, the hero keeps the blockout's three stacked sections. The
+rail keeps a stable order and rhythm, so the hero stage takes the remaining space and the
+row does not reflow when a platform has less data:
+
+| Section | Contents |
+|---|---|
+| INFORMATION | Game ID, Region, Emulator, Shelf (`1 of 1`, or `2 of 3` on a paged console) |
+| PLAYED | duration and last-played date where the emulator stores them; otherwise muted `—` and the reason |
+| ACHIEVEMENTS | *Supported · not linked* · *Not supported on this platform* · *Linked* with an earned/total bar |
+
+Game ID and region come from the same identity the artwork resolver uses. A Wii or
+GameCube game ID is read from the disc header on selection, so the rail can fill in before
+the console's background artwork search finishes. `selectGame` now sends a small
+`gameDetails` message; it replaces only the rail, never the 3D canvas, so the medium keeps
+its current turn and the stage does not flicker.
+
+The PLAYED row is fed by `Domain/PlayStatsReader.cs`:
+
+- **PCSX2** `inis\playtime.dat` — fixed-width serial, seconds played, last-played Unix
+  timestamp. Example: `SLUS-21454 16104 1765476516` → *4h 28m, last played 11 Dec 2025*.
+- **Dolphin** `Config\TimePlayed.ini` — `[TimePlayed]` and `GAMEID = 0x…`. Dolphin's
+  `TimePlayed::AddTime` stores `time_emulated.count()` in milliseconds, so the reader
+  divides by 1000. Dolphin stores no last-played date.
+- **DuckStation, RPCS3, DeSmuME, Citra and Xenia** store no play time. Their rows read
+  `—` with the exact reason (for example, *DeSmuME does not record play time*), keeping
+  the rail's height stable.
+
+Achievements still stop at the Phase 6 boundary: the host marks PS1/PS2/GameCube/Wii as
+*supported, not linked* and DS/3DS/PS3/360 as *not supported*. The linked branch and
+progress bar are implemented so the layout is ready, but no account is read yet.
+
+![PS2 identity, play time and achievements in the rail](../artifacts/phase5/look/rail-ps2-1280.png)
+
+The empty state uses the same space for its hint instead of collapsing the hero:
+`DROP GAMES HERE` sits in the stage, and the disabled LAUNCH stays in place.
+
+![The empty GameCube hero](../artifacts/phase5/look/rail-gamecube-1280.png)
 
 ## Artwork
 
@@ -76,11 +117,13 @@ normalization, which is what lets *A Bug's Life* meet LaunchBox's *Disney-Pixar 
 Life*. The payload exposes the chosen source, the match rule used, and the source label
 rectangle.
 
-A cover is never treated as a disc or cartridge label. The hero shows a real label when
-one resolves; otherwise it generates one from the same identity data. DS and 3DS shelf
-cards show a **blank cartridge body** unless a real cartridge label is resolved — covers
-do not print on cards. The two real DS labels in the shelf above (Cooking Mama 3 and
-Mario Kart DS) come from the cartridge label path; the rest are intentionally blank.
+A cover is never treated as a disc or cartridge label. DS and 3DS shelf cases use
+`frontCover`; the selected cartridge independently uses `cartridgeLabel`, so box art is
+never printed onto the card. The hero shows a real cartridge sticker when one resolves;
+otherwise it generates one from the same identity data. LaunchBox real-cartridge scans
+in the measured DS scan family are cropped to their sticker before they are mapped to
+the selected medium. The smaller 260 x 270 stock mockups stay blocked because their
+label area contains resized box art rather than a genuine cartridge sticker.
 
 ## Light and colour
 
@@ -110,20 +153,25 @@ down around them.
 ## Verification
 
 - `dotnet build Aisles.slnx -c Debug`: clean, 0 warnings, 0 errors.
-- Settings tests: 11 assertions passed.
+- Settings tests: 28 assertions (settings, DS sticker preparation, PCSX2/Dolphin parsing,
+  and RetroAchievements support states).
 - Workshop tests: 13 passed.
 - Live spin probe: PS1 disc on axis `z`, `0.661 → 1.828 rad` over ~2.1 s (`0.55 rad/s`);
-  DS card on axis `y`, captured at `0.300 rad` (the sway limit).
-- Live selections: PS1, PS2, PS3, DS and the empty GameCube shelf, at 2560 and 1280.
-- 1:1 crops were used to confirm the covers, jewel-case proportions, DS label fitting
-  and the `OUT` slot. WebView2 PrintWindow/CDP captures occasionally duplicate text at
-  2560; that is a capture artifact only — the live surface is not tiled.
+  DS card on axis `y`, `0.386 → 1.540 rad` over ~2.1 s, confirming the full revolution.
+- Live details rail: PS2 showed *4h 28m · last played 11 Dec 2025 · PCSX2 playtime.dat*;
+  PS1 showed the DuckStation reason; PS3 and DS showed *Not supported on this platform*;
+  Wii resolved `SW2E52` on selection and showed Dolphin's `1m`; the empty GameCube shelf
+  showed *Drop games here*. The linked achievements branch was exercised at
+  `12 of 40 · 240 pts · 30%`.
+- The console camera now pulls back by the front half-depth of the models, so the Xbox 360
+  no longer meets the right edge at 1280; the row was checked at 2560 and 1280.
+- Live selections: PS1, PS2, PS3, Wii, DS and the empty GameCube shelf, at 2560 and 1280.
+- 1:1 crops were used to confirm the covers, jewel-case proportions, DS label fitting,
+  the `OUT` slot and the rail. WebView2 PrintWindow/CDP captures occasionally duplicate
+  text at 2560; that is a capture artifact only — the live surface is not tiled.
 
 ## Still open
 
-- The hero's details rail: INFORMATION (game ID, region, emulator, shelf), PLAYED
-  (value or a muted `—` with the reason) and ACHIEVEMENTS (the three Phase 6 states),
-  with the hero stage shrunk so the blockout layout is matched.
-- The Xbox 360 model still meets the right viewport edge at 1280.
 - GameCube and 3DS console models; the DS/3DS blank-card recess polish.
-- LFS before a remote; RetroAchievements remains Phase 6.
+- LFS before a remote; RetroAchievements remains Phase 6, including the account link that
+  fills the rail's linked state.

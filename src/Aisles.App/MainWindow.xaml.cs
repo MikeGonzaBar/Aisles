@@ -251,6 +251,7 @@ public sealed partial class MainWindow : Window
         }
 
         var scanner = new LibraryScanner();
+        var playStats = new PlayStatsReader();
         var consoles = new List<ConsolePayload>(_catalog.Consoles.Count);
 
         _gamesById.Clear();
@@ -276,18 +277,23 @@ public sealed partial class MainWindow : Window
                 console.GamesPath,
                 console.GamesPathExists,
                 console.EmulatorExists,
+                EmulatorNameFor(console),
                 games.Select(game =>
                 {
                     var art = _artwork.Resolve(
                         game,
                         console,
                         game.FrontCover is { } cover ? UrlForArtwork(console.Id, cover) : null);
+                    var identity = _artwork.Identity(game);
+                    var played = playStats.For(console, identity.Id ?? game.Serial);
 
                     return new GamePayload(
                         game.Id,
                         game.Title,
                         game.LaunchTarget,
                         game.Serial,
+                        identity.Id,
+                        identity.Region,
                         game.TitleSource,
                         art.FrontCover.Url,
                         art.FrontCover.Match,
@@ -295,11 +301,76 @@ public sealed partial class MainWindow : Window
                         art.Medium.Url,
                         art.Medium.Match,
                         art.Medium.Source,
-                        art.Medium.LabelRect);
+                        art.Medium.LabelRect,
+                        new PlayedPayload(played.Seconds, played.LastPlayed, played.Source, played.Reason),
+                        new AchievementsPayload(
+                            RetroAchievementsSupport.StateFor(console.Id),
+                            null,
+                            null,
+                            null,
+                            "Phase 6"));
                 }).ToList()));
         }
 
         return new LibraryPayload(null, consoles);
+    }
+
+    /// <summary>
+    /// Refreshes the details rail when a game is selected. The payload already carries
+    /// these values; this message exists for two reasons: PCSX2 and Dolphin write their
+    /// caches while Aisles is running, and a Wii game's ID is only known after its disc
+    /// header is read. Both are cheap and both are applied only if the selection is
+    /// still current.
+    /// </summary>
+    private async Task SendGameDetailsAsync(string? gameId)
+    {
+        try
+        {
+            if (!TryResolve(gameId, out var console, out var game))
+            {
+                return;
+            }
+
+            var identity = _artwork.Identity(game);
+
+            if ((console.Id.Equals("wii", StringComparison.OrdinalIgnoreCase)
+                    || console.Id.Equals("gamecube", StringComparison.OrdinalIgnoreCase))
+                && identity.Id is null)
+            {
+                var resolved = await GameIdentityReader.DolphinHeaderAsync(
+                    console,
+                    game.LaunchTarget,
+                    CancellationToken.None);
+
+                if (resolved is { Id: not null })
+                {
+                    identity = resolved;
+                }
+            }
+
+            var played = new PlayStatsReader().For(console, identity.Id ?? game.Serial);
+            var region = identity.Region ?? GameIdentityReader.RegionFromId(
+                console.Id,
+                identity.Id ?? game.Serial);
+
+            _bridge.Send("gameDetails", new
+            {
+                gameId = game.Id,
+                identityId = identity.Id,
+                region,
+                played = new PlayedPayload(played.Seconds, played.LastPlayed, played.Source, played.Reason),
+                achievements = new AchievementsPayload(
+                    RetroAchievementsSupport.StateFor(console.Id),
+                    null,
+                    null,
+                    null,
+                    "Phase 6"),
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Details for {gameId} failed: {ex}");
+        }
     }
 
     private async void OnMessageFromWeb(string json)
@@ -312,8 +383,7 @@ public sealed partial class MainWindow : Window
         switch (message.Type)
         {
             case "ready":
-                _bridge.Send("library", BuildLibraryPayload());
-                _ = SearchArtworkAsync();
+                _bridge.Send("library", await Task.Run(BuildLibraryPayload));
                 break;
 
             case "getSettings":
@@ -355,6 +425,7 @@ public sealed partial class MainWindow : Window
                 break;
 
             case "selectGame":
+                _ = SendGameDetailsAsync(message.ReadString("gameId"));
                 break;
         }
     }
@@ -509,7 +580,7 @@ public sealed partial class MainWindow : Window
 
         try
         {
-            var games = new LibraryScanner().Scan(console);
+            var games = await Task.Run(() => new LibraryScanner().Scan(console));
 
             if (games.Count == 0)
             {
@@ -597,6 +668,25 @@ public sealed partial class MainWindow : Window
         }
 
         _launcher.Reveal(console, game);
+    }
+
+    /// <summary>
+    /// The rail names the executable a person actually configured, not a second
+    /// platform table. Versioned file names collapse to the emulator's public name.
+    /// </summary>
+    private static string EmulatorNameFor(ConsoleDescriptor console)
+    {
+        var fileName = Path.GetFileNameWithoutExtension(console.EmulatorPath) ?? string.Empty;
+
+        if (fileName.Contains("pcsx2", StringComparison.OrdinalIgnoreCase)) return "PCSX2";
+        if (fileName.Contains("dolphin", StringComparison.OrdinalIgnoreCase)) return "Dolphin";
+        if (fileName.Contains("rpcs3", StringComparison.OrdinalIgnoreCase)) return "RPCS3";
+        if (fileName.Contains("duckstation", StringComparison.OrdinalIgnoreCase)) return "DuckStation";
+        if (fileName.Contains("desmume", StringComparison.OrdinalIgnoreCase)) return "DeSmuME";
+        if (fileName.Contains("citra", StringComparison.OrdinalIgnoreCase)) return "Citra";
+        if (fileName.Contains("xenia", StringComparison.OrdinalIgnoreCase)) return "Xenia Canary";
+
+        return fileName.Length == 0 ? "Emulator" : fileName;
     }
 
     private bool TryResolve(string? gameId, out ConsoleDescriptor console, out GameEntry game)

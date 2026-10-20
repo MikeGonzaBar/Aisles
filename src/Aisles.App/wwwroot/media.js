@@ -8,8 +8,9 @@
 // size the bay was tuned around); the hero uses 0.01, the workshop's 1 unit = 100 mm.
 //
 // Two details are easy to get wrong and are encoded here rather than guessed per call:
-// a jewel case is landscape (142 x 125) with a square 120 mm booklet, and a DS game card
-// is portrait (33 x 35) while a 3DS card is landscape (35 x 33).
+// a jewel case is landscape (142 x 125) with a square 120 mm booklet, DS/3DS retail
+// cases are landscape (135 x 122), and a DS game card is portrait (33 x 35) while a
+// 3DS card is landscape (35 x 33).
 
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -45,15 +46,15 @@ export const PRESETS = {
     mediumName: 'miniDVD',
   },
   ds: {
-    case: [122, 135, 15],
-    inlay: [118, 131],
+    case: [135, 122, 15],
+    inlay: [131, 118],
     mediumBody: '#2b2b31',
     medium: { kind: 'card', size: [33, 35, 3.8] },
     mediumName: 'Game card',
   },
   '3ds': {
-    case: [122, 135, 14],
-    inlay: [118, 131],
+    case: [135, 122, 14],
+    inlay: [131, 118],
     mediumBody: '#2b2b31',
     medium: { kind: 'card', size: [35, 33, 3.8] },
     mediumName: 'Game card',
@@ -83,13 +84,8 @@ export function mediumNameFor(console) {
   return presetFor(console).mediumName;
 }
 
-/** The object a shelf actually holds: the card itself for DS/3DS, the closed case elsewhere. */
+/** The object a retail shelf holds: the closed case for every platform. */
 export function shelfItemFor(preset, unit = SHELF_UNIT) {
-  if (preset.medium.kind === 'card') {
-    const [width, height, depth] = preset.medium.size;
-    return { width: width * unit, height: height * unit, depth: depth * unit };
-  }
-
   const [width, height, depth] = preset.case;
   return { width: width * unit, height: height * unit, depth: depth * unit };
 }

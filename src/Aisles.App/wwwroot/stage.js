@@ -38,6 +38,38 @@ const state = {
   selectedGameId: null,
 };
 
+let spatialUiScheduled = false;
+let heroModulePromise = null;
+let startupArtworkScheduled = false;
+
+function afterFirstPaint(callback, timeout = 1000) {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(callback, { timeout });
+    } else {
+      setTimeout(callback, 0);
+    }
+  }));
+}
+
+function scheduleSpatialUi() {
+  if (spatialUiScheduled) return;
+  spatialUiScheduled = true;
+  afterFirstPaint(() => {
+    Promise.all([import('./stage3d.js'), import('./shelf3d.js')])
+      .catch((error) => console.warn('Aisles: the 3D stage is unavailable', error));
+  });
+}
+
+function scheduleStartupArtwork() {
+  if (startupArtworkScheduled) return;
+  startupArtworkScheduled = true;
+  afterFirstPaint(() => {
+    const consoleId = state.selectedConsoleId;
+    if (consoleId) post('selectConsole', { consoleId });
+  }, 1500);
+}
+
 const settings = {
   open: false,
   consoles: [],
@@ -497,14 +529,177 @@ window.aislesLaunchGame = launchGame;
  * shelf's packaging or invent a second set of proportions.
  */
 
-/** What the medium is called, keyed by the `media` value in consoles.json. */
-const MEDIUM_NAMES = {
-  JewelCase: 'CD-ROM',
-  DvdCase: 'DVD-ROM',
-  BluRayCase: 'Blu-ray',
-  MiniDiscCase: 'miniDVD',
-  CartridgeCase: 'Game card',
-};
+const SHELF_GAMES = 18;
+
+function formatDuration(seconds) {
+  const totalMinutes = Math.max(1, Math.floor(seconds / 60));
+
+  if (totalMinutes < 60) {
+    return `${totalMinutes}m`;
+  }
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes === 0 ? `${hours}h` : `${hours}h ${String(minutes).padStart(2, '0')}m`;
+}
+
+function shelfPosition(console, game) {
+  const index = console?.games.findIndex((entry) => entry.id === game.id) ?? -1;
+  if (index < 0) {
+    return null;
+  }
+
+  const shelves = Math.max(1, Math.ceil(console.games.length / SHELF_GAMES));
+  return `${Math.floor(index / SHELF_GAMES) + 1} of ${shelves}`;
+}
+
+function detailHeading(text) {
+  const heading = document.createElement('h2');
+  heading.textContent = text;
+  return heading;
+}
+
+function detailRow(label, value) {
+  const row = document.createElement('div');
+  row.className = 'detail-row';
+
+  const term = document.createElement('dt');
+  term.textContent = label;
+
+  const detail = document.createElement('dd');
+  detail.textContent = value || '—';
+  if (!value) {
+    detail.classList.add('detail-muted');
+  }
+
+  row.append(term, detail);
+  return row;
+}
+
+function informationSection(console, game) {
+  const section = document.createElement('section');
+  section.className = 'detail-section';
+
+  const grid = document.createElement('dl');
+  grid.className = 'detail-grid';
+  grid.append(
+    detailRow('Game ID', game.identityId ?? game.serial),
+    detailRow('Region', game.region),
+    detailRow('Emulator', console?.emulatorName),
+    detailRow('Shelf', shelfPosition(console, game)),
+  );
+
+  section.append(detailHeading('INFORMATION'), grid);
+  return section;
+}
+
+function playedSection(game) {
+  const section = document.createElement('section');
+  section.className = 'detail-section';
+
+  const played = game.played ?? {};
+  const seconds = Number.isFinite(played.seconds) ? played.seconds : null;
+  const duration = seconds > 0 ? formatDuration(seconds) : null;
+  const row = document.createElement('div');
+  row.className = 'detail-line';
+
+  if (duration) {
+    const value = document.createElement('span');
+    value.className = 'detail-value';
+    value.textContent = duration;
+    row.append(value);
+
+    if (played.lastPlayed) {
+      const lastPlayed = document.createElement('span');
+      lastPlayed.className = 'detail-secondary';
+      lastPlayed.textContent = `last played ${played.lastPlayed}`;
+      row.append(lastPlayed);
+    }
+  } else {
+    const value = document.createElement('span');
+    value.className = 'detail-value detail-muted';
+    value.textContent = '—';
+    row.append(value);
+
+    const reason = document.createElement('span');
+    reason.className = 'detail-reason';
+    reason.textContent = played.reason ?? 'This emulator does not record play time.';
+    row.append(reason);
+  }
+
+  if (played.source && duration) {
+    const source = document.createElement('span');
+    source.className = 'detail-source';
+    source.textContent = played.source;
+    row.append(source);
+  }
+
+  section.append(detailHeading('PLAYED'), row);
+  return section;
+}
+
+function achievementsSection(game) {
+  const section = document.createElement('section');
+  section.className = 'detail-section';
+
+  const achievements = game.achievements ?? { state: 'notLinked' };
+  const row = document.createElement('div');
+  row.className = 'detail-line';
+  const value = document.createElement('span');
+  value.className = 'detail-value';
+  const note = document.createElement('span');
+  note.className = 'detail-source';
+
+  if (achievements.state === 'linked') {
+    const earned = achievements.earned ?? 0;
+    const total = achievements.total ?? 0;
+    value.textContent = `${earned} of ${total} achievements`;
+    note.textContent = achievements.points ? `${achievements.points} pts` : 'Linked';
+
+    const track = document.createElement('div');
+    track.className = 'detail-progress';
+    const fill = document.createElement('span');
+    fill.style.width = `${total > 0 ? Math.min(100, (earned / total) * 100) : 0}%`;
+    track.append(fill);
+
+    row.append(value, note);
+    section.append(detailHeading('ACHIEVEMENTS'), row, track);
+  } else if (achievements.state === 'notSupported') {
+    value.textContent = 'Not supported on this platform';
+    note.textContent = achievements.note ?? 'Phase 6';
+    row.append(value, note);
+    section.append(detailHeading('ACHIEVEMENTS'), row);
+  } else {
+    value.textContent = 'Supported · not linked';
+    note.textContent = achievements.note ?? 'Phase 6';
+    row.append(value, note);
+    section.append(detailHeading('ACHIEVEMENTS'), row);
+  }
+
+  return section;
+}
+
+function detailsRail(console, game) {
+  const details = document.createElement('div');
+  details.className = 'hero-details';
+  details.append(
+    informationSection(console, game),
+    playedSection(game),
+    achievementsSection(game),
+  );
+  return details;
+}
+
+function heroHead(title, meta, launch) {
+  const copy = document.createElement('div');
+  copy.className = 'hero-copy';
+  copy.append(title, meta);
+
+  const head = document.createElement('div');
+  head.className = 'hero-head';
+  head.append(copy, launch);
+  return head;
+}
 
 function renderHero() {
   if (!elements.hero) {
@@ -520,7 +715,11 @@ function renderHero() {
 
     const stage = document.createElement('div');
     stage.className = 'hero-stage hero-stage-empty';
-    stage.textContent = console ? 'Pick a case' : 'Pick a console';
+    stage.textContent = !console
+      ? 'Pick a console'
+      : console.games.length === 0
+        ? 'Drop games here'
+        : 'Pick a case';
 
     const title = document.createElement('div');
     title.className = 'hero-title';
@@ -528,9 +727,13 @@ function renderHero() {
 
     const meta = document.createElement('div');
     meta.className = 'hero-meta';
-    meta.textContent = console
-      ? `${console.games.length} games on this shelf`
-      : 'Walk the aisles of your collection.';
+    meta.textContent = !console
+      ? 'Walk the aisles of your collection.'
+      : console.games.length === 0
+        ? console.gamesPathExists
+          ? 'No games found in this console’s folder.'
+          : 'This console’s games folder is missing.'
+        : `${console.games.length} games on this shelf`;
 
     const launch = document.createElement('button');
     launch.className = 'launch';
@@ -538,7 +741,7 @@ function renderHero() {
     launch.textContent = 'LAUNCH';
     launch.disabled = true;
 
-    elements.hero.append(stage, title, meta, launch);
+    elements.hero.append(stage, heroHead(title, meta, launch));
     return;
   }
 
@@ -555,22 +758,7 @@ function renderHero() {
 
   const meta = document.createElement('div');
   meta.className = 'hero-meta';
-
-  const platform = document.createElement('span');
-  platform.textContent = console ? `${console.name} · ${console.year}` : '';
-  meta.append(platform);
-
-  const medium = document.createElement('span');
-  medium.className = 'medium-name';
-  medium.textContent = MEDIUM_NAMES[console?.media] ?? 'Media';
-  meta.append(medium);
-
-  if (game.serial) {
-    const serial = document.createElement('span');
-    serial.className = 'serial';
-    serial.textContent = game.serial;
-    meta.append(serial);
-  }
+  meta.textContent = console ? `${console.name} · ${console.year}` : '';
 
   const launch = document.createElement('button');
   launch.className = 'launch';
@@ -578,14 +766,20 @@ function renderHero() {
   launch.textContent = 'LAUNCH';
   launch.addEventListener('click', () => launchGame(game.id));
 
-  elements.hero.append(row, title, meta, launch);
+  elements.hero.append(row, heroHead(title, meta, launch), detailsRail(console, game));
 
   const hero = window.aislesHero3d;
   if (hero) {
     stage.append(hero.canvas);
     hero.show(console, game);
   } else {
-    stage.textContent = 'The 3D view is unavailable.';
+    stage.textContent = 'Loading 3D view…';
+    heroModulePromise ??= import('./hero3d.js')
+      .catch((error) => {
+        heroModulePromise = null;
+        console.warn('Aisles: the 3D hero is unavailable', error);
+        if (stage.isConnected) stage.textContent = 'The 3D view is unavailable.';
+      });
   }
 }
 
@@ -688,6 +882,32 @@ function onLibrary(payload) {
   renderConsoles();
   renderGames();
   renderHero();
+  scheduleSpatialUi();
+  scheduleStartupArtwork();
+}
+
+function onGameDetails(payload) {
+  if (!payload || payload.gameId !== state.selectedGameId) {
+    return;
+  }
+
+  const console = currentConsole();
+  const game = console?.games.find((entry) => entry.id === payload.gameId) ?? null;
+  if (!game) {
+    return;
+  }
+
+  // Only non-empty values replace what the payload already knows: a late Wii header
+  // read must be able to fill a blank Game ID, not clear one the library had.
+  if (payload.identityId) game.identityId = payload.identityId;
+  if (payload.region) game.region = payload.region;
+  if (payload.played) game.played = payload.played;
+  if (payload.achievements) game.achievements = payload.achievements;
+
+  const details = elements.hero?.querySelector('.hero-details');
+  if (details) {
+    details.replaceWith(detailsRail(console, game));
+  }
 }
 
 function onLaunchResult(payload) {
@@ -704,6 +924,9 @@ if (webview) {
     switch (message.type) {
       case 'library':
         onLibrary(message.payload);
+        break;
+      case 'gameDetails':
+        onGameDetails(message.payload);
         break;
       case 'launchResult':
         onLaunchResult(message.payload);

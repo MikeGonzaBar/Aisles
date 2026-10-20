@@ -7,7 +7,7 @@
 //
 // The camera is fixed. The scene renders on selection, resize, and while the medium's slow
 // turntable is running; like the workshop's "Spin media", the disc turns in its own plane
-// and the cartridge sways on its vertical axis.
+// and the cartridge turns on its vertical axis.
 
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
@@ -30,8 +30,6 @@ import {
 const FOV = 30;
 const GAP_MM = 14;
 const SPIN_SPEED = 0.00055; // radians per millisecond, the workshop's turntable speed
-const CARD_SWAY = 0.3; // radians either side of face-on, so the label never turns away
-const CARD_SWAY_SPEED = 0.00062;
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 let renderer;
@@ -180,11 +178,7 @@ function spinStep(now) {
   spin.elapsed += delta;
 
   if (!reducedMotion.matches) {
-    if (spin.mode === 'turn') {
-      spin.group.rotation[spin.axis] += delta * SPIN_SPEED;
-    } else {
-      spin.group.rotation[spin.axis] = Math.sin(spin.elapsed * CARD_SWAY_SPEED) * CARD_SWAY;
-    }
+    spin.group.rotation[spin.axis] += delta * SPIN_SPEED;
   }
 
   render();
@@ -302,13 +296,11 @@ function show(console, game) {
   stage.add(cover.group, medium.group);
   stage.rotation.y = -0.1;
 
-  // The disc turns like a record. The card's turntable is deliberately a sway rather
-  // than a full revolution: the workshop's Spin media could show the back, but the hero's
-  // job is to keep the label readable. The case stays still.
+  // The disc turns like a record and the card makes the workshop's full vertical-axis
+  // revolution. The case stays still.
   spin = {
     group: medium.group,
     axis: medium.group.userData.spinAxis ?? (preset.medium.kind === 'disc' ? 'z' : 'y'),
-    mode: preset.medium.kind === 'disc' ? 'turn' : 'sway',
     elapsed: 0,
   };
 

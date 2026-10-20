@@ -18,6 +18,7 @@ public sealed record ConsolePayload(
     string GamesPath,
     bool GamesPathExists,
     bool EmulatorExists,
+    string EmulatorName,
     IReadOnlyList<GamePayload> Games);
 
 public sealed record GamePayload(
@@ -25,6 +26,8 @@ public sealed record GamePayload(
     string Title,
     string LaunchTarget,
     string? Serial,
+    string? IdentityId,
+    string? Region,
     string? TitleSource,
     string? FrontCoverUrl,
     string? FrontCoverMatch,
@@ -32,4 +35,18 @@ public sealed record GamePayload(
     string? MediumLabelUrl,
     string? MediumLabelMatch,
     string? MediumLabelSource,
-    double[]? MediumLabelRect);
+    double[]? MediumLabelRect,
+    PlayedPayload Played,
+    AchievementsPayload Achievements);
+
+/// <summary>
+/// The PLAYED row. A null <see cref="Seconds"/> means no value is available, and
+/// <see cref="Reason"/> is the sentence the rail shows in place of a fabricated zero.
+/// </summary>
+public sealed record PlayedPayload(long? Seconds, string? LastPlayed, string? Source, string? Reason);
+
+/// <summary>
+/// The ACHIEVEMENTS row. <see cref="State"/> is <c>notLinked</c>, <c>notSupported</c>
+/// or <c>linked</c>; the last carries the progress numbers Phase 6 will fill.
+/// </summary>
+public sealed record AchievementsPayload(string State, int? Earned, int? Total, int? Points, string? Note);

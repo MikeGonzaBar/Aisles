@@ -122,6 +122,19 @@ public sealed class ArtworkResolver
     }
 
     /// <summary>
+    /// The identity used for artwork lookup, exposed so the details rail can show the
+    /// same game ID and region. This is the resolver's cached value; a Wii header that
+    /// has not been read yet simply returns a null ID until the console search runs.
+    /// </summary>
+    public GameIdentity Identity(GameEntry game)
+    {
+        lock (_gate)
+        {
+            return IdentityFor(game, EntryFor(game));
+        }
+    }
+
+    /// <summary>
     /// Discovers identities and searches providers for the games of one console. Games
     /// whose slots are already resolved (local art, a cached provider match, or a
     /// generated fallback the user chose) are left alone; a legacy index entry that has
@@ -211,6 +224,14 @@ public sealed class ArtworkResolver
         string kind,
         string? localCoverUrl)
     {
+        // Re-apply audited metadata when reading an older cache. This lets fixes to a
+        // known scan take effect without forcing another provider download.
+        foreach (var candidate in entry.Candidates)
+        {
+            Review(candidate, context);
+            DsStickerExtractor.TryPrepare(candidate);
+        }
+
         if (entry.Selections.TryGetValue(kind, out var selected))
         {
             if (selected == "generated")
@@ -650,14 +671,24 @@ public sealed class ArtworkResolver
         if (candidate.Id == "launchbox-873660")
         {
             candidate.ExactId = "AMCE";
-            candidate.LabelRect = [43, 20, 429, 475];
+            candidate.LabelRect = [43, 20, 429, 474];
             candidate.PreparationRequired = false;
         }
 
         if (candidate.Id == "launchbox-20131120")
         {
             candidate.ExactId = "B3CE";
-            candidate.LabelRect = [43, 20, 429, 475];
+            candidate.LabelRect = [43, 20, 429, 474];
+            candidate.PreparationRequired = false;
+        }
+
+        if (candidate.Id == "launchbox-1871902")
+        {
+            // This is the same 517 x 564 real-scan family as the two reviewed cards
+            // above. The crop keeps the complete NTR-YIMP-EUR sticker and excludes the
+            // moulded card body.
+            candidate.ExactId = "YIMP";
+            candidate.LabelRect = [43, 20, 429, 474];
             candidate.PreparationRequired = false;
         }
 
@@ -767,6 +798,7 @@ public sealed class ArtworkResolver
         cached.Width = width;
         cached.Height = height;
         cached.QualityNote = Math.Min(width, height) < ReviewFloor ? "Low resolution — review before use" : null;
+        DsStickerExtractor.TryPrepare(cached);
         return cached;
     }
 

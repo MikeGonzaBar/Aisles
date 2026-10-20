@@ -8,21 +8,51 @@
   },
   "spin": {
     "disc": { "axis": "z", "radiansPerSecond": 0.55 },
-    "card": { "axis": "y", "amplitudeRadians": 0.3, "mode": "sway" },
+    "card": { "axis": "y", "radiansPerSecond": 0.55, "mode": "full-turn" },
     "probe": {
       "ps1": { "start": 0.6609350000262274, "end": 1.827650000026225, "elapsedSeconds": 2.0 },
-      "ds": { "angle": 0.2999362844197312 }
+      "ds": { "start": 0.38626499999999375, "end": 1.539670000000018, "elapsedSeconds": 2.1 }
     }
   },
-  "selections": ["ps1", "ps2", "ps3", "ds", "gamecube"],
+  "details": {
+    "sections": ["information", "played", "achievements"],
+    "playedSources": {
+      "ps2": { "file": "PCSX2\\inis\\playtime.dat", "unit": "seconds + unix timestamp" },
+      "wii": { "file": "Dolphin\\Config\\TimePlayed.ini", "unit": "milliseconds" },
+      "gamecube": { "file": "Dolphin\\Config\\TimePlayed.ini", "unit": "milliseconds" }
+    },
+    "probes": {
+      "ps2": { "seconds": 16104, "lastPlayed": "11 Dec 2025" },
+      "wii": { "identity": "SW2E52", "seconds": 46 },
+      "linked": { "earned": 12, "total": 40, "points": 240, "progress": "30%" }
+    }
+  },
+  "selections": ["ps1", "ps2", "ps3", "wii", "ds", "gamecube"],
   "tests": {
     "build": "0 warnings, 0 errors",
-    "settings": "11 assertions passed",
+    "settings": "28 assertions passed",
     "workshop": "13 passed"
   },
   "captures": {
-    "2560": ["hero-ps1-2560.png", "hero-ps2-2560.png", "hero-ps3-2560.png", "hero-ds-2560.png"],
-    "1280": ["hero-ps2-1280.png", "hero-ds-1280.png", "hero-gamecube-empty-1280.png", "shelf-ds-1280.png"],
+    "2560": [
+      "hero-ps1-2560.png",
+      "hero-ps2-2560.png",
+      "hero-ps3-2560.png",
+      "hero-ds-2560.png",
+      "rail-ps2-2560.png",
+      "console-row-2560.png"
+    ],
+    "1280": [
+      "hero-ps2-1280.png",
+      "hero-ds-1280.png",
+      "hero-gamecube-empty-1280.png",
+      "shelf-ds-1280.png",
+      "rail-ps2-1280.png",
+      "rail-ds-1280.png",
+      "rail-wii-1280.png",
+      "rail-gamecube-1280.png",
+      "console-row-1280.png"
+    ],
     "comparison": ["tone-before-ps2-1280.png", "tone-before-after.png"]
   }
 }

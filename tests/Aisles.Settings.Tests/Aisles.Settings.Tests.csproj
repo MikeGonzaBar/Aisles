@@ -9,5 +9,9 @@
     <Compile Include="..\..\src\Aisles.App\Domain\ConsoleCatalog.cs" Link="ConsoleCatalog.cs" />
     <Compile Include="..\..\src\Aisles.App\Domain\ConsoleDescriptor.cs" Link="ConsoleDescriptor.cs" />
     <Compile Include="..\..\src\Aisles.App\Domain\ConsoleSettingsStore.cs" Link="ConsoleSettingsStore.cs" />
+    <Compile Include="..\..\src\Aisles.App\Domain\ArtworkIndex.cs" Link="ArtworkIndex.cs" />
+    <Compile Include="..\..\src\Aisles.App\Domain\DsStickerExtractor.cs" Link="DsStickerExtractor.cs" />
+    <Compile Include="..\..\src\Aisles.App\Domain\PlayStatsReader.cs" Link="PlayStatsReader.cs" />
+    <Compile Include="..\..\src\Aisles.App\Domain\RetroAchievementsSupport.cs" Link="RetroAchievementsSupport.cs" />
   </ItemGroup>
 </Project>
