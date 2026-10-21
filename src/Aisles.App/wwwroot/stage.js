@@ -29,6 +29,7 @@ const elements = {
   settingsFields: document.getElementById('settings-fields'),
   settingsConsoleName: document.getElementById('settings-console-name'),
   settingsConsoleBadge: document.getElementById('settings-console-badge'),
+  settingsConsoleEyebrow: document.getElementById('settings-console-eyebrow'),
   settingsConsoleMeta: document.getElementById('settings-console-meta'),
   settingsError: document.getElementById('settings-error'),
   settingsProgress: document.getElementById('settings-progress'),
@@ -85,6 +86,11 @@ const settings = {
   draft: {},
   original: '',
   selectedId: null,
+  mode: 'console',
+  retro: null,
+  retroDraft: { username: '', apiKey: '', hasApiKey: false },
+  retroStatusEl: null,
+  retroTestId: null,
   busy: false,
   savedAwaitingScan: false,
   request: 0,
@@ -125,7 +131,13 @@ function requestId(prefix) {
 }
 
 function settingsSnapshot() {
-  return JSON.stringify(settings.draft);
+  return JSON.stringify({
+    consoles: settings.draft,
+    retroAchievements: {
+      username: settings.retroDraft.username,
+      apiKey: settings.retroDraft.apiKey,
+    },
+  });
 }
 
 function settingsDirty() {
@@ -143,7 +155,9 @@ function setSettingsBusy(busy, text = '') {
   elements.settingsCancel.disabled = busy;
   elements.settingsClose.disabled = busy;
   elements.settingsProgress.textContent = text;
-  for (const control of elements.settingsDialog.querySelectorAll('input, .browse-button, .settings-console-button')) {
+  for (const control of elements.settingsDialog.querySelectorAll(
+    'input, .browse-button, .settings-console-button, .settings-action',
+  )) {
     control.disabled = busy;
   }
 }
@@ -373,19 +387,43 @@ function renderSettingsNavigation() {
     button.type = 'button';
     button.className = 'settings-console-button';
     button.textContent = console.name;
-    button.setAttribute('aria-selected', String(console.id === settings.selectedId));
+    button.setAttribute('aria-selected', String(settings.mode === 'console' && console.id === settings.selectedId));
     button.addEventListener('click', () => {
+      settings.mode = 'console';
       settings.selectedId = console.id;
       renderSettingsNavigation();
       renderSettingsEditor();
     });
     elements.settingsConsoles.append(button);
   }
+
+  const separator = document.createElement('div');
+  separator.className = 'settings-nav-separator';
+  separator.setAttribute('role', 'separator');
+  elements.settingsConsoles.append(separator);
+
+  const retro = document.createElement('button');
+  retro.type = 'button';
+  retro.className = 'settings-console-button';
+  retro.textContent = 'RetroAchievements';
+  retro.setAttribute('aria-selected', String(settings.mode === 'retro'));
+  retro.addEventListener('click', () => {
+    settings.mode = 'retro';
+    renderSettingsNavigation();
+    renderSettingsEditor();
+  });
+  elements.settingsConsoles.append(retro);
 }
 
 function renderSettingsEditor() {
+  if (settings.mode === 'retro') {
+    renderRetroAchievementsEditor();
+    return;
+  }
+
   const console = settings.consoles.find(item => item.id === settings.selectedId);
   if (!console) return;
+  elements.settingsConsoleEyebrow.textContent = 'CONSOLE';
   elements.settingsConsoleName.textContent = console.name;
   elements.settingsConsoleBadge.textContent = console.shortName;
   elements.settingsConsoleMeta.textContent = [console.manufacturer, console.year].filter(Boolean).join(' · ');
@@ -426,6 +464,176 @@ function renderSettingsEditor() {
     wrapper.append(label, row, status);
     elements.settingsFields.append(wrapper);
   }
+
+  const invalid = settings.consoles.some(
+    item => Object.values(item.validation ?? {}).some(value => value.state === 'invalid'),
+  );
+  elements.settingsSave.disabled = settings.busy || invalid;
+}
+
+function retroStatusText() {
+  const retro = settings.retro;
+  if (!retro) return 'Not linked.';
+  if (retro.error) return retro.error;
+  if (retro.rejected) return 'Saved credentials were rejected. Enter a new key or unlink.';
+  if (retro.linked && settings.retroDraft.username) {
+    const points = Number.isFinite(retro.points) ? ` - ${retro.points.toLocaleString()} points` : '';
+    return `Linked as ${retro.username}${points}.`;
+  }
+  return 'Not linked.';
+}
+
+function retroStatusState() {
+  if (!settings.retro) return '';
+  if (settings.retro.error || settings.retro.rejected) return 'err';
+  if (settings.retro.linked && settings.retroDraft.username) return 'ok';
+  return '';
+}
+
+function updateRetroDraftStatus() {
+  if (!settings.retroStatusEl?.isConnected || settings.retroTestId) return;
+  const username = settings.retroDraft.username.trim();
+  const key = settings.retroDraft.apiKey.trim();
+  settings.retroStatusEl.dataset.state = '';
+  settings.retroStatusEl.textContent = username && (key || settings.retroDraft.hasApiKey)
+    ? 'Save to link this account.'
+    : 'Not linked.';
+}
+
+function retroInputField(id, labelText, type, value, placeholder, autocomplete) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'settings-field';
+
+  const label = document.createElement('label');
+  label.htmlFor = id;
+  label.textContent = labelText;
+
+  const row = document.createElement('div');
+  row.className = 'path-row single';
+
+  const input = document.createElement('input');
+  input.id = id;
+  input.type = type;
+  input.value = value ?? '';
+  input.placeholder = placeholder;
+  input.autocomplete = autocomplete;
+  input.spellcheck = false;
+  row.append(input);
+
+  wrapper.append(label, row);
+  return { wrapper, input };
+}
+
+function renderRetroAchievementsEditor() {
+  elements.settingsConsoleEyebrow.textContent = 'ACCOUNT';
+  elements.settingsConsoleName.textContent = 'RetroAchievements';
+  elements.settingsConsoleBadge.textContent = 'RA';
+  elements.settingsConsoleMeta.textContent = 'PS1 / PS2 / GameCube / Wii';
+  elements.settingsFields.replaceChildren();
+  settings.retroStatusEl = null;
+
+  const intro = document.createElement('p');
+  intro.className = 'settings-help';
+  intro.textContent =
+    'Link your RetroAchievements account to show achievement progress for PlayStation, '
+    + 'PlayStation 2, GameCube and Wii. DS, 3DS, PS3 and Xbox 360 remain unsupported.';
+  elements.settingsFields.append(intro);
+
+  const username = retroInputField(
+    'settings-ra-username',
+    'RetroAchievements username',
+    'text',
+    settings.retroDraft.username,
+    'Your username on retroachievements.org',
+    'username',
+  );
+  username.input.addEventListener('input', () => {
+    settings.retroDraft.username = username.input.value;
+    updateRetroDraftStatus();
+  });
+
+  const key = retroInputField(
+    'settings-ra-api-key',
+    'Web API key',
+    'password',
+    settings.retroDraft.apiKey,
+    settings.retroDraft.hasApiKey
+      ? 'Saved - leave blank to keep'
+      : 'Paste the key from your control panel',
+    'off',
+  );
+  key.input.addEventListener('input', () => {
+    settings.retroDraft.apiKey = key.input.value;
+    updateRetroDraftStatus();
+  });
+
+  const status = document.createElement('p');
+  status.className = 'settings-status';
+  status.id = 'settings-ra-status';
+  status.setAttribute('role', 'status');
+  status.textContent = retroStatusText();
+  status.dataset.state = retroStatusState();
+  settings.retroStatusEl = status;
+
+  const actions = document.createElement('div');
+  actions.className = 'settings-actions';
+
+  const test = document.createElement('button');
+  test.type = 'button';
+  test.className = 'secondary-button settings-action';
+  test.textContent = 'Test connection';
+  test.addEventListener('click', testRetroAchievements);
+
+  const unlink = document.createElement('button');
+  unlink.type = 'button';
+  unlink.className = 'secondary-button settings-action';
+  unlink.textContent = 'Unlink';
+  unlink.disabled = !settings.retroDraft.username
+    && !settings.retroDraft.apiKey
+    && !settings.retroDraft.hasApiKey;
+  unlink.addEventListener('click', () => {
+    settings.retroDraft = { username: '', apiKey: '', hasApiKey: false };
+    settings.retroTestId = null;
+    renderRetroAchievementsEditor();
+  });
+
+  actions.append(test, unlink);
+
+  const help = document.createElement('p');
+  help.className = 'settings-help settings-help-foot';
+  help.textContent =
+    'Find the key in your RetroAchievements control panel under Keys. Aisles stores it '
+    + 'under your Windows profile and never sends it back to this page.';
+
+  elements.settingsFields.append(
+    username.wrapper,
+    key.wrapper,
+    status,
+    actions,
+    help,
+  );
+
+  elements.settingsSave.disabled = settings.busy;
+}
+
+function testRetroAchievements() {
+  if (settings.busy) return;
+  setSettingsError();
+
+  if (settings.retroStatusEl) {
+    settings.retroStatusEl.dataset.state = '';
+    settings.retroStatusEl.textContent = 'Contacting RetroAchievements...';
+  }
+
+  settings.retroTestId = requestId('ra-test');
+  setSettingsBusy(true, 'Checking RetroAchievements.');
+  post('testRetroAchievements', {
+    requestId: settings.retroTestId,
+    retroAchievements: {
+      username: settings.retroDraft.username,
+      apiKey: settings.retroDraft.apiKey,
+    },
+  });
 }
 
 function applyFieldStatus(element, validation) {
@@ -451,7 +659,8 @@ function applySettingsValidation(payload) {
       applyFieldStatus(status, current?.validation?.[status.dataset.field]);
     }
   }
-  const invalid = settings.consoles.some(c => Object.values(c.validation ?? {}).some(v => v.state === 'invalid'));
+  const invalid = settings.mode === 'console'
+    && settings.consoles.some(c => Object.values(c.validation ?? {}).some(v => v.state === 'invalid'));
   elements.settingsSave.disabled = settings.busy || invalid;
 }
 
@@ -463,7 +672,14 @@ function saveSettings() {
     return;
   }
   setSettingsBusy(true, 'Saving settings…');
-  post('saveSettings', { requestId: requestId('save'), consoles: settings.draft });
+  post('saveSettings', {
+    requestId: requestId('save'),
+    consoles: settings.draft,
+    retroAchievements: {
+      username: settings.retroDraft.username,
+      apiKey: settings.retroDraft.apiKey,
+    },
+  });
 }
 
 elements.settingsTrigger.addEventListener('click', openSettings);
@@ -941,27 +1157,34 @@ function achievementsSection(game) {
   note.className = 'detail-source';
 
   if (achievements.state === 'linked') {
-    const earned = achievements.earned ?? 0;
-    const total = achievements.total ?? 0;
-    value.textContent = `${earned} of ${total} achievements`;
-    note.textContent = achievements.points ? `${achievements.points} pts` : 'Linked';
+    const hasProgress = Number.isFinite(achievements.total)
+      && Number.isFinite(achievements.earned)
+      && achievements.total > 0;
+    const earned = hasProgress ? achievements.earned : 0;
+    const total = hasProgress ? achievements.total : 0;
+    value.textContent = hasProgress
+      ? `${earned} of ${total} achievements`
+      : 'Linked';
+    note.textContent = hasProgress
+      ? (Number.isFinite(achievements.points) ? `${achievements.points} pts` : '')
+      : (achievements.note ?? 'Progress not available');
 
     const track = document.createElement('div');
     track.className = 'detail-progress';
     const fill = document.createElement('span');
-    fill.style.width = `${total > 0 ? Math.min(100, (earned / total) * 100) : 0}%`;
+    fill.style.width = `${hasProgress ? Math.min(100, (earned / total) * 100) : 0}%`;
     track.append(fill);
 
     row.append(value, note);
     section.append(detailHeading('ACHIEVEMENTS'), row, track);
   } else if (achievements.state === 'notSupported') {
     value.textContent = 'Not supported on this platform';
-    note.textContent = achievements.note ?? 'Phase 6';
+    note.textContent = achievements.note ?? 'RetroAchievements unsupported';
     row.append(value, note);
     section.append(detailHeading('ACHIEVEMENTS'), row);
   } else {
     value.textContent = 'Supported · not linked';
-    note.textContent = achievements.note ?? 'Phase 6';
+    note.textContent = achievements.note ?? 'Add account in Settings';
     row.append(value, note);
     section.append(detailHeading('ACHIEVEMENTS'), row);
   }
@@ -1276,6 +1499,15 @@ if (webview) {
           emulatorPath: console.emulatorPath,
           artworkPath: console.artworkPath,
         }]));
+        settings.mode = 'console';
+        settings.retro = payload.retroAchievements ?? null;
+        settings.retroDraft = {
+          username: settings.retro?.username ?? '',
+          apiKey: '',
+          hasApiKey: Boolean(settings.retro?.hasApiKey),
+        };
+        settings.retroStatusEl = null;
+        settings.retroTestId = null;
         settings.original = settingsSnapshot();
         settings.selectedId = payload.consoles.some(c => c.id === state.selectedConsoleId)
           ? state.selectedConsoleId
@@ -1290,6 +1522,19 @@ if (webview) {
       case 'settingsValidation':
         if (settings.open) applySettingsValidation(message.payload);
         break;
+      case 'retroAchievementsTest': {
+        if (!settings.open || message.payload?.requestId !== settings.retroTestId) break;
+        settings.retroTestId = null;
+        setSettingsBusy(false);
+        if (settings.retroStatusEl?.isConnected) {
+          settings.retroStatusEl.dataset.state = message.payload.ok ? 'ok' : 'err';
+          settings.retroStatusEl.textContent = message.payload.message
+            || (message.payload.ok
+              ? 'Connection succeeded.'
+              : 'Could not connect to RetroAchievements.');
+        }
+        break;
+      }
       case 'browsePathResult': {
         if (!settings.open) break;
         setSettingsBusy(false);

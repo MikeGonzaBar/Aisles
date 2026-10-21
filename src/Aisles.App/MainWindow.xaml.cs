@@ -1,6 +1,7 @@
 using Aisles.App.Action;
 using Aisles.App.Bridge;
 using Aisles.App.Domain;
+using Aisles.App.RetroAchievements;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.Web.WebView2.Core;
@@ -26,6 +27,10 @@ public sealed partial class MainWindow : Window
     private readonly EmulatorUpdateService _updates = new();
     private readonly ConsoleSettingsStore _settingsStore = new(Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Aisles", "settings.json"));
+    private readonly RetroAchievementsSettingsStore _retroSettingsStore = new(Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Aisles", "retroachievements.json"));
+    private readonly RetroAchievementsService _retroAchievements = new(Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Aisles", "RetroAchievements"));
     private readonly ArtworkResolver _artwork = new(Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Aisles", "artwork"));
     private readonly ConcurrentDictionary<string, byte> _searchedConsoles = new(StringComparer.OrdinalIgnoreCase);
@@ -34,6 +39,9 @@ public sealed partial class MainWindow : Window
     private ConsoleCatalog? _catalogDefaults;
     private string? _catalogError;
     private string? _settingsError;
+    private string? _retroSettingsError;
+    private string? _selectedGameId;
+    private CancellationTokenSource? _detailsCts;
     private bool _catalogLoaded;
     private bool _fullScreen;
 
@@ -43,6 +51,12 @@ public sealed partial class MainWindow : Window
         Title = "Aisles";
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "wwwroot", "branding", "Aisles.ico"));
         RootGrid.Loaded += OnRootGridLoaded;
+        Closed += (_, _) =>
+        {
+            _detailsCts?.Cancel();
+            _detailsCts?.Dispose();
+            _retroAchievements.Dispose();
+        };
     }
 
     private async void OnRootGridLoaded(object sender, RoutedEventArgs e)
@@ -119,6 +133,9 @@ public sealed partial class MainWindow : Window
 
         _catalogLoaded = true;
         var path = Path.Combine(AppContext.BaseDirectory, "consoles.json");
+        var (retroSettings, retroError) = _retroSettingsStore.Load();
+        _retroSettingsError = retroError;
+        _retroAchievements.Configure(retroSettings);
 
         try
         {
@@ -307,12 +324,7 @@ public sealed partial class MainWindow : Window
                         art.Medium.Source,
                         art.Medium.LabelRect,
                         new PlayedPayload(played.Seconds, played.LastPlayed, played.Source, played.Reason),
-                        new AchievementsPayload(
-                            RetroAchievementsSupport.StateFor(console.Id),
-                            null,
-                            null,
-                            null,
-                            "Phase 6"));
+                        _retroAchievements.ForLibrary(console, game));
                 }).ToList()));
         }
 
@@ -326,7 +338,7 @@ public sealed partial class MainWindow : Window
     /// header is read. Both are cheap and both are applied only if the selection is
     /// still current.
     /// </summary>
-    private async Task SendGameDetailsAsync(string? gameId)
+    private async Task SendGameDetailsAsync(string? gameId, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -344,7 +356,7 @@ public sealed partial class MainWindow : Window
                 var resolved = await GameIdentityReader.DolphinHeaderAsync(
                     console,
                     game.LaunchTarget,
-                    CancellationToken.None);
+                    cancellationToken);
 
                 if (resolved is { Id: not null })
                 {
@@ -352,11 +364,19 @@ public sealed partial class MainWindow : Window
                 }
             }
 
+            if (cancellationToken.IsCancellationRequested
+                || !string.Equals(_selectedGameId, game.Id, StringComparison.Ordinal))
+            {
+                return;
+            }
+
             var played = new PlayStatsReader().For(console, identity.Id ?? game.Serial);
             var region = identity.Region ?? GameIdentityReader.RegionFromId(
                 console.Id,
                 identity.Id ?? game.Serial);
 
+            // Play time and identity are local and fast. Send them immediately, then
+            // let the achievements rail update separately when the API answers.
             _bridge.Send("gameDetails", new
             {
                 gameId = game.Id,
@@ -364,18 +384,70 @@ public sealed partial class MainWindow : Window
                 version = game.Version,
                 region,
                 played = new PlayedPayload(played.Seconds, played.LastPlayed, played.Source, played.Reason),
-                achievements = new AchievementsPayload(
-                    RetroAchievementsSupport.StateFor(console.Id),
-                    null,
-                    null,
-                    null,
-                    "Phase 6"),
+                achievements = _retroAchievements.ForLibrary(console, game),
             });
+
+            await RefreshAchievementsAsync(console, game, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer selection won; its details request will do the work.
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Details for {gameId} failed: {ex}");
         }
+    }
+
+    private async Task RefreshAchievementsAsync(
+        ConsoleDescriptor console,
+        GameEntry game,
+        CancellationToken cancellationToken)
+    {
+        if (!RetroAchievementsSupport.IsSupported(console.Id)
+            || !_retroAchievements.HasCredentials)
+        {
+            return;
+        }
+
+        try
+        {
+            var achievements = await _retroAchievements.GetForGameAsync(console, game, cancellationToken);
+            if (cancellationToken.IsCancellationRequested
+                || !string.Equals(_selectedGameId, game.Id, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _bridge.Send("gameDetails", new
+            {
+                gameId = game.Id,
+                achievements,
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // Superseded by another selection.
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Achievements for {game.Id} failed ({ex.GetType().Name}).");
+        }
+    }
+
+    private void RefreshSelectedGameDetails()
+    {
+        _detailsCts?.Cancel();
+        _detailsCts?.Dispose();
+        _detailsCts = null;
+
+        if (_selectedGameId is null)
+        {
+            return;
+        }
+
+        _detailsCts = new CancellationTokenSource();
+        _ = SendGameDetailsAsync(_selectedGameId, _detailsCts.Token);
     }
 
     private async void OnMessageFromWeb(string json)
@@ -430,7 +502,12 @@ public sealed partial class MainWindow : Window
                 break;
 
             case "selectGame":
-                _ = SendGameDetailsAsync(message.ReadString("gameId"));
+                _selectedGameId = message.ReadString("gameId");
+                RefreshSelectedGameDetails();
+                break;
+
+            case "testRetroAchievements":
+                await TestRetroAchievementsAsync(message);
                 break;
 
             // Console actions come from the right-click menu. They never need a game
@@ -470,6 +547,7 @@ public sealed partial class MainWindow : Window
             c => new ConsolePathDraft(c.GamesPath, c.EmulatorPath, c.ArtworkPath ?? string.Empty),
             StringComparer.OrdinalIgnoreCase);
         var validation = _settingsStore.Validate(_catalogDefaults, drafts);
+        var retro = _retroAchievements.Settings;
         _bridge.Send("settingsData", new
         {
             requestId,
@@ -482,6 +560,15 @@ public sealed partial class MainWindow : Window
                 artworkPath = c.ArtworkPath ?? string.Empty,
                 validation = validation[c.Id],
             }).ToList(),
+            retroAchievements = new
+            {
+                username = retro.Username,
+                hasApiKey = retro.HasApiKey,
+                linked = retro.HasCredentials && !_retroAchievements.IsAuthRejected,
+                rejected = _retroAchievements.IsAuthRejected,
+                points = _retroAchievements.CachedAccount?.TotalPoints,
+                error = _retroSettingsError,
+            },
         });
     }
 
@@ -541,10 +628,30 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        if (!TryReadRetroAchievements(message, out var retroSettings, out var retroPresent, out error))
+        {
+            _bridge.Send("settingsSaved", new { requestId, saved = false, error });
+            return;
+        }
+
         try
         {
-            await Task.Run(() => _settingsStore.Save(_catalogDefaults, drafts));
+            await Task.Run(() =>
+            {
+                _settingsStore.Save(_catalogDefaults, drafts);
+                if (retroPresent)
+                {
+                    _retroSettingsStore.Save(retroSettings);
+                }
+            });
+
             (_catalog, _settingsError) = _settingsStore.Apply(_catalogDefaults);
+            if (retroPresent)
+            {
+                _retroAchievements.Configure(retroSettings);
+                _retroSettingsError = null;
+            }
+
             IndexConsoles();
             RegisterAssetHosts(Stage.CoreWebView2);
             _bridge.Send("settingsSaved", new { requestId, saved = true });
@@ -556,6 +663,100 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private bool TryReadRetroAchievements(
+        BridgeMessage message,
+        out RetroAchievementsSettings settings,
+        out bool present,
+        out string? error)
+    {
+        settings = _retroAchievements.Settings;
+        present = false;
+        error = null;
+
+        if (message.Payload is not { ValueKind: JsonValueKind.Object } payload
+            || !payload.TryGetProperty("retroAchievements", out var element)
+            || element.ValueKind != JsonValueKind.Object)
+        {
+            return true;
+        }
+
+        present = true;
+        var username = JsonString(element, "username").Trim();
+        var apiKey = JsonString(element, "apiKey").Trim();
+
+        if (username.Length == 0)
+        {
+            settings = RetroAchievementsSettings.Empty;
+            return true;
+        }
+
+        if (apiKey.Length == 0 && _retroAchievements.Settings.HasApiKey)
+        {
+            apiKey = _retroAchievements.Settings.ApiKey;
+        }
+
+        if (apiKey.Length == 0)
+        {
+            error = "Enter the RetroAchievements web API key.";
+            return false;
+        }
+
+        settings = new RetroAchievementsSettings(username, apiKey);
+        return true;
+    }
+
+    private static string JsonString(JsonElement element, string property) =>
+        element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString() ?? string.Empty
+            : string.Empty;
+
+    private async Task TestRetroAchievementsAsync(BridgeMessage message)
+    {
+        var requestId = message.ReadString("requestId");
+
+        if (!TryReadRetroAchievements(message, out var settings, out _, out var error))
+        {
+            _bridge.Send("retroAchievementsTest", new { requestId, ok = false, message = error });
+            return;
+        }
+
+        if (!settings.HasCredentials)
+        {
+            _bridge.Send("retroAchievementsTest", new
+            {
+                requestId,
+                ok = false,
+                message = "Enter your RetroAchievements username and web API key.",
+            });
+            return;
+        }
+
+        try
+        {
+            var account = await _retroAchievements.TestAccountAsync(settings, CancellationToken.None);
+            _bridge.Send("retroAchievementsTest", new
+            {
+                requestId,
+                ok = true,
+                message = $"Connected as {account.User} - {account.TotalPoints:N0} points.",
+            });
+        }
+        catch (RetroAchievementsException ex)
+        {
+            _bridge.Send("retroAchievementsTest", new { requestId, ok = false, message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"RetroAchievements test failed ({ex.GetType().Name}).");
+            _bridge.Send("retroAchievementsTest", new
+            {
+                requestId,
+                ok = false,
+                message = "Could not test the RetroAchievements account. Try again later.",
+            });
+        }
+    }
+
     private async Task RescanAsync(string? requestId)
     {
         try
@@ -563,6 +764,9 @@ public sealed partial class MainWindow : Window
             var library = await Task.Run(BuildLibraryPayload);
             _bridge.Send("library", library);
             _bridge.Send("scanResult", new { requestId, succeeded = true });
+
+            // The selected game may now have a different match or account context.
+            RefreshSelectedGameDetails();
 
             // New games need their first provider pass; games already searched are
             // skipped by the resolver.

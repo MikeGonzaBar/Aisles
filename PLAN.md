@@ -6,7 +6,7 @@ beside a **3D shelf of its games rendered as the real media** (cartridges, discs
 cases) with their **sticker/cover art**, and click a game to **launch the correct
 emulator** with it loaded.
 
-> Status: **asset preparation prototype.** Prepared console GLBs and a comparison viewer are available; native application implementation and visual acceptance remain pending. See `docs/model-preparation.md`.
+> Status: **Phases 0–6 implemented.** The native app discovers the library, launches emulators, renders the 3D stage and shelf, and links one RetroAchievements account for PS1/PS2/GameCube/Wii. Phase 5 look sign-off and live linked-account evidence remain open. See `docs/phase5-media.md` and `docs/phase6-retroachievements.md`.
 
 ---
 
@@ -70,7 +70,7 @@ which is why the rendering stack below was chosen.
 | 3D assets | **Downloaded console GLBs** with optimized runtime copies and attribution; procedural media meshes. GameCube/3DS assets remain missing. |
 | Library presentation | **3D shelf** of the platform's real media |
 | Click behaviour | Single click **selects**; double-click / PLAY button **launches** |
-| RetroAchievements | **Deferred to Phase 6** |
+| RetroAchievements | **Phase 6, implemented for PS1/PS2/GC/Wii** — title/file-name matching first; no `rcheevos` hash pass yet |
 | Empty consoles | **Shown**, with a "drop games in &lt;folder&gt;" hint |
 | Platform switching | **3D console lineup** in the stage; the top bar is configuration only |
 | Console selection cue | **Lift + spotlight + yellow name**; scale capped ~1.25×, never scale alone (§6) |
@@ -219,6 +219,14 @@ region mappings, status codes and request limits are specified in
 Only **PS1 / PS2 / GC / Wii** can ever show RA progress. DS would need switching to
 melonDS to gain RA support.
 
+Phase 6 implements that boundary. The API system IDs are PS1 12, PS2 21, GameCube 16
+and Wii 19. The account is one username plus a web API key, stored under
+`%LOCALAPPDATA%\Aisles\retroachievements.json`; the key is never returned to the web
+layer. A game is matched by normalized title or file name against the cached
+per-system game list, and progress is read lazily when a game is selected. Ambiguous
+or unmatched titles keep the rail in the linked state without inventing progress.
+Title abbreviations (`MGS2`) and hash-only matches remain open.
+
 ### 3.5 Play-time and achievement-state sources (drives the details rail)
 
 Checked against the actual installs on this machine rather than assumed:
@@ -254,8 +262,10 @@ are emulator binary caches — read once, keep an Aisles-owned copy, never treat
 the source of truth (§3.3).
 
 Achievement state has **three** values, not two: *supported, not linked* ·
-*not supported on this platform* (DS/PS3/360, §3.4) · *linked + progress*. The
-rail ships all three from the start so the layout does not move when Phase 6 lands.
+*not supported on this platform* (DS/3DS/PS3/360, §3.4) · *linked + progress*. The
+rail now ships all three with a real account. A linked game whose title has no
+confident match, or whose progress has not arrived yet, shows **Linked** and a short
+note with an empty track rather than `0 of 0`.
 
 ## 4. Architecture
 
@@ -263,6 +273,7 @@ rail ships all three from the start so the layout does not move when Phase 6 lan
 ┌──────────────────────────── Native .exe (WinUI 3) ────────────────────────────┐
 │  Shell        window chrome, console lineup host, details rail, status bar    │
 │  Domain       ConsoleCatalog (JSON) → LibraryScanner → GameEntry[]            │
+│  Account      RetroAchievements settings, title matcher, API client, caches   │
 │  Action       EmulatorLauncher (Process.Start + per-console args)             │
 │  Bridge       WebView2 message channel (host ⇄ web)                           │
 ├──────────────────────────── WebView2 (Three.js) ──────────────────────────────┤
@@ -326,7 +337,12 @@ keeps the PS3 decoy `PARAM.SFO` files from being counted as games (§3.1).
 | host → web | `library` | full console list incl. resolved games |
 | host → web | `selectConsole` | `consoleId` |
 | web → host | `selectGame` | `gameId` |
-| host → web | `gameDetails` | `{ gameId, playTime?, lastPlayed?, achievements }` — drives the details rail (§3.5) |
+| host → web | `gameDetails` | `{ gameId, identityId?, version?, region?, played?, achievements? }` — drives the details rail (§3.5); achievements may arrive in a second message |
+| web → host | `getSettings` | `{ requestId }` — returns console paths plus `{ username, hasApiKey, linked, rejected, points, error }`; never the key |
+| web → host | `saveSettings` | `{ requestId, consoles, retroAchievements: { username, apiKey } }` |
+| web → host | `validateSettings` | `{ requestId, consoles }` |
+| web → host | `testRetroAchievements` | `{ requestId, retroAchievements: { username, apiKey } }` |
+| host → web | `retroAchievementsTest` | `{ requestId, ok, message }` |
 | web → host | `launchGame` | `gameId` (on double-click / LAUNCH) |
 | host → web | `launchResult` | `{ gameId, started, message }` — outcome of a launch attempt, including "emulator not found" |
 | web → host | `revealGame` | `gameId` |
@@ -450,11 +466,11 @@ remain excluded.
 | 2 | **Launching** ✅ | Select a game (2D list first) → emulator opens it → **usable app** | done |
 | 3 | 3D consoles ✅ | Three.js stage + fixed camera + console lineup (low-LOD pipeline) + lighting | done — look sign-off pending |
 | 4 | 3D shelf ✅ | Paged shelf bays (18 per bay, ~400 ms slide), procedural media models, sticker textures, hit-testing, select-vs-launch wiring | done — look sign-off pending; DS/3DS shelf cards stay blank until their sticker pass |
-| 5 | Polish 🔄 | Details rail (information / played / achievements), settings, error states, the final room look (oak shelf, warm slatwall, per-platform plaque, head card) and the refreshed evidence set | in progress — UI shots re-captured 2026-10-20 |
-| 6 | *(optional)* RA | Achievement progress on media (PS1/PS2/GC/Wii only) | 2–4 days |
+| 5 | Polish ✅ | Details rail (information / played / achievements), settings, error states, the final room look (oak shelf, warm slatwall, per-platform plaque, head card) and the refreshed evidence set | implemented — look sign-off pending; UI shots re-captured 2026-10-20 |
+| 6 | RA ✅ | Link one RetroAchievements account, match games, cache the API and fill the achievement rail (PS1/PS2/GC/Wii only) | implemented — live account evidence pending |
 
-Phases 0→2 produce a genuinely useful launcher; 3→5 deliver the showcase.
-Total for 0–5: **~1–1.5 weeks** of focused work.
+Phases 0→2 produce a genuinely useful launcher; 3→5 deliver the showcase; 6 adds the
+RetroAchievements layer. Total for 0–6: **~1.5–2 weeks** of focused work.
 
 **Milestone checkpoints** (for review): after Phase 0 (window + bridge),
 after Phase 2 (working launcher), after Phase 3 (**look sign-off on one console
@@ -474,7 +490,9 @@ before integrating the rest**), after Phase 4 (full shelf).
 | Played stats absent on 3 of 8 platforms | Rail keeps a stable row and names the reason (§3.5); never imply data that isn't there |
 | Shelf paging and camera gestures collide | Wheel, drag and arrows all page the shelf; camera is fixed with idle drift only (§6) |
 | Many cover images hurting startup | Virtual-host mapping + lazy texture loading |
-| RA file→game hash matching (Phase 6) | Defer; start with filename matching, add `rcheevos` hashing only if needed |
+| RA file→game matching | Implemented normalized title/file-name matching; ambiguous matches stay unmatched. Add `rcheevos` hashing only if abbreviations or region variants prove too common |
+| RA API rate limits or outages | Serialize requests with a 350 ms floor, cache system lists for 7 days, progress for 5 minutes and matches for 30 minutes; keep the last good game list on transient failures |
+| RA credential exposure | Store the key only in `%LOCALAPPDATA%\Aisles\retroachievements.json`, never return it to the web layer or logs, and remove the file on Unlink |
 
 ## 9. Shell choice: WinUI 3 (settled)
 
@@ -497,8 +515,9 @@ combination:
 
 ## 10. Explicitly out of scope for v1
 
-RetroAchievements, gamepad/controller navigation, general internet metadata enrichment,
-emulator/BIOS management, a multi-console "room", lid/tray/media-insertion animations, and any cloud/sync features.
+RetroAchievements achievement browsing or hash-based matching, gamepad/controller
+navigation, general internet metadata enrichment, emulator/BIOS management, a
+multi-console "room", lid/tray/media-insertion animations, and any cloud/sync features.
 
 Optional artwork fetching is in scope under §3.3.1; general metadata enrichment
 remains deferred.

@@ -8,7 +8,7 @@ real media — and launches the correct emulator when you pick a game.
 
 ## Status
 
-**Phases 0–4 complete; Phase 5 is in progress.** `Aisles.exe` opens a WinUI 3 window hosting WebView2, loads `consoles.json`, finds all 49 games across eight platforms with real titles and serials (including installed PS3 HDD titles), launches the right emulator, and drives a live host↔web message bridge. The 3D console lineup, the paged shelf and the hero are built and now sit in the finished rental-store room: warm slatwall behind the consoles, an oak shelf against a shop aisle, and a per-platform plaque over the selected bay. The media pass draws true-scale cases, discs and cards from one preset table, resolves local and online artwork into a cache, and keeps selection across pages. The hero's head card and details rail show game identity, version, PCSX2/DuckStation/Dolphin/RPCS3 play time with honest reasons elsewhere, and the three achievement states; linking RetroAchievements is Phase 6. Alongside the app, six console GLBs have prepared runtime copies, and a workshop generates the cases, discs and DS cartridge procedurally. See `docs/phase0-verification.md`, `docs/phase1-discovery.md`, `docs/phase3-stage.md`, `docs/model-preparation.md`, `docs/media-models.md` and `docs/phase5-media.md`.
+**Phases 0–6 implemented.** `Aisles.exe` opens a WinUI 3 window hosting WebView2, loads `consoles.json`, finds all 49 games across eight platforms with real titles and serials (including installed PS3 HDD titles), launches the right emulator, and drives a live host↔web message bridge. The 3D console lineup, the paged shelf and the hero are built and now sit in the finished rental-store room: warm slatwall behind the consoles, an oak shelf against a shop aisle, and a per-platform plaque over the selected bay. The media pass draws true-scale cases, discs and cards from one preset table, resolves local and online artwork into a cache, and keeps selection across pages. The hero's head card and details rail show game identity, version, PCSX2/DuckStation/Dolphin/RPCS3 play time with honest reasons elsewhere, and the three achievement states. Phase 6 links one RetroAchievements account for PS1, PS2, GameCube and Wii, matches local files to RetroAchievements titles, and fills the rail with earned/total progress; DS, 3DS, PS3 and Xbox 360 remain unsupported. Alongside the app, six console GLBs have prepared runtime copies, and a workshop generates the cases, discs and DS cartridge procedurally. See `docs/phase0-verification.md`, `docs/phase1-discovery.md`, `docs/phase3-stage.md`, `docs/model-preparation.md`, `docs/media-models.md`, `docs/phase5-media.md` and `docs/phase6-retroachievements.md`.
 
 ## Repository layout
 
@@ -30,6 +30,7 @@ real media — and launches the correct emulator when you pick a game.
 | `docs/model-preparation.md` | Setup, preparation results and remaining visual checks |
 | `docs/media-models.md` | Physical dimensions, procedural construction and artwork integration rules |
 | `docs/phase5-media.md` | True-scale shelf/hero media, artwork resolution, the idle turn, the finished room look, the details rail and the exposure pass |
+| `docs/phase6-retroachievements.md` | Account linking, credential storage, title matching, API caching and the three achievement rail states |
 | `docs/library-workshop.md` | Current local scanner adapter, artwork route and native-host handoff |
 | `tools/artwork-workshop.cjs` | Artwork resolver, bounded provider lookup, local cache and saved selections |
 | `docs/artwork-endpoints.md` | Workshop API contracts, provider URLs, region mappings, errors and request limits |
@@ -70,7 +71,7 @@ favicon uses the same `.ico`. The project links the branding assets into
 - **Shell:** WinUI 3 — settled, it builds and runs unpackaged on .NET 10 against Windows App SDK 2.0.1, so the WPF fallback in `PLAN.md` §9 was not needed. **3D:** WebView2 + Three.js, **assets:** downloaded console GLBs plus procedural media
 - **Emulators** live in `C:\Emulation`, **games** in `D:\Emulation`
 - Console matrix, launch arguments and on-disk folder shapes: see `PLAN.md` §3
-- Roadmap: Phase 0 skeleton → 1 discovery → 2 launching → 3 3D consoles → 4 3D shelf → 5 polish → 6 RetroAchievements (optional)
+- Roadmap: Phase 0 skeleton → 1 discovery → 2 launching → 3 3D consoles → 4 3D shelf → 5 polish → 6 RetroAchievements
 
 ## Running the app
 
@@ -93,6 +94,14 @@ executable, or optional artwork folder. Aisles stores these path overrides in
 so rebuilding the app does not erase local choices. Saving rescans the library
 without restarting the app. Each console uses a consistent short-name badge in
 the editor, so platforms with and without prepared 3D models receive the same UI.
+
+The same dialog has a **RetroAchievements** account page. Enter the username and
+the web API key from your RetroAchievements control panel, then use **Test
+connection** before saving. Aisles keeps the account in
+`%LOCALAPPDATA%\Aisles\retroachievements.json`; the key is never returned to the
+web layer, logged, or written into the repository. **Unlink** clears both the
+saved file and the rail's linked state. See
+`docs/phase6-retroachievements.md` for matching and caching details.
 
 ## Console preview
 

@@ -48,6 +48,7 @@ public sealed record PlayedPayload(long? Seconds, string? LastPlayed, string? So
 
 /// <summary>
 /// The ACHIEVEMENTS row. <see cref="State"/> is <c>notLinked</c>, <c>notSupported</c>
-/// or <c>linked</c>; the last carries the progress numbers Phase 6 will fill.
+/// or <c>linked</c>; the last carries earned/total/points when a game match and
+/// progress are available, and leaves them null while the rail is still resolving.
 /// </summary>
 public sealed record AchievementsPayload(string State, int? Earned, int? Total, int? Points, string? Note);

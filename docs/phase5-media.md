@@ -107,9 +107,10 @@ disc is skipped, so an installed update never becomes a second case. Version com
 `APP_VER`, preferring the installed update over the disc's own value — which is why
 LittleBigPlanet reads 01.30 rather than the disc's 01.01, matching RPCS3.
 
-Achievements still stop at the Phase 6 boundary: the host marks PS1/PS2/GameCube/Wii as
-*supported, not linked* and DS/3DS/PS3/360 as *not supported*. The linked branch and
-progress bar are implemented so the layout is ready, but no account is read yet.
+Phase 5 left the rail ready for Phase 6: PS1/PS2/GameCube/Wii rendered as *supported,
+not linked*, DS/3DS/PS3/360 as *not supported*, and the linked branch existed only for
+layout. Phase 6 now supplies the real account, title matching and progress; see
+[`phase6-retroachievements.md`](phase6-retroachievements.md).
 
 ![PS2 identity, play time and achievements in the rail](../artifacts/phase5/look/rail-ps2-1280.png)
 
@@ -202,8 +203,9 @@ down around them.
 - Live details rail: PS2 showed *4h 28m · last played 11 Dec 2025 · PCSX2 playtime.dat*;
   PS1 showed DuckStation's play time; PS3 and DS showed *Not supported on this platform*
   in the achievements row; Wii resolved `SW2E52` on selection and showed Dolphin's `1m`;
-  the empty GameCube shelf showed *Drop games here*. The linked achievements branch was
-  exercised at `12 of 40 · 240 pts · 30%`.
+  the empty GameCube shelf showed *Drop games here*. Before Phase 6, the linked branch was
+  exercised with a synthetic payload at `12 of 40 · 240 pts · 30%`; the live account path
+  is covered in `docs/phase6-retroachievements.md`.
 - PS3 scanner harness against the installed library: 4 games (2 disc dumps + 2 installed
   HDD titles), versions `01.30`/`01.33`/`01.00`/`01.00`, play time `12m`/`51s`/`7m`/`3m`
   and last-played dates matching RPCS3's list. Updates, the `_USER1` profile and the empty
@@ -230,5 +232,6 @@ down around them.
 ## Still open
 
 - GameCube and 3DS console models; the DS/3DS blank-card recess polish.
-- LFS before a remote; RetroAchievements remains Phase 6, including the account link that
-  fills the rail's linked state.
+- LFS before a remote.
+- Phase 6's account link is implemented, but a live account/progress capture still needs
+  credentials; the settings, auth-failure and unlink paths were verified at runtime.

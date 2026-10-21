@@ -10,10 +10,20 @@
     <Compile Include="..\..\src\Aisles.App\Domain\ConsoleDescriptor.cs" Link="ConsoleDescriptor.cs" />
     <Compile Include="..\..\src\Aisles.App\Domain\ConsoleSettingsStore.cs" Link="ConsoleSettingsStore.cs" />
     <Compile Include="..\..\src\Aisles.App\Domain\ArtworkIndex.cs" Link="ArtworkIndex.cs" />
+    <Compile Include="..\..\src\Aisles.App\Domain\ArtworkReference.cs" Link="ArtworkReference.cs" />
     <Compile Include="..\..\src\Aisles.App\Domain\DsStickerExtractor.cs" Link="DsStickerExtractor.cs" />
+    <Compile Include="..\..\src\Aisles.App\Domain\GameEntry.cs" Link="GameEntry.cs" />
     <Compile Include="..\..\src\Aisles.App\Domain\PlayStatsReader.cs" Link="PlayStatsReader.cs" />
+    <Compile Include="..\..\src\Aisles.App\Domain\RetroAchievementsSettings.cs" Link="RetroAchievementsSettings.cs" />
+    <Compile Include="..\..\src\Aisles.App\Domain\RetroAchievementsSettingsStore.cs" Link="RetroAchievementsSettingsStore.cs" />
     <Compile Include="..\..\src\Aisles.App\Domain\RetroAchievementsSupport.cs" Link="RetroAchievementsSupport.cs" />
+    <Compile Include="..\..\src\Aisles.App\Domain\TitleNormalizer.cs" Link="TitleNormalizer.cs" />
     <Compile Include="..\..\src\Aisles.App\Domain\EmulatorVersion.cs" Link="EmulatorVersion.cs" />
     <Compile Include="..\..\src\Aisles.App\Domain\EmulatorProfile.cs" Link="EmulatorProfile.cs" />
+    <Compile Include="..\..\src\Aisles.App\Bridge\LibraryPayload.cs" Link="LibraryPayload.cs" />
+    <Compile Include="..\..\src\Aisles.App\RetroAchievements\RetroAchievementsModels.cs" Link="RetroAchievementsModels.cs" />
+    <Compile Include="..\..\src\Aisles.App\RetroAchievements\RetroAchievementsGameMatcher.cs" Link="RetroAchievementsGameMatcher.cs" />
+    <Compile Include="..\..\src\Aisles.App\RetroAchievements\RetroAchievementsClient.cs" Link="RetroAchievementsClient.cs" />
+    <Compile Include="..\..\src\Aisles.App\RetroAchievements\RetroAchievementsService.cs" Link="RetroAchievementsService.cs" />
   </ItemGroup>
 </Project>
