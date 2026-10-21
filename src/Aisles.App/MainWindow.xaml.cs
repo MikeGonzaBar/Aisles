@@ -1,6 +1,7 @@
 using Aisles.App.Action;
 using Aisles.App.Bridge;
 using Aisles.App.Domain;
+using Aisles.App.Ps3Trophies;
 using Aisles.App.RetroAchievements;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -31,6 +32,7 @@ public sealed partial class MainWindow : Window
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Aisles", "retroachievements.json"));
     private readonly RetroAchievementsService _retroAchievements = new(Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Aisles", "RetroAchievements"));
+    private readonly Ps3TrophyService _ps3Trophies = new();
     private readonly ArtworkResolver _artwork = new(Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Aisles", "artwork"));
     private readonly ConcurrentDictionary<string, byte> _searchedConsoles = new(StringComparer.OrdinalIgnoreCase);
@@ -160,6 +162,7 @@ public sealed partial class MainWindow : Window
     {
         foreach (var host in _assetHosts.Values.SelectMany(h => new[] { h.GamesHost, h.ArtHost }).Where(h => h is not null))
             core.ClearVirtualHostNameToFolderMapping(host!);
+        core.ClearVirtualHostNameToFolderMapping(Ps3TrophyService.IconHost);
         _assetHosts.Clear();
 
         if (_catalog is null)
@@ -167,7 +170,11 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        var usedHosts = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { WebHostName };
+        var usedHosts = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            WebHostName,
+            Ps3TrophyService.IconHost,
+        };
 
         foreach (var console in _catalog.Consoles)
         {
@@ -198,6 +205,18 @@ public sealed partial class MainWindow : Window
                 console.GamesPath,
                 artHost,
                 console.ArtworkPath);
+        }
+
+        // PS3 trophy icons live in RPCS3's dev_hdd0\home folder rather than a
+        // per-console artwork folder, so they get one fixed host of their own.
+        var ps3 = _catalog.Consoles.FirstOrDefault(console =>
+            console.Id.Equals("ps3", StringComparison.OrdinalIgnoreCase));
+        if (ps3 is not null && Ps3TrophyService.TrophyHomeRoot(ps3) is { } trophyHome)
+        {
+            core.SetVirtualHostNameToFolderMapping(
+                Ps3TrophyService.IconHost,
+                trophyHome,
+                CoreWebView2HostResourceAccessKind.Allow);
         }
     }
 
@@ -264,6 +283,16 @@ public sealed partial class MainWindow : Window
     /// <summary>Virtual hosts and their roots, used to turn artwork files into URLs.</summary>
     private sealed record AssetHosts(string? GamesHost, string? GamesRoot, string? ArtHost, string? ArtRoot);
 
+    /// <summary>
+    /// Achievement data comes from one of two providers: RetroAchievements for the
+    /// consoles it supports, and RPCS3's local trophy files for PS3. Keeping the
+    /// choice here means the payload and details paths cannot drift apart.
+    /// </summary>
+    private AchievementsPayload AchievementsFor(ConsoleDescriptor console, GameEntry game) =>
+        console.Id.Equals("ps3", StringComparison.OrdinalIgnoreCase)
+            ? _ps3Trophies.ForGame(console, game)
+            : _retroAchievements.ForLibrary(console, game);
+
     private LibraryPayload BuildLibraryPayload()
     {
         if (_catalog is null)
@@ -305,7 +334,7 @@ public sealed partial class MainWindow : Window
                         console,
                         game.FrontCover is { } cover ? UrlForArtwork(console.Id, cover) : null);
                     var identity = _artwork.Identity(game);
-                    var played = playStats.For(console, identity.Id ?? game.Serial);
+                    var played = playStats.For(console, identity.Id ?? game.Serial, game.LaunchTarget);
 
                     return new GamePayload(
                         game.Id,
@@ -324,7 +353,7 @@ public sealed partial class MainWindow : Window
                         art.Medium.Source,
                         art.Medium.LabelRect,
                         new PlayedPayload(played.Seconds, played.LastPlayed, played.Source, played.Reason),
-                        _retroAchievements.ForLibrary(console, game));
+                        AchievementsFor(console, game));
                 }).ToList()));
         }
 
@@ -370,7 +399,7 @@ public sealed partial class MainWindow : Window
                 return;
             }
 
-            var played = new PlayStatsReader().For(console, identity.Id ?? game.Serial);
+            var played = new PlayStatsReader().For(console, identity.Id ?? game.Serial, game.LaunchTarget);
             var region = identity.Region ?? GameIdentityReader.RegionFromId(
                 console.Id,
                 identity.Id ?? game.Serial);
@@ -384,7 +413,7 @@ public sealed partial class MainWindow : Window
                 version = game.Version,
                 region,
                 played = new PlayedPayload(played.Seconds, played.LastPlayed, played.Source, played.Reason),
-                achievements = _retroAchievements.ForLibrary(console, game),
+                achievements = AchievementsFor(console, game),
             });
 
             await RefreshAchievementsAsync(console, game, cancellationToken);
@@ -404,7 +433,8 @@ public sealed partial class MainWindow : Window
         GameEntry game,
         CancellationToken cancellationToken)
     {
-        if (!RetroAchievementsSupport.IsSupported(console.Id)
+        if (console.Id.Equals("ps3", StringComparison.OrdinalIgnoreCase)
+            || !RetroAchievementsSupport.IsSupported(console)
             || !_retroAchievements.HasCredentials)
         {
             return;
@@ -544,7 +574,11 @@ public sealed partial class MainWindow : Window
         }
 
         var drafts = _catalog.Consoles.ToDictionary(c => c.Id,
-            c => new ConsolePathDraft(c.GamesPath, c.EmulatorPath, c.ArtworkPath ?? string.Empty),
+            c => new ConsolePathDraft(
+                c.GamesPath,
+                c.EmulatorPath,
+                c.ArtworkPath ?? string.Empty,
+                c.CorePath ?? string.Empty),
             StringComparer.OrdinalIgnoreCase);
         var validation = _settingsStore.Validate(_catalogDefaults, drafts);
         var retro = _retroAchievements.Settings;
@@ -558,6 +592,7 @@ public sealed partial class MainWindow : Window
                 gamesPath = c.GamesPath,
                 emulatorPath = c.EmulatorPath,
                 artworkPath = c.ArtworkPath ?? string.Empty,
+                corePath = c.CorePath ?? string.Empty,
                 validation = validation[c.Id],
             }).ToList(),
             retroAchievements = new
@@ -594,10 +629,10 @@ public sealed partial class MainWindow : Window
         {
             var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
             string? selected;
-            if (field == "emulatorPath")
+            if (field is "emulatorPath" or "corePath")
             {
                 var picker = new FileOpenPicker { SuggestedStartLocation = PickerLocationId.ComputerFolder };
-                picker.FileTypeFilter.Add(".exe");
+                picker.FileTypeFilter.Add(field == "emulatorPath" ? ".exe" : ".dll");
                 WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
                 selected = (await picker.PickSingleFileAsync())?.Path;
             }
@@ -846,7 +881,11 @@ public sealed partial class MainWindow : Window
             if (!known.Contains(console.Name)) { error = $"Unknown console: {console.Name}"; return false; }
             if (console.Value.ValueKind != JsonValueKind.Object) { error = $"Invalid settings for {console.Name}."; return false; }
             static string Field(JsonElement item, string name) => item.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : "";
-            drafts[console.Name] = new(Field(console.Value, "gamesPath"), Field(console.Value, "emulatorPath"), Field(console.Value, "artworkPath"));
+            drafts[console.Name] = new(
+                Field(console.Value, "gamesPath"),
+                Field(console.Value, "emulatorPath"),
+                Field(console.Value, "artworkPath"),
+                Field(console.Value, "corePath"));
         }
         if (drafts.Count != known.Count) { error = "Settings must include every configured console."; return false; }
         return true;
@@ -1006,6 +1045,7 @@ public sealed partial class MainWindow : Window
         if (fileName.Contains("dolphin", StringComparison.OrdinalIgnoreCase)) return "Dolphin";
         if (fileName.Contains("rpcs3", StringComparison.OrdinalIgnoreCase)) return "RPCS3";
         if (fileName.Contains("duckstation", StringComparison.OrdinalIgnoreCase)) return "DuckStation";
+        if (fileName.Contains("retroarch", StringComparison.OrdinalIgnoreCase)) return "RetroArch";
         if (fileName.Contains("desmume", StringComparison.OrdinalIgnoreCase)) return "DeSmuME";
         if (fileName.Contains("citra", StringComparison.OrdinalIgnoreCase)) return "Citra";
         if (fileName.Contains("xenia", StringComparison.OrdinalIgnoreCase)) return "Xenia Canary";

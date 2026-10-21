@@ -7,6 +7,7 @@ public enum EmulatorKind
     Pcsx2,
     Rpcs3,
     Dolphin,
+    RetroArch,
     Desmume,
     Citra,
     XeniaCanary,
@@ -36,6 +37,7 @@ public sealed record EmulatorProfile(
             EmulatorKind.Pcsx2 => Pcsx2(exeDirectory),
             EmulatorKind.Rpcs3 => Rpcs3(exeDirectory),
             EmulatorKind.Dolphin => Dolphin(exeDirectory),
+            EmulatorKind.RetroArch => RetroArch(exeDirectory),
             EmulatorKind.Desmume => DeSmuMe(exeDirectory),
             EmulatorKind.Citra => Citra(exeDirectory),
             EmulatorKind.XeniaCanary => Xenia(exeDirectory),
@@ -51,6 +53,7 @@ public sealed record EmulatorProfile(
         if (name.Contains("pcsx2", StringComparison.OrdinalIgnoreCase)) return EmulatorKind.Pcsx2;
         if (name.Contains("rpcs3", StringComparison.OrdinalIgnoreCase)) return EmulatorKind.Rpcs3;
         if (name.Contains("dolphin", StringComparison.OrdinalIgnoreCase)) return EmulatorKind.Dolphin;
+        if (name.Contains("retroarch", StringComparison.OrdinalIgnoreCase)) return EmulatorKind.RetroArch;
         if (name.Contains("desmume", StringComparison.OrdinalIgnoreCase)) return EmulatorKind.Desmume;
         if (name.Contains("citra", StringComparison.OrdinalIgnoreCase)) return EmulatorKind.Citra;
         if (name.Contains("xenia", StringComparison.OrdinalIgnoreCase)) return EmulatorKind.XeniaCanary;
@@ -131,6 +134,24 @@ public sealed record EmulatorProfile(
             config is not null ? Path.GetDirectoryName(config) : FirstExistingDirectory(roaming, portable),
             config,
             "https://dolphin-emu.org/download/",
+            null);
+    }
+
+    private static EmulatorProfile RetroArch(string exeDirectory)
+    {
+        var appData = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "RetroArch");
+        var config = FirstExistingFile(
+            Path.Combine(exeDirectory, "retroarch.cfg"),
+            Path.Combine(appData, "retroarch.cfg"));
+
+        return new(
+            EmulatorKind.RetroArch,
+            "RetroArch",
+            config is not null ? Path.GetDirectoryName(config) : FirstExistingDirectory(exeDirectory, appData),
+            config,
+            "https://github.com/libretro/RetroArch/releases",
             null);
     }
 

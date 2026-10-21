@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 
 namespace Aisles.App.Domain;
 
@@ -12,14 +13,15 @@ public sealed record PlayStats(long? Seconds, string? LastPlayed, string? Source
 /// <summary>
 /// Reads the emulator-owned play-time caches that exist on this machine
 /// (PLAN.md section 3.5): PCSX2's and DuckStation's fixed-width <c>playtime.dat</c>,
-/// Dolphin's <c>Config\TimePlayed.ini</c> and RPCS3's
-/// <c>GuiConfigs\persistent_settings.dat</c>. All are read once per payload and never
-/// written.
+/// Dolphin's <c>Config\TimePlayed.ini</c>, RPCS3's
+/// <c>GuiConfigs\persistent_settings.dat</c> and RetroArch's per-content
+/// <c>.lrtl</c> runtime logs. All are read once per payload and never written.
 ///
 /// The formats are deliberately parsed from text rather than treated as our storage
 /// contract. PCSX2 and DuckStation both store seconds and a Unix timestamp; Dolphin
 /// stores milliseconds in hex and no timestamp; RPCS3 stores milliseconds and a local
-/// ISO 8601 date, both keyed by title ID. Every other configured emulator stores
+/// ISO 8601 date, both keyed by title ID. RetroArch stores a duration and a local
+/// timestamp in one JSON file per content name. Every other configured emulator stores
 /// nothing, and the caller gets the sentence that explains why.
 /// </summary>
 public sealed class PlayStatsReader
@@ -28,13 +30,20 @@ public sealed class PlayStatsReader
     private const string DuckStationSource = "DuckStation playtime.dat";
     private const string DolphinSource = "Dolphin TimePlayed.ini";
     private const string Rpcs3Source = "RPCS3 persistent_settings.dat";
+    private const string RetroArchSource = "RetroArch runtime log";
 
     private readonly Dictionary<string, Dictionary<string, PlayedTimeRecord>> _playtimeFiles = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Dictionary<string, long>> _dolphinFiles = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Dictionary<string, Rpcs3Record>> _rpcs3Files = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Dictionary<string, RetroArchRecord>> _retroArchFiles = new(StringComparer.OrdinalIgnoreCase);
 
-    public PlayStats For(ConsoleDescriptor console, string? gameId)
+    public PlayStats For(ConsoleDescriptor console, string? gameId, string? launchTarget = null)
     {
+        if (EmulatorProfile.Detect(console.EmulatorPath) == EmulatorKind.RetroArch)
+        {
+            return ForRetroArch(console, launchTarget);
+        }
+
         var id = (gameId ?? string.Empty).Trim().ToUpperInvariant();
 
         return console.Id.ToLowerInvariant() switch
@@ -207,6 +216,59 @@ public sealed class PlayStatsReader
         return seconds <= 0
             ? new PlayStats(0, record.LastPlayed, Rpcs3Source, "RPCS3 has not recorded a session for this game.")
             : new PlayStats(seconds, record.LastPlayed, Rpcs3Source, null);
+    }
+
+    /// <summary>
+    /// RetroArch writes one JSON file per content name:
+    /// <c>{"runtime":"0:00:27","last_played":"2026-10-21 15:00:16",...}</c>.
+    /// The runtime is hours:minutes:seconds; the timestamp is local time.
+    /// </summary>
+    public static PlayStats ParseRetroArch(string text)
+    {
+        if (!TryParseRetroArchRecord(text, out var record))
+        {
+            return new PlayStats(null, null, RetroArchSource, "RetroArch's runtime log is not readable.");
+        }
+
+        return record.Seconds <= 0
+            ? new PlayStats(0, null, RetroArchSource, "RetroArch has not recorded a session for this game.")
+            : new PlayStats(record.Seconds, FormatRetroArchLastPlayed(record.LastPlayed), RetroArchSource, null);
+    }
+
+    private PlayStats ForRetroArch(ConsoleDescriptor console, string? launchTarget)
+    {
+        if (string.IsNullOrWhiteSpace(launchTarget))
+        {
+            return Unavailable("RetroArch's runtime log needs the game file name.");
+        }
+
+        var directory = RetroArchLogsDirectory(console);
+        if (directory is null)
+        {
+            return Unavailable("RetroArch's runtime logs folder was not found.");
+        }
+
+        if (!_retroArchFiles.TryGetValue(directory, out var records))
+        {
+            records = ReadRetroArchLogs(directory);
+            _retroArchFiles[directory] = records;
+        }
+
+        var contentName = Path.GetFileNameWithoutExtension(
+            launchTarget.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        if (string.IsNullOrWhiteSpace(contentName))
+        {
+            return Unavailable("RetroArch's runtime log needs the game file name.");
+        }
+
+        if (!records.TryGetValue(contentName, out var record))
+        {
+            return new PlayStats(null, null, RetroArchSource, "RetroArch has no runtime log for this game yet.");
+        }
+
+        return record.Seconds <= 0
+            ? new PlayStats(0, null, RetroArchSource, "RetroArch has not recorded a session for this game.")
+            : new PlayStats(record.Seconds, FormatRetroArchLastPlayed(record.LastPlayed), RetroArchSource, null);
     }
 
     private PlayStats ForPcsx2(ConsoleDescriptor console, string id)
@@ -393,8 +455,130 @@ public sealed class PlayStatsReader
             Path.Combine(appData, "rpcs3", "GuiConfigs", "persistent_settings.dat"));
     }
 
+    /// <summary>
+    /// Portable RetroArch keeps playlists and logs under its own folder. Installed
+    /// builds may use <c>%APPDATA%\RetroArch</c> instead; both layouts are checked before
+    /// reporting that the logs are missing.
+    /// </summary>
+    private static string? RetroArchLogsDirectory(ConsoleDescriptor console)
+    {
+        var emulatorDirectory = Path.GetDirectoryName(console.EmulatorPath);
+        var appData = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "RetroArch");
+        var profile = EmulatorProfile.For(console);
+
+        return FirstDirectory(
+            string.IsNullOrEmpty(emulatorDirectory) ? null : Path.Combine(emulatorDirectory, "playlists", "logs"),
+            profile.ConfigDirectory is null ? null : Path.Combine(profile.ConfigDirectory, "playlists", "logs"),
+            Path.Combine(appData, "playlists", "logs"));
+    }
+
+    private static Dictionary<string, RetroArchRecord> ReadRetroArchLogs(string directory)
+    {
+        var records = new Dictionary<string, RetroArchRecord>(StringComparer.OrdinalIgnoreCase);
+
+        try
+        {
+            foreach (var path in Directory.EnumerateFiles(directory, "*.lrtl", SearchOption.AllDirectories))
+            {
+                RetroArchRecord record;
+
+                try
+                {
+                    if (!TryParseRetroArchRecord(File.ReadAllText(path), out record))
+                    {
+                        continue;
+                    }
+                }
+                catch (IOException)
+                {
+                    continue;
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    continue;
+                }
+
+                var contentName = Path.GetFileNameWithoutExtension(path);
+
+                if (!records.TryGetValue(contentName, out var existing))
+                {
+                    records[contentName] = record;
+                    continue;
+                }
+
+                // The same content can have a log under more than one core. Total time
+                // is the sum; the latest session provides the last-played date.
+                var lastPlayed = existing.LastPlayed is null
+                    ? record.LastPlayed
+                    : record.LastPlayed is null || existing.LastPlayed >= record.LastPlayed
+                        ? existing.LastPlayed
+                        : record.LastPlayed;
+                records[contentName] = new RetroArchRecord(existing.Seconds + record.Seconds, lastPlayed);
+            }
+        }
+        catch (IOException)
+        {
+            // RetroArch may be writing the folder. The rail reports no record and the
+            // next scan tries again.
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+
+        return records;
+    }
+
+    private static bool TryParseRetroArchRecord(string text, out RetroArchRecord record)
+    {
+        record = new RetroArchRecord(0, null);
+
+        try
+        {
+            using var document = JsonDocument.Parse(text);
+            var root = document.RootElement;
+
+            if (root.ValueKind != JsonValueKind.Object
+                || !root.TryGetProperty("runtime", out var runtimeElement)
+                || runtimeElement.ValueKind != JsonValueKind.String
+                || !TimeSpan.TryParse(runtimeElement.GetString(), CultureInfo.InvariantCulture, out var runtime)
+                || runtime < TimeSpan.Zero)
+            {
+                return false;
+            }
+
+            DateTime? lastPlayed = null;
+
+            if (root.TryGetProperty("last_played", out var lastPlayedElement)
+                && lastPlayedElement.ValueKind == JsonValueKind.String
+                && DateTime.TryParseExact(
+                    lastPlayedElement.GetString(),
+                    "yyyy-MM-dd HH:mm:ss",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var parsed))
+            {
+                lastPlayed = parsed;
+            }
+
+            record = new RetroArchRecord((long)runtime.TotalSeconds, lastPlayed);
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static string? FormatRetroArchLastPlayed(DateTime? lastPlayed) =>
+        lastPlayed?.ToString("d MMM yyyy", CultureInfo.InvariantCulture);
+
     private static string? FirstFile(params string?[] paths)
         => paths.FirstOrDefault(path => !string.IsNullOrWhiteSpace(path) && File.Exists(path));
+
+    private static string? FirstDirectory(params string?[] paths)
+        => paths.FirstOrDefault(path => !string.IsNullOrWhiteSpace(path) && Directory.Exists(path));
 
     /// <summary>
     /// PCSX2 and DuckStation share the same fixed-width line, so one reader serves both.
@@ -593,4 +777,6 @@ public sealed class PlayStatsReader
     private sealed record PlayedTimeRecord(long Seconds, long LastPlayedUnix);
 
     private sealed record Rpcs3Record(long Milliseconds, string? LastPlayed);
+
+    private sealed record RetroArchRecord(long Seconds, DateTime? LastPlayed);
 }

@@ -44,6 +44,13 @@ public sealed class ConsoleDescriptor
 
     public List<string> Extensions { get; set; } = new();
     public string EmulatorPath { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Optional libretro core used by multi-core frontends such as RetroArch. The launch
+    /// template can reference it as <c>{core}</c>; a standalone emulator leaves this empty.
+    /// </summary>
+    public string? CorePath { get; set; }
+
     public string Arguments { get; set; } = "\"{0}\"";
     public string AccentColor { get; set; } = "#4A4F5A";
     public string BodyColor { get; set; } = "#C9CBD0";

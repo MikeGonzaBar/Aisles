@@ -122,6 +122,7 @@ function setBadge(text, stateName) {
 const SETTINGS_FIELDS = [
   { key: 'gamesPath', label: 'Games folder', browse: 'Browse folder' },
   { key: 'emulatorPath', label: 'Emulator executable', browse: 'Browse file' },
+  { key: 'corePath', label: 'RetroArch core (optional)', browse: 'Browse DLL' },
   { key: 'artworkPath', label: 'Artwork folder (optional)', browse: 'Browse folder' },
 ];
 
@@ -528,7 +529,7 @@ function renderRetroAchievementsEditor() {
   elements.settingsConsoleEyebrow.textContent = 'ACCOUNT';
   elements.settingsConsoleName.textContent = 'RetroAchievements';
   elements.settingsConsoleBadge.textContent = 'RA';
-  elements.settingsConsoleMeta.textContent = 'PS1 / PS2 / GameCube / Wii';
+  elements.settingsConsoleMeta.textContent = 'PS1 / PS2 / GameCube / Wii / DS · PS3 via RPCS3';
   elements.settingsFields.replaceChildren();
   settings.retroStatusEl = null;
 
@@ -536,7 +537,9 @@ function renderRetroAchievementsEditor() {
   intro.className = 'settings-help';
   intro.textContent =
     'Link your RetroAchievements account to show achievement progress for PlayStation, '
-    + 'PlayStation 2, GameCube and Wii. DS, 3DS, PS3 and Xbox 360 remain unsupported.';
+    + 'PlayStation 2, GameCube, Wii and DS through a compatible RetroArch core. '
+    + 'PlayStation 3 trophies are read locally from RPCS3, so they need no account. '
+    + '3DS and Xbox 360 remain unsupported.';
   elements.settingsFields.append(intro);
 
   const username = retroInputField(
@@ -1083,7 +1086,7 @@ function detailRow(label, value) {
 
 function informationSection(console, game) {
   const section = document.createElement('section');
-  section.className = 'detail-section';
+  section.className = 'detail-section detail-information';
 
   const grid = document.createElement('dl');
   grid.className = 'detail-grid';
@@ -1101,7 +1104,7 @@ function informationSection(console, game) {
 
 function playedSection(game) {
   const section = document.createElement('section');
-  section.className = 'detail-section';
+  section.className = 'detail-section detail-played';
 
   const played = game.played ?? {};
   const seconds = Number.isFinite(played.seconds) ? played.seconds : null;
@@ -1144,11 +1147,125 @@ function playedSection(game) {
   return section;
 }
 
+function achievementDate(value) {
+  if (typeof value !== 'string' || value.length === 0) {
+    return null;
+  }
+
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(date);
+}
+
+function achievementBadge(achievement, pending) {
+  const badge = document.createElement('span');
+  badge.className = pending
+    ? 'detail-achievement-badge is-pending'
+    : 'detail-achievement-badge';
+  badge.setAttribute('role', 'img');
+
+  const title = typeof achievement.title === 'string' && achievement.title.trim()
+    ? achievement.title.trim()
+    : 'Achievement';
+  const points = Number.isFinite(achievement.points) ? achievement.points : 0;
+  const earnedOn = achievementDate(achievement.earnedOn);
+  const lines = [title];
+
+  if (typeof achievement.description === 'string' && achievement.description.trim()) {
+    lines.push(achievement.description.trim());
+  }
+
+  const meta = [];
+  if (points > 0) {
+    meta.push(`${points} pts`);
+  }
+  meta.push(pending ? 'Not unlocked yet' : (earnedOn ? `Unlocked ${earnedOn}` : 'Unlocked'));
+  lines.push(meta.join(' · '));
+
+  badge.title = lines.join('\n');
+  badge.setAttribute('aria-label', lines.join('. '));
+
+  const fallback = document.createElement('span');
+  fallback.className = 'detail-achievement-fallback';
+  fallback.setAttribute('aria-hidden', 'true');
+  fallback.textContent = title.charAt(0).toUpperCase();
+  badge.append(fallback);
+
+  if (typeof achievement.badgeUrl === 'string' && achievement.badgeUrl.length > 0) {
+    const image = document.createElement('img');
+    image.alt = '';
+    image.loading = 'lazy';
+    image.decoding = 'async';
+    image.referrerPolicy = 'no-referrer';
+    image.addEventListener('error', () => image.remove(), { once: true });
+    image.src = achievement.badgeUrl;
+    badge.append(image);
+  }
+
+  if (pending) {
+    const lock = document.createElement('span');
+    lock.className = 'detail-achievement-lock';
+    lock.setAttribute('aria-hidden', 'true');
+    badge.append(lock);
+  }
+
+  return badge;
+}
+
+function achievementGroup(label, achievements, pending) {
+  const group = document.createElement('div');
+  group.className = 'detail-achievement-group';
+
+  const caption = document.createElement('span');
+  caption.className = 'detail-achievement-label';
+  caption.textContent = label;
+  group.append(caption);
+
+  for (const achievement of achievements) {
+    group.append(achievementBadge(achievement, pending));
+  }
+
+  return group;
+}
+
+function achievementStrip(achievements) {
+  const recent = Array.isArray(achievements.recent) ? achievements.recent : [];
+  const pending = Array.isArray(achievements.pending) ? achievements.pending : [];
+
+  if (recent.length === 0 && pending.length === 0) {
+    return null;
+  }
+
+  const strip = document.createElement('div');
+  strip.className = 'detail-achievement-strip';
+
+  if (recent.length > 0) {
+    strip.append(achievementGroup('RECENT', recent, false));
+  }
+  if (pending.length > 0) {
+    strip.append(achievementGroup('LOCKED', pending, true));
+  }
+
+  return strip;
+}
+
 function achievementsSection(game) {
   const section = document.createElement('section');
-  section.className = 'detail-section';
+  section.className = 'detail-section detail-achievements';
 
   const achievements = game.achievements ?? { state: 'notLinked' };
+  section.dataset.provider = achievements.source === 'rpcs3'
+    || achievements.state === 'local'
+    || achievements.state === 'noTrophies'
+    ? 'rpcs3'
+    : 'retroachievements';
   const row = document.createElement('div');
   row.className = 'detail-line';
   const value = document.createElement('span');
@@ -1156,17 +1273,23 @@ function achievementsSection(game) {
   const note = document.createElement('span');
   note.className = 'detail-source';
 
-  if (achievements.state === 'linked') {
+  if (achievements.state === 'linked' || achievements.state === 'local') {
+    const isLocal = achievements.state === 'local';
+    const unit = isLocal && typeof achievements.unit === 'string' && achievements.unit.trim()
+      ? achievements.unit.trim()
+      : 'achievements';
     const hasProgress = Number.isFinite(achievements.total)
       && Number.isFinite(achievements.earned)
       && achievements.total > 0;
     const earned = hasProgress ? achievements.earned : 0;
     const total = hasProgress ? achievements.total : 0;
     value.textContent = hasProgress
-      ? `${earned} of ${total} achievements`
-      : 'Linked';
+      ? `${earned} of ${total} ${unit}`
+      : (isLocal ? 'Trophies' : 'Linked');
     note.textContent = hasProgress
-      ? (Number.isFinite(achievements.points) ? `${achievements.points} pts` : '')
+      ? (isLocal
+        ? (achievements.note ?? '')
+        : (Number.isFinite(achievements.points) ? `${achievements.points} pts` : ''))
       : (achievements.note ?? 'Progress not available');
 
     const track = document.createElement('div');
@@ -1177,6 +1300,16 @@ function achievementsSection(game) {
 
     row.append(value, note);
     section.append(detailHeading('ACHIEVEMENTS'), row, track);
+
+    const strip = achievementStrip(achievements);
+    if (strip) {
+      section.append(strip);
+    }
+  } else if (achievements.state === 'noTrophies') {
+    value.textContent = 'No trophies';
+    note.textContent = achievements.note ?? 'No trophy data in RPCS3';
+    row.append(value, note);
+    section.append(detailHeading('ACHIEVEMENTS'), row);
   } else if (achievements.state === 'notSupported') {
     value.textContent = 'Not supported on this platform';
     note.textContent = achievements.note ?? 'RetroAchievements unsupported';
@@ -1201,6 +1334,63 @@ function detailsRail(console, game) {
     achievementsSection(game),
   );
   return details;
+}
+
+function launchReadiness(console) {
+  if (!console?.emulatorExists) {
+    return {
+      state: 'unavailable',
+      label: 'EMULATOR UNAVAILABLE',
+      detail: 'Choose a working emulator in Settings',
+    };
+  }
+
+  return {
+    state: 'ready',
+    label: 'READY TO BOOT',
+    detail: `${console.emulatorName} configured`,
+  };
+}
+
+function launchDeck(console, game, launch) {
+  const deck = document.createElement('section');
+  deck.className = 'launch-deck';
+
+  const header = document.createElement('header');
+  header.className = 'launch-deck-head';
+
+  const eyebrow = document.createElement('div');
+  eyebrow.className = 'launch-deck-eyebrow';
+  eyebrow.textContent = `${console?.shortName ?? 'LIBRARY'} · SELECTED TITLE`;
+
+  const title = document.createElement('h1');
+  title.className = 'launch-deck-title';
+  title.textContent = game.title;
+
+  const meta = document.createElement('div');
+  meta.className = 'launch-deck-meta';
+  meta.textContent = console ? `${console.name} · ${console.year}` : '';
+  header.append(eyebrow, title, meta);
+
+  const readiness = launchReadiness(console);
+  const status = document.createElement('div');
+  status.className = `launch-deck-status is-${readiness.state}`;
+  const light = document.createElement('span');
+  light.className = 'launch-deck-light';
+  light.setAttribute('aria-hidden', 'true');
+  const statusText = document.createElement('span');
+  statusText.textContent = readiness.label;
+  const statusDetail = document.createElement('span');
+  statusDetail.className = 'launch-deck-status-detail';
+  statusDetail.textContent = readiness.detail;
+  status.append(light, statusText, statusDetail);
+
+  launch.classList.add('launch-deck-boot');
+  launch.textContent = state.launchingGameId === game.id ? 'STARTING…' : 'INSERT & BOOT';
+  launch.setAttribute('aria-label', `Insert ${game.title} and boot with ${console?.emulatorName ?? 'the configured emulator'}`);
+
+  deck.append(header, detailsRail(console, game), status, launch);
+  return deck;
 }
 
 function heroHead(title, meta, launch) {
@@ -1265,23 +1455,15 @@ function renderHero() {
   stage.className = 'hero-stage';
   row.append(stage);
 
-  const title = document.createElement('div');
-  title.className = 'hero-title';
-  title.textContent = game.title;
-
-  const meta = document.createElement('div');
-  meta.className = 'hero-meta';
-  meta.textContent = console ? `${console.name} · ${console.year}` : '';
-
   const launch = document.createElement('button');
   launch.className = 'launch';
   launch.type = 'button';
   const launching = state.launchingGameId === game.id;
-  launch.textContent = launching ? 'STARTING…' : 'LAUNCH';
+  launch.textContent = launching ? 'STARTING…' : 'INSERT & BOOT';
   launch.disabled = launching;
   launch.addEventListener('click', () => launchGame(game.id));
 
-  elements.hero.append(row, heroHead(title, meta, launch), detailsRail(console, game));
+  elements.hero.append(row, launchDeck(console, game, launch));
 
   const hero = window.aislesHero3d;
   if (hero) {
@@ -1497,6 +1679,7 @@ if (webview) {
         settings.draft = Object.fromEntries(payload.consoles.map(console => [console.id, {
           gamesPath: console.gamesPath,
           emulatorPath: console.emulatorPath,
+          corePath: console.corePath,
           artworkPath: console.artworkPath,
         }]));
         settings.mode = 'console';

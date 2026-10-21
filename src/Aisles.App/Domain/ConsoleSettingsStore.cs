@@ -2,7 +2,11 @@ using System.Text.Json;
 
 namespace Aisles.App.Domain;
 
-public sealed record ConsolePathDraft(string GamesPath, string EmulatorPath, string ArtworkPath);
+public sealed record ConsolePathDraft(
+    string GamesPath,
+    string EmulatorPath,
+    string ArtworkPath,
+    string CorePath = "");
 
 public sealed record PathValidation(string State, string? Error = null);
 
@@ -35,6 +39,7 @@ public sealed class ConsoleSettingsStore
                 if (item.GamesPath is not null) console.GamesPath = item.GamesPath;
                 if (item.EmulatorPath is not null) console.EmulatorPath = item.EmulatorPath;
                 if (item.ArtworkPath is not null) console.ArtworkPath = item.ArtworkPath;
+                if (item.CorePath is not null) console.CorePath = item.CorePath;
             }
             return (catalog, null);
         }
@@ -58,6 +63,7 @@ public sealed class ConsoleSettingsStore
                 ["gamesPath"] = ValidatePath(draft.GamesPath, false),
                 ["emulatorPath"] = ValidatePath(draft.EmulatorPath, true),
                 ["artworkPath"] = ValidatePath(draft.ArtworkPath, false),
+                ["corePath"] = ValidatePath(draft.CorePath, true),
             };
         }
         return result;
@@ -83,8 +89,10 @@ public sealed class ConsoleSettingsStore
                 GamesPath = Different(draft.GamesPath, original.GamesPath),
                 EmulatorPath = Different(draft.EmulatorPath, original.EmulatorPath),
                 ArtworkPath = Different(draft.ArtworkPath, original.ArtworkPath ?? string.Empty),
+                CorePath = Different(draft.CorePath, original.CorePath ?? string.Empty),
             };
-            if (item.GamesPath is not null || item.EmulatorPath is not null || item.ArtworkPath is not null)
+            if (item.GamesPath is not null || item.EmulatorPath is not null
+                || item.ArtworkPath is not null || item.CorePath is not null)
                 file.Consoles[original.Id] = item;
         }
 
@@ -135,5 +143,6 @@ public sealed class ConsoleSettingsStore
         public string? GamesPath { get; set; }
         public string? EmulatorPath { get; set; }
         public string? ArtworkPath { get; set; }
+        public string? CorePath { get; set; }
     }
 }

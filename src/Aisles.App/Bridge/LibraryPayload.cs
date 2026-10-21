@@ -47,8 +47,33 @@ public sealed record GamePayload(
 public sealed record PlayedPayload(long? Seconds, string? LastPlayed, string? Source, string? Reason);
 
 /// <summary>
-/// The ACHIEVEMENTS row. <see cref="State"/> is <c>notLinked</c>, <c>notSupported</c>
-/// or <c>linked</c>; the last carries earned/total/points when a game match and
-/// progress are available, and leaves them null while the rail is still resolving.
+/// One badge in the achievements strip. <see cref="EarnedOn"/> is set only for an
+/// unlock; <see cref="BadgeUrl"/> points at the provider's badge or trophy image.
 /// </summary>
-public sealed record AchievementsPayload(string State, int? Earned, int? Total, int? Points, string? Note);
+public sealed record AchievementBadgePayload(
+    int Id,
+    string Title,
+    string? Description,
+    int Points,
+    string? BadgeUrl,
+    string? EarnedOn);
+
+/// <summary>
+/// The ACHIEVEMENTS row. <see cref="State"/> is <c>notLinked</c>, <c>notSupported</c>,
+/// <c>linked</c>, <c>local</c> or <c>noTrophies</c>; <c>linked</c> and <c>local</c>
+/// carry earned/total when progress is available, and leave them null while the rail
+/// is still resolving. <see cref="Source"/> names the provider (<c>retroachievements</c>
+/// or <c>rpcs3</c>) and <see cref="Unit"/> names what is counted, because PS3 trophies
+/// are not RetroAchievements achievements or points. <see cref="Recent"/> and
+/// <see cref="Pending"/> hold a short, honest sample of per-achievement badges.
+/// </summary>
+public sealed record AchievementsPayload(
+    string State,
+    int? Earned,
+    int? Total,
+    int? Points,
+    string? Note,
+    IReadOnlyList<AchievementBadgePayload>? Recent = null,
+    IReadOnlyList<AchievementBadgePayload>? Pending = null,
+    string? Source = null,
+    string? Unit = null);

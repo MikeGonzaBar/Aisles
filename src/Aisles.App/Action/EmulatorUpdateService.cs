@@ -80,6 +80,7 @@ public sealed class EmulatorUpdateService
             EmulatorKind.DuckStation => await CheckDuckStationAsync(console, profile, current, cancellationToken),
             EmulatorKind.Rpcs3 => await CheckRpcs3Async(console, profile, current, cancellationToken),
             EmulatorKind.Dolphin => await CheckDolphinAsync(console, profile, current, cancellationToken),
+            EmulatorKind.RetroArch => await CheckRetroArchAsync(console, profile, current, cancellationToken),
             EmulatorKind.Desmume => await CheckDeSmuMeAsync(console, profile, current, cancellationToken),
             EmulatorKind.Citra => new EmulatorUpdateResult(
                 console.Id,
@@ -310,6 +311,37 @@ public sealed class EmulatorUpdateService
             null);
     }
 
+    private async Task<EmulatorUpdateResult> CheckRetroArchAsync(
+        ConsoleDescriptor console,
+        EmulatorProfile profile,
+        string? current,
+        CancellationToken cancellationToken)
+    {
+        var latest = await GetLatestReleaseAsync("libretro/RetroArch", cancellationToken);
+
+        if (latest is null)
+        {
+            return Failure(console, profile, current, "RetroArch published no stable release.");
+        }
+
+        var currentVersion = EmulatorVersion.Parse(current);
+        var latestVersion = EmulatorVersion.Parse(latest.TagName);
+        bool? updateAvailable = currentVersion is null || latestVersion is null
+            ? null
+            : EmulatorVersion.Compare(latestVersion, currentVersion) > 0;
+
+        return new EmulatorUpdateResult(
+            console.Id,
+            profile.DisplayName,
+            current,
+            latest.TagName,
+            updateAvailable,
+            latest.HtmlUrl,
+            null,
+            "RetroArch releases are checked against the latest stable GitHub release.",
+            null);
+    }
+
     private async Task<EmulatorUpdateResult> CheckDeSmuMeAsync(
         ConsoleDescriptor console,
         EmulatorProfile profile,
@@ -354,6 +386,7 @@ public sealed class EmulatorUpdateService
                 EmulatorKind.Rpcs3 => EmulatorVersion.ParseRpcs3(await ReadVersionOutputAsync(console.EmulatorPath, cancellationToken))
                     ?? ReadRpcs3UpdateHistory(console.EmulatorPath),
                 EmulatorKind.Dolphin => EmulatorVersion.ParseDolphinOutput(await ReadVersionOutputAsync(console.EmulatorPath, cancellationToken)),
+                EmulatorKind.RetroArch => EmulatorVersion.ParseRetroArch(await ReadVersionOutputAsync(console.EmulatorPath, cancellationToken)),
                 EmulatorKind.Desmume => EmulatorVersion.FromFileName(console.EmulatorPath),
                 _ => null,
             };

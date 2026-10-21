@@ -21,6 +21,8 @@
     <Compile Include="..\..\src\Aisles.App\Domain\EmulatorVersion.cs" Link="EmulatorVersion.cs" />
     <Compile Include="..\..\src\Aisles.App\Domain\EmulatorProfile.cs" Link="EmulatorProfile.cs" />
     <Compile Include="..\..\src\Aisles.App\Bridge\LibraryPayload.cs" Link="LibraryPayload.cs" />
+    <Compile Include="..\..\src\Aisles.App\Ps3Trophies\Ps3TrophyReader.cs" Link="Ps3TrophyReader.cs" />
+    <Compile Include="..\..\src\Aisles.App\Ps3Trophies\Ps3TrophyService.cs" Link="Ps3TrophyService.cs" />
     <Compile Include="..\..\src\Aisles.App\RetroAchievements\RetroAchievementsModels.cs" Link="RetroAchievementsModels.cs" />
     <Compile Include="..\..\src\Aisles.App\RetroAchievements\RetroAchievementsGameMatcher.cs" Link="RetroAchievementsGameMatcher.cs" />
     <Compile Include="..\..\src\Aisles.App\RetroAchievements\RetroAchievementsClient.cs" Link="RetroAchievementsClient.cs" />

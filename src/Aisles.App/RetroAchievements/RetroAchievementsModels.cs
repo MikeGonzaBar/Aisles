@@ -9,8 +9,23 @@ public sealed record RetroAchievementsGame(int Id, string Title, int NumAchievem
 /// <summary>A game-ID match plus the local name that produced it, for diagnostics.</summary>
 public sealed record RetroAchievementsMatch(RetroAchievementsGame Game, string Source);
 
+/// <summary>One achievement definition, with the account's earned state when present.</summary>
+public sealed record RetroAchievementsAchievement(
+    int Id,
+    string Title,
+    string? Description,
+    int Points,
+    string? BadgeUrl,
+    int DisplayOrder,
+    DateTime? EarnedAt);
+
 /// <summary>Earned/total achievement progress for one game and one account.</summary>
-public sealed record RetroAchievementsProgress(int GameId, int Earned, int Total, int Points);
+public sealed record RetroAchievementsProgress(
+    int GameId,
+    int Earned,
+    int Total,
+    int Points,
+    IReadOnlyList<RetroAchievementsAchievement> Achievements);
 
 /// <summary>
 /// A user-facing RetroAchievements failure. <see cref="IsAuthFailure"/> distinguishes

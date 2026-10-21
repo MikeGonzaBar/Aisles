@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using Aisles.App.Domain;
@@ -13,6 +14,7 @@ namespace Aisles.App.RetroAchievements;
 public sealed class RetroAchievementsClient
 {
     public const string ApiBase = "https://retroachievements.org/API/";
+    public const string BadgeBase = "https://media.retroachievements.org/Badge/";
     public static readonly TimeSpan GameListCacheLifetime = TimeSpan.FromDays(7);
     public static readonly TimeSpan MinimumInterval = TimeSpan.FromMilliseconds(350);
 
@@ -177,6 +179,7 @@ public sealed class RetroAchievementsClient
         var total = IntProperty(root, "NumAchievements");
         var earned = Math.Clamp(IntProperty(root, "NumAwardedToUser"), 0, total);
         var points = 0;
+        var achievementDetails = new List<RetroAchievementsAchievement>();
 
         if (root.TryGetProperty("Achievements", out var achievements)
             && achievements.ValueKind == JsonValueKind.Object)
@@ -189,17 +192,44 @@ public sealed class RetroAchievementsClient
                     continue;
                 }
 
-                var earnedAt = StringProperty(value, "DateEarnedHardcore")
-                    ?? StringProperty(value, "DateEarned");
-
-                if (!string.IsNullOrWhiteSpace(earnedAt))
+                var title = StringProperty(value, "Title");
+                if (string.IsNullOrWhiteSpace(title))
                 {
-                    points += IntProperty(value, "Points");
+                    continue;
                 }
+
+                var id = IntProperty(value, "ID");
+                if (id <= 0
+                    && int.TryParse(
+                        achievement.Name,
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out var keyedId))
+                {
+                    id = keyedId;
+                }
+
+                var earnedAt = DateProperty(value, "DateEarnedHardcore")
+                    ?? DateProperty(value, "DateEarned");
+                var achievementPoints = IntProperty(value, "Points");
+
+                if (earnedAt is not null)
+                {
+                    points += achievementPoints;
+                }
+
+                achievementDetails.Add(new RetroAchievementsAchievement(
+                    id,
+                    title,
+                    StringProperty(value, "Description"),
+                    achievementPoints,
+                    BadgeUrl(StringProperty(value, "BadgeName"), earnedAt is not null),
+                    IntProperty(value, "DisplayOrder"),
+                    earnedAt));
             }
         }
 
-        return new RetroAchievementsProgress(gameId, earned, total, points);
+        return new RetroAchievementsProgress(gameId, earned, total, points, achievementDetails);
     }
 
     private async Task<string> RequestJsonAsync(
@@ -327,6 +357,49 @@ public sealed class RetroAchievementsClient
         element.TryGetProperty(name, out var property) && property.TryGetInt32(out var value)
             ? value
             : 0;
+
+    private static DateTime? DateProperty(JsonElement element, string name)
+    {
+        var text = StringProperty(element, name);
+        return !string.IsNullOrWhiteSpace(text)
+            && DateTime.TryParse(
+                text,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AllowWhiteSpaces,
+                out var value)
+                ? value
+                : null;
+    }
+
+    /// <summary>
+    /// RetroAchievements returns a badge name rather than a URL. Locked achievements
+    /// have a separate greyscale asset, so the rail can show what is still ahead
+    /// without pretending it was earned.
+    /// </summary>
+    private static string? BadgeUrl(string? badgeName, bool earned)
+    {
+        if (string.IsNullOrWhiteSpace(badgeName))
+        {
+            return null;
+        }
+
+        var name = badgeName.Trim();
+        if (name.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+        {
+            name = name[..^4];
+        }
+
+        if (name.Length == 0
+            || !name.All(character =>
+                char.IsLetterOrDigit(character) || character is '-' or '_'))
+        {
+            return null;
+        }
+
+        return BadgeBase
+            + Uri.EscapeDataString(name)
+            + (earned ? ".png" : "_lock.png");
+    }
 
     private void EnsureCredentials()
     {

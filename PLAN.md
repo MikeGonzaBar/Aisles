@@ -6,7 +6,7 @@ beside a **3D shelf of its games rendered as the real media** (cartridges, discs
 cases) with their **sticker/cover art**, and click a game to **launch the correct
 emulator** with it loaded.
 
-> Status: **Phases 0–6 implemented.** The native app discovers the library, launches emulators, renders the 3D stage and shelf, and links one RetroAchievements account for PS1/PS2/GameCube/Wii. Phase 5 look sign-off and live linked-account evidence remain open. See `docs/phase5-media.md` and `docs/phase6-retroachievements.md`.
+> Status: **Phases 0–8 implemented.** The native app discovers the library, launches emulators, renders the 3D stage and shelf, links one RetroAchievements account for PS1/PS2/GameCube/Wii/DS, reads PS3 trophies locally from RPCS3, and presents a shared Launch Deck beneath the selected game's 3D media. Live RetroAchievements, local RPCS3 and Launch Deck evidence were captured on 2026-10-21. See `docs/phase5-media.md`, `docs/phase6-retroachievements.md`, `docs/phase7-ps3-trophies.md` and `docs/phase8-launch-deck.md`.
 
 ---
 
@@ -70,13 +70,14 @@ which is why the rendering stack below was chosen.
 | 3D assets | **Downloaded console GLBs** with optimized runtime copies and attribution; procedural media meshes. GameCube/3DS assets remain missing. |
 | Library presentation | **3D shelf** of the platform's real media |
 | Click behaviour | Single click **selects**; double-click / PLAY button **launches** |
-| RetroAchievements | **Phase 6, implemented for PS1/PS2/GC/Wii** — title/file-name matching first; no `rcheevos` hash pass yet |
+| RetroAchievements | **Phase 6, implemented for PS1/PS2/GC/Wii and RetroArch DS** — title/file-name matching first; no `rcheevos` hash pass yet |
+| PS3 trophies | **Phase 7, local RPCS3 data** — `TROPCONF.SFM` + `TROPUSR.DAT`, no PSN account or network |
 | Empty consoles | **Shown**, with a "drop games in &lt;folder&gt;" hint |
 | Platform switching | **3D console lineup** in the stage; the top bar is configuration only |
 | Console selection cue | **Lift + spotlight + yellow name**; scale capped ~1.25×, never scale alone (§6) |
 | Camera | **Fixed** with a gentle idle drift; the shelf owns wheel and drag — no free orbit/zoom in v1 |
 | Shelf | **Paged bays** — 18 games per bay; moving between bays slides sideways (~400 ms) |
-| Played stats | Shown where the emulator records them (PS1, PS2, PS3, GC and Wii today); muted `—` elsewhere (§3.5) |
+| Played stats | Shown where the emulator records them (PS1, PS2, PS3, GC, Wii and RetroArch DS today); muted `—` elsewhere (§3.5) |
 
 ## 3. Verified facts the design depends on
 
@@ -107,14 +108,14 @@ Library total at time of writing: **49 games** (PS1 8, PS2 17, PS3 4, Wii 8, DS 
 The PS3 count includes two installed HDD titles from RPCS3's `dev_hdd0\game`; the
 other two are disc dumps. GameCube and 3DS have no games folder on `D:\Emulation`.
 
-### 3.2 Emulators (all portable, in `C:\Emulation`)
+### 3.2 Emulators (portable installs)
 | Console | Emulator | Arguments |
 |---|---|---|
 | PS1 | DuckStation `duckstation-qt-x64-ReleaseLTCG.exe` | `"{game}"` |
 | PS2 | PCSX2 `pcsx2-qt.exe` | `"{game}"` |
 | PS3 | RPCS3 `rpcs3.exe` | `"{game}"` (folder) |
 | GC / Wii | Dolphin `Dolphin.exe` | `-b -e "{game}"` |
-| DS | DeSmuME `DeSmuME_0.9.13_x64.exe` | `"{game}"` |
+| DS | RetroArch `C:\RetroArch-Win64\retroarch.exe` + `melondsds_libretro.dll` | `-L "{core}" "{game}"` |
 | 3DS | Citra `citra-qt.exe` | `"{game}"` |
 | Xbox 360 | Xenia Canary `xenia_canary.exe` | `"{game}"` |
 
@@ -214,13 +215,16 @@ region mappings, status codes and request limits are specified in
 | Emulator | RA support |
 |---|---|
 | DuckStation (PS1), PCSX2 (PS2), Dolphin (GC/Wii) | ✅ Yes |
+| RetroArch + melonDS DS / DeSmuME core (DS) | ✅ Yes |
 | DeSmuME standalone (DS), Citra (3DS), RPCS3 (PS3), Xenia (360) | ❌ No |
 
-Only **PS1 / PS2 / GC / Wii** can ever show RA progress. DS would need switching to
-melonDS to gain RA support.
+**PS1 / PS2 / GC / Wii** and **DS through a compatible RetroArch core** can show RA
+progress. PS3 is handled by a separate local provider instead:
+RPCS3 records PSN trophies on disk, so Phase 7 reads those files directly and never
+asks RetroAchievements for PS3 data.
 
-Phase 6 implements that boundary. The API system IDs are PS1 12, PS2 21, GameCube 16
-and Wii 19. The account is one username plus a web API key, stored under
+Phase 6 implements that boundary. The API system IDs are PS1 12, PS2 21, GameCube 16,
+Wii 19 and DS 18. The account is one username plus a web API key, stored under
 `%LOCALAPPDATA%\Aisles\retroachievements.json`; the key is never returned to the web
 layer. A game is matched by normalized title or file name against the cached
 per-system game list, and progress is read lazily when a game is selected. Ambiguous
@@ -237,7 +241,7 @@ Checked against the actual installs on this machine rather than assumed:
 | Wii / GC | Dolphin `Config\TimePlayed.ini` | ✅ hex milliseconds | ❌ |
 | PS1 | DuckStation `playtime.dat` | ✅ seconds | ✅ Unix timestamp |
 | PS3 | RPCS3 `GuiConfigs\persistent_settings.dat` | ✅ milliseconds | ✅ ISO 8601 local date |
-| DS | DeSmuME | ❌ not stored | ❌ |
+| DS | RetroArch `playlists\logs\<core>\*.lrtl` | ✅ duration | ✅ local timestamp |
 | 3DS | Citra | ❌ not stored | ❌ |
 | Xbox 360 | Xenia | ❌ not stored | ❌ |
 
@@ -254,18 +258,27 @@ Installed HDD/PSN games are found in `dev_hdd0\game`, not there; the scanner rea
 The disc's `APP_VER` is replaced by the installed update's value when one exists, which
 is the version RPCS3 displays.
 
-Consequences: **played time exists for five of the eight configured consoles**
-(PS1, PS2, PS3, Wii and GameCube). DS, 3DS and Xbox 360 remain without it. The
+Consequences: **played time exists for six of the eight configured consoles**
+(PS1, PS2, PS3, Wii, GameCube and DS). 3DS and Xbox 360 remain without it. The
 details rail always renders the row and shows a muted `—` naming the reason on those
-three, so the rail keeps a stable height instead of reflowing per platform. These files
+two, so the rail keeps a stable height instead of reflowing per platform. These files
 are emulator binary caches — read once, keep an Aisles-owned copy, never treat them as
 the source of truth (§3.3).
 
-Achievement state has **three** values, not two: *supported, not linked* ·
-*not supported on this platform* (DS/3DS/PS3/360, §3.4) · *linked + progress*. The
-rail now ships all three with a real account. A linked game whose title has no
-confident match, or whose progress has not arrived yet, shows **Linked** and a short
-note with an empty track rather than `0 of 0`.
+Achievement state has **five** values: *supported, not linked* · *not supported on
+this platform* (3DS/360, plus DS without a compatible RetroArch core, §3.4) · *linked + progress* · *local + progress* (PS3
+trophies from RPCS3) · *no trophies* (PS3 title without a usable RPCS3 set). The rail
+ships all five with a real account. A linked game whose title has no confident match,
+or whose progress has not arrived yet, shows **Linked** and a short note with an empty
+track rather than `0 of 0`.
+
+PS3 uses the same row but counts **trophies**, not RetroAchievements achievements:
+`TROPCONF.SFM` supplies the definitions and `TROPUSR.DAT` the unlock state under
+`dev_hdd0\home\<user>\trophy\<NPWR>`. A disc that has not been launched falls back to
+`TROPHY.TRP` for definitions and shows zero progress. Aggregate points stay null
+because PSN trophy points and RetroAchievements points are different scales; the badge
+tooltip may show the fixed per-trophy value (15/30/90/180). Icons are served from the
+`trophies.aisles.local` virtual host. See `docs/phase7-ps3-trophies.md`.
 
 ## 4. Architecture
 
@@ -273,7 +286,7 @@ note with an empty track rather than `0 of 0`.
 ┌──────────────────────────── Native .exe (WinUI 3) ────────────────────────────┐
 │  Shell        window chrome, console lineup host, details rail, status bar    │
 │  Domain       ConsoleCatalog (JSON) → LibraryScanner → GameEntry[]            │
-│  Account      RetroAchievements settings, title matcher, API client, caches   │
+│  Account      RetroAchievements client, PS3 trophy reader, settings, caches   │
 │  Action       EmulatorLauncher (Process.Start + per-console args)             │
 │  Bridge       WebView2 message channel (host ⇄ web)                           │
 ├──────────────────────────── WebView2 (Three.js) ──────────────────────────────┤
@@ -308,6 +321,7 @@ Separation of concerns:
       "gamesPath": "D:\\Emulation\\PS1\\Games",
       "extensions": [".cue"],          // launch targets only, one per game
       "emulatorPath": "C:\\Emulation\\Duckstation\\duckstation-qt-x64-ReleaseLTCG.exe",
+      "corePath": null,                // optional DLL referenced by {core}
       "arguments": "\"{0}\"",
       "accentColor": "#4A4F5A",
       "bodyColor": "#C9CBD0"
@@ -337,7 +351,7 @@ keeps the PS3 decoy `PARAM.SFO` files from being counted as games (§3.1).
 | host → web | `library` | full console list incl. resolved games |
 | host → web | `selectConsole` | `consoleId` |
 | web → host | `selectGame` | `gameId` |
-| host → web | `gameDetails` | `{ gameId, identityId?, version?, region?, played?, achievements? }` — drives the details rail (§3.5); achievements may arrive in a second message |
+| host → web | `gameDetails` | `{ gameId, identityId?, version?, region?, played?, achievements? }` — drives the details rail (§3.5); achievements may arrive in a second message. The achievements object carries `state`, `earned`, `total`, `points`, `note`, optional badges, and optional `source`/`unit` (`rpcs3`/`trophies` for PS3) |
 | web → host | `getSettings` | `{ requestId }` — returns console paths plus `{ username, hasApiKey, linked, rejected, points, error }`; never the key |
 | web → host | `saveSettings` | `{ requestId, consoles, retroAchievements: { username, apiKey } }` |
 | web → host | `validateSettings` | `{ requestId, consoles }` |
@@ -467,10 +481,14 @@ remain excluded.
 | 3 | 3D consoles ✅ | Three.js stage + fixed camera + console lineup (low-LOD pipeline) + lighting | done — look sign-off pending |
 | 4 | 3D shelf ✅ | Paged shelf bays (18 per bay, ~400 ms slide), procedural media models, sticker textures, hit-testing, select-vs-launch wiring | done — look sign-off pending; DS/3DS shelf cards stay blank until their sticker pass |
 | 5 | Polish ✅ | Details rail (information / played / achievements), settings, error states, the final room look (oak shelf, warm slatwall, per-platform plaque, head card) and the refreshed evidence set | implemented — look sign-off pending; UI shots re-captured 2026-10-20 |
-| 6 | RA ✅ | Link one RetroAchievements account, match games, cache the API and fill the achievement rail (PS1/PS2/GC/Wii only) | implemented — live account evidence pending |
+| 6 | RA ✅ | Link one RetroAchievements account, match games, cache the API and fill the achievement rail (PS1/PS2/GC/Wii and RetroArch DS) | implemented — live account evidence captured 2026-10-21 |
+| 7 | PS3 ✅ | Read RPCS3's local trophy files and fill the same rail for PS3 without a PSN account | implemented — local evidence captured |
+| 8 | Launch Deck ✅ | Shared rental-receipt information card, readiness state and Insert & Boot action beneath the fixed 3D hero | implemented — all console states use the shared component; no-overlap evidence captured 2026-10-21 |
 
 Phases 0→2 produce a genuinely useful launcher; 3→5 deliver the showcase; 6 adds the
-RetroAchievements layer. Total for 0–6: **~1.5–2 weeks** of focused work.
+RetroAchievements layer, 7 extends the rail to PS3 with RPCS3's own data, and 8
+finishes the selected-title checkout presentation. Total for 0–8: **~1.5–2 weeks** of
+focused work.
 
 **Milestone checkpoints** (for review): after Phase 0 (window + bridge),
 after Phase 2 (working launcher), after Phase 3 (**look sign-off on one console

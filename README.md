@@ -8,7 +8,7 @@ real media — and launches the correct emulator when you pick a game.
 
 ## Status
 
-**Phases 0–6 implemented.** `Aisles.exe` opens a WinUI 3 window hosting WebView2, loads `consoles.json`, finds all 49 games across eight platforms with real titles and serials (including installed PS3 HDD titles), launches the right emulator, and drives a live host↔web message bridge. The 3D console lineup, the paged shelf and the hero are built and now sit in the finished rental-store room: warm slatwall behind the consoles, an oak shelf against a shop aisle, and a per-platform plaque over the selected bay. The media pass draws true-scale cases, discs and cards from one preset table, resolves local and online artwork into a cache, and keeps selection across pages. The hero's head card and details rail show game identity, version, PCSX2/DuckStation/Dolphin/RPCS3 play time with honest reasons elsewhere, and the three achievement states. Phase 6 links one RetroAchievements account for PS1, PS2, GameCube and Wii, matches local files to RetroAchievements titles, and fills the rail with earned/total progress; DS, 3DS, PS3 and Xbox 360 remain unsupported. Alongside the app, six console GLBs have prepared runtime copies, and a workshop generates the cases, discs and DS cartridge procedurally. See `docs/phase0-verification.md`, `docs/phase1-discovery.md`, `docs/phase3-stage.md`, `docs/model-preparation.md`, `docs/media-models.md`, `docs/phase5-media.md` and `docs/phase6-retroachievements.md`.
+**Phases 0–8 implemented.** `Aisles.exe` opens a WinUI 3 window hosting WebView2, loads `consoles.json`, finds all 49 games across eight platforms with real titles and serials (including installed PS3 HDD titles), launches the right emulator, and drives a live host↔web message bridge. The 3D console lineup, the paged shelf and the hero are built and now sit in the finished rental-store room: warm slatwall behind the consoles, an oak shelf against a shop aisle, and a per-platform plaque over the selected bay. The media pass draws true-scale cases, discs and cards from one preset table, resolves local and online artwork into a cache, and keeps selection across pages. The Launch Deck keeps that 3D hero visually separate from a rental-receipt game card containing identity, emulator-owned play time, achievements or trophies, readiness, and **Insert & Boot**. Phase 6 links one RetroAchievements account for PS1, PS2, GameCube, Wii and DS through RetroArch's melonDS DS core, matches local files to RetroAchievements titles, and fills the rail with earned/total progress. Phase 7 fills the same rail for PS3 from RPCS3's local trophy files, with no PSN account or network call; 3DS and Xbox 360 remain without achievements. Alongside the app, six console GLBs have prepared runtime copies, and a workshop generates the cases, discs and DS cartridge procedurally. See `docs/phase0-verification.md`, `docs/phase1-discovery.md`, `docs/phase3-stage.md`, `docs/model-preparation.md`, `docs/media-models.md`, `docs/phase5-media.md`, `docs/phase6-retroachievements.md`, `docs/phase7-ps3-trophies.md` and `docs/phase8-launch-deck.md`.
 
 ## Repository layout
 
@@ -30,7 +30,9 @@ real media — and launches the correct emulator when you pick a game.
 | `docs/model-preparation.md` | Setup, preparation results and remaining visual checks |
 | `docs/media-models.md` | Physical dimensions, procedural construction and artwork integration rules |
 | `docs/phase5-media.md` | True-scale shelf/hero media, artwork resolution, the idle turn, the finished room look, the details rail and the exposure pass |
-| `docs/phase6-retroachievements.md` | Account linking, credential storage, title matching, API caching and the three achievement rail states |
+| `docs/phase6-retroachievements.md` | Account linking, credential storage, title matching, API caching and the achievement rail states |
+| `docs/phase7-ps3-trophies.md` | RPCS3 trophy files, TROPCONF/TROPUSR parsing, local PS3 progress, icon host and rail states |
+| `docs/phase8-launch-deck.md` | Shared selected-game checkout card, readiness state and visual verification |
 | `docs/library-workshop.md` | Current local scanner adapter, artwork route and native-host handoff |
 | `tools/artwork-workshop.cjs` | Artwork resolver, bounded provider lookup, local cache and saved selections |
 | `docs/artwork-endpoints.md` | Workshop API contracts, provider URLs, region mappings, errors and request limits |
@@ -71,7 +73,7 @@ favicon uses the same `.ico`. The project links the branding assets into
 - **Shell:** WinUI 3 — settled, it builds and runs unpackaged on .NET 10 against Windows App SDK 2.0.1, so the WPF fallback in `PLAN.md` §9 was not needed. **3D:** WebView2 + Three.js, **assets:** downloaded console GLBs plus procedural media
 - **Emulators** live in `C:\Emulation`, **games** in `D:\Emulation`
 - Console matrix, launch arguments and on-disk folder shapes: see `PLAN.md` §3
-- Roadmap: Phase 0 skeleton → 1 discovery → 2 launching → 3 3D consoles → 4 3D shelf → 5 polish → 6 RetroAchievements
+- Roadmap: Phase 0 skeleton → 1 discovery → 2 launching → 3 3D consoles → 4 3D shelf → 5 polish → 6 RetroAchievements → 7 PS3 trophies → 8 Launch Deck
 
 ## Running the app
 
@@ -89,11 +91,16 @@ The window hosts WebView2. The page is served from `wwwroot` over a virtual host
 `consoles.json` sits next to the exe after a build and is the only file needed to add or change a platform.
 
 Use **Settings** in the app header to change a console's games folder, emulator
-executable, or optional artwork folder. Aisles stores these path overrides in
+executable, optional RetroArch core, or optional artwork folder. Aisles stores these path overrides in
 `%LOCALAPPDATA%\Aisles\settings.json`; `consoles.json` remains the default catalog,
 so rebuilding the app does not erase local choices. Saving rescans the library
 without restarting the app. Each console uses a consistent short-name badge in
 the editor, so platforms with and without prepared 3D models receive the same UI.
+
+Nintendo DS is configured for `C:\RetroArch-Win64\retroarch.exe` with the
+`melondsds_libretro.dll` core. Games remain in `D:\Emulation\Nintendo DS\Games`;
+Aisles passes the selected ROM to RetroArch with `-L`, reads its `.lrtl` runtime
+log, and enables DS RetroAchievements only for a compatible configured core.
 
 The same dialog has a **RetroAchievements** account page. Enter the username and
 the web API key from your RetroAchievements control panel, then use **Test
@@ -102,6 +109,12 @@ connection** before saving. Aisles keeps the account in
 web layer, logged, or written into the repository. **Unlink** clears both the
 saved file and the rail's linked state. See
 `docs/phase6-retroachievements.md` for matching and caching details.
+
+PS3 trophies need no account. When RPCS3 has registered a game's trophy set,
+Aisles reads `TROPCONF.SFM` and `TROPUSR.DAT` from `dev_hdd0` and shows
+*N of M trophies* with up to three recent and three locked icons. A disc that
+has not been launched yet falls back to its `TROPHY.TRP` package for definitions.
+See `docs/phase7-ps3-trophies.md`.
 
 ## Console preview
 

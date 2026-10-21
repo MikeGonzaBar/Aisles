@@ -7,7 +7,7 @@ public sealed record LaunchResult(bool Started, string Message);
 
 /// <summary>
 /// Starts the configured emulator for a game. Arguments come from the console's
-/// own <c>{0}</c> template so a changed CLI flag is a config edit, not a rebuild
+/// own <c>{0}</c> template, with optional <c>{core}</c> substitution, so a changed CLI flag is a config edit, not a rebuild
 /// (PLAN.md section 8).
 /// </summary>
 public sealed class EmulatorLauncher
@@ -29,10 +29,29 @@ public sealed class EmulatorLauncher
             return new LaunchResult(false, $"Game not found: {game.LaunchTarget}");
         }
 
+        var arguments = console.Arguments;
+
+        if (arguments.Contains("{core}", StringComparison.Ordinal))
+        {
+            if (string.IsNullOrWhiteSpace(console.CorePath))
+            {
+                return new LaunchResult(
+                    false,
+                    $"Core file not configured for {console.Name}. Open Settings to choose a RetroArch core.");
+            }
+
+            if (!File.Exists(console.CorePath))
+            {
+                return new LaunchResult(false, $"Core not found: {console.CorePath}");
+            }
+
+            arguments = arguments.Replace("{core}", console.CorePath, StringComparison.Ordinal);
+        }
+
         var startInfo = new ProcessStartInfo
         {
             FileName = console.EmulatorPath,
-            Arguments = console.Arguments.Replace("{0}", game.LaunchTarget),
+            Arguments = arguments.Replace("{0}", game.LaunchTarget, StringComparison.Ordinal),
             WorkingDirectory = Path.GetDirectoryName(console.EmulatorPath) ?? string.Empty,
             UseShellExecute = false,
         };

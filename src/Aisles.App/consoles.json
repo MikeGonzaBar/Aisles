@@ -90,8 +90,9 @@
       "scan": "FileInFolder",
       "gamesPath": "D:\\Emulation\\Nintendo DS\\Games",
       "extensions": [".nds"],
-      "emulatorPath": "C:\\Emulation\\Desmume\\DeSmuME_0.9.13_x64.exe",
-      "arguments": "\"{0}\"",
+      "emulatorPath": "C:\\RetroArch-Win64\\retroarch.exe",
+      "corePath": "C:\\RetroArch-Win64\\cores\\melondsds_libretro.dll",
+      "arguments": "-L \"{core}\" \"{0}\"",
       "accentColor": "#9AA0A6",
       "bodyColor": "#D5D8DC"
     },

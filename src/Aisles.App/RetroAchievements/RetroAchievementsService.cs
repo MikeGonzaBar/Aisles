@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Globalization;
 using System.Net.Http.Headers;
 using Aisles.App.Bridge;
 using Aisles.App.Domain;
@@ -81,7 +82,7 @@ public sealed class RetroAchievementsService : IDisposable
     /// </summary>
     public AchievementsPayload ForLibrary(ConsoleDescriptor console, GameEntry game)
     {
-        if (!RetroAchievementsSupport.IsSupported(console.Id))
+        if (!RetroAchievementsSupport.IsSupported(console))
         {
             return new AchievementsPayload(
                 "notSupported", null, null, null, RetroAchievementsSupport.NotSupportedNote);
@@ -118,7 +119,7 @@ public sealed class RetroAchievementsService : IDisposable
         GameEntry game,
         CancellationToken cancellationToken)
     {
-        if (!RetroAchievementsSupport.IsSupported(console.Id)
+        if (!RetroAchievementsSupport.IsSupported(console)
             || !_settings.HasCredentials)
         {
             return ForLibrary(console, game);
@@ -144,7 +145,7 @@ public sealed class RetroAchievementsService : IDisposable
 
         try
         {
-            var match = await ResolveMatchAsync(client, console.Id, game, cancellationToken)
+            var match = await ResolveMatchAsync(client, console, game, cancellationToken)
                 .ConfigureAwait(false);
 
             if (version != ConfigurationVersion)
@@ -163,7 +164,13 @@ public sealed class RetroAchievementsService : IDisposable
                 .ConfigureAwait(false);
 
             var payload = new AchievementsPayload(
-                "linked", progress.Earned, progress.Total, progress.Points, null);
+                "linked",
+                progress.Earned,
+                progress.Total,
+                progress.Points,
+                null,
+                RecentBadges(progress.Achievements),
+                PendingBadges(progress.Achievements));
 
             return CacheProgress(game.Id, payload, version)
                 ? payload
@@ -234,6 +241,49 @@ public sealed class RetroAchievementsService : IDisposable
             throw;
         }
     }
+
+    /// <summary>
+    /// The rail has room for a small sample, not the whole achievement list. Recent
+    /// unlocks are newest first; pending achievements follow the game's own display
+    /// order, which is the only ordering the API exposes without inventing a
+    /// "closest to earning" score.
+    /// </summary>
+    private static IReadOnlyList<AchievementBadgePayload>? RecentBadges(
+        IReadOnlyList<RetroAchievementsAchievement> achievements)
+    {
+        var badges = achievements
+            .Where(achievement => achievement.EarnedAt is not null)
+            .OrderByDescending(achievement => achievement.EarnedAt)
+            .ThenBy(achievement => achievement.DisplayOrder)
+            .Take(3)
+            .Select(ToBadge)
+            .ToList();
+
+        return badges.Count > 0 ? badges : null;
+    }
+
+    private static IReadOnlyList<AchievementBadgePayload>? PendingBadges(
+        IReadOnlyList<RetroAchievementsAchievement> achievements)
+    {
+        var badges = achievements
+            .Where(achievement => achievement.EarnedAt is null)
+            .OrderBy(achievement => achievement.DisplayOrder)
+            .ThenBy(achievement => achievement.Title, StringComparer.OrdinalIgnoreCase)
+            .Take(3)
+            .Select(ToBadge)
+            .ToList();
+
+        return badges.Count > 0 ? badges : null;
+    }
+
+    private static AchievementBadgePayload ToBadge(RetroAchievementsAchievement achievement) =>
+        new(
+            achievement.Id,
+            achievement.Title,
+            achievement.Description,
+            achievement.Points,
+            achievement.BadgeUrl,
+            achievement.EarnedAt?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
 
     private int ConfigurationVersion
     {
@@ -318,7 +368,7 @@ public sealed class RetroAchievementsService : IDisposable
 
     private async Task<RetroAchievementsMatch?> ResolveMatchAsync(
         RetroAchievementsClient client,
-        string consoleId,
+        ConsoleDescriptor console,
         GameEntry game,
         CancellationToken cancellationToken)
     {
@@ -328,7 +378,7 @@ public sealed class RetroAchievementsService : IDisposable
             return cached.Match;
         }
 
-        var systemId = RetroAchievementsSupport.SystemIdFor(consoleId);
+        var systemId = RetroAchievementsSupport.SystemIdFor(console);
         if (systemId is null)
         {
             return null;

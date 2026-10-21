@@ -106,6 +106,17 @@ public static partial class EmulatorVersion
         return match.Success ? match.Groups[1].Value : null;
     }
 
+    /// <summary>
+    /// RetroArch prints either <c>RetroArch: Frontend for libretro, v1.22.2</c> or a
+    /// <c>Version: 1.22.2 (Git …)</c> line depending on the build. The first version
+    /// after either label is the frontend version.
+    /// </summary>
+    public static string? ParseRetroArch(string? output)
+    {
+        var match = RetroArchVersion().Match(output ?? string.Empty);
+        return match.Success ? match.Groups[1].Value : null;
+    }
+
     /// <summary>Finds a dotted version in a portable executable name.</summary>
     public static string? FromFileName(string? path)
     {
@@ -136,4 +147,7 @@ public static partial class EmulatorVersion
 
     [GeneratedRegex(@"Dolphin\s+(\d{4}[a-z]?)", RegexOptions.IgnoreCase)]
     private static partial Regex DolphinOutput();
+
+    [GeneratedRegex(@"(?:RetroArch|Version)\b[^\r\n]*?\b(\d+\.\d+(?:\.\d+){0,2})\b", RegexOptions.IgnoreCase)]
+    private static partial Regex RetroArchVersion();
 }
