@@ -108,7 +108,30 @@ try
     Equal("notSupported", RetroAchievementsSupport.StateFor("ds"), "DS has no RetroAchievements support");
     Equal("notSupported", RetroAchievementsSupport.StateFor("ps3"), "PS3 has no RetroAchievements support");
 
-    Console.WriteLine("Settings, play stats and DS sticker tests passed (37 assertions).");
+    var pcsx2Version = EmulatorVersion.Parse("v2.9.131");
+    True(pcsx2Version is not null, "PCSX2 release tag parses");
+    EqualNumber(0, EmulatorVersion.Compare(pcsx2Version!, EmulatorVersion.Parse("2.9.131.0")!), "PCSX2 file version matches tag");
+    True(EmulatorVersion.Compare(EmulatorVersion.Parse("v2.9.132")!, pcsx2Version!) > 0, "PCSX2 newer tag compares newer");
+
+    EqualNumber(11894, EmulatorVersion.ParseDuckStationBuild("v0.1-11894") ?? -1, "DuckStation tag build parses");
+    EqualNumber(12083, EmulatorVersion.ParseDuckStationBuild("0.1.12083") ?? -1, "DuckStation file build parses");
+
+    var dolphinVersion = EmulatorVersion.ParseDolphin("Dolphin 2609a");
+    True(dolphinVersion is not null, "Dolphin version parses");
+    EqualNumber(2609, dolphinVersion!.Value.Number, "Dolphin release number");
+    True(dolphinVersion.Value.Suffix == 'a', "Dolphin release suffix");
+    True(EmulatorVersion.CompareDolphin((2609, 'a'), (2609, 'b')) < 0, "Dolphin suffix ordering");
+
+    Equal("0.0.43-20355", EmulatorVersion.ParseRpcs3("RPCS3 0.0.43-20355-4024ea31 Alpha"), "RPCS3 version parses");
+    Equal("0.9.13", EmulatorVersion.FromFileName(@"C:\Emulation\Desmume\DeSmuME_0.9.13_x64.exe"), "DeSmuME file version");
+    True(EmulatorVersion.ParseFlexible("release_0_9_13") == new Version(0, 9, 13), "DeSmuME release tag parses");
+
+    True(EmulatorProfile.Detect(@"C:\Emulation\Duckstation\duckstation-qt-x64-ReleaseLTCG.exe") == EmulatorKind.DuckStation, "DuckStation is detected");
+    True(EmulatorProfile.Detect(@"C:\Emulation\PCSX2\pcsx2-qt.exe") == EmulatorKind.Pcsx2, "PCSX2 is detected");
+    True(EmulatorProfile.Detect(@"C:\Emulation\Dolphin\Dolphin.exe") == EmulatorKind.Dolphin, "Dolphin is detected");
+    True(EmulatorProfile.Detect(@"C:\Emulation\xenia_manager\Emulators\Xenia Canary\xenia_canary.exe") == EmulatorKind.XeniaCanary, "Xenia is detected");
+
+    Console.WriteLine("Settings, play stats, version and emulator profile tests passed (53 assertions).");
 }
 finally
 {

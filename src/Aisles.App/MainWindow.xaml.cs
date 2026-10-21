@@ -22,6 +22,8 @@ public sealed partial class MainWindow : Window
     private readonly Dictionary<string, AssetHosts> _assetHosts = new(StringComparer.OrdinalIgnoreCase);
     private readonly WebBridge _bridge = new();
     private readonly EmulatorLauncher _launcher = new();
+    private readonly EmulatorTools _emulatorTools = new();
+    private readonly EmulatorUpdateService _updates = new();
     private readonly ConsoleSettingsStore _settingsStore = new(Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Aisles", "settings.json"));
     private readonly ArtworkResolver _artwork = new(Path.Combine(
@@ -430,6 +432,29 @@ public sealed partial class MainWindow : Window
             case "selectGame":
                 _ = SendGameDetailsAsync(message.ReadString("gameId"));
                 break;
+
+            // Console actions come from the right-click menu. They never need a game
+            // selected, and each one reports its own result so the menu can stay open
+            // while an update check is in flight.
+            case "openEmulator":
+                RunConsoleAction(message, "openEmulator", _emulatorTools.Open);
+                break;
+
+            case "openControllerConfig":
+                RunConsoleAction(message, "openControllerConfig", _emulatorTools.OpenConfigFolder);
+                break;
+
+            case "openReleasePage":
+                RunConsoleAction(message, "openReleasePage", _emulatorTools.OpenReleasePage);
+                break;
+
+            case "openXeniaManager":
+                RunConsoleAction(message, "openXeniaManager", _emulatorTools.OpenXeniaManager);
+                break;
+
+            case "checkForUpdates":
+                await CheckForUpdatesAsync(message);
+                break;
         }
     }
 
@@ -649,6 +674,98 @@ public sealed partial class MainWindow : Window
         }
 
         MaximizeWindow();
+    }
+
+    private void RunConsoleAction(
+        BridgeMessage message,
+        string action,
+        Func<ConsoleDescriptor, LaunchResult> operation)
+    {
+        var consoleId = message.ReadString("consoleId");
+
+        if (!TryResolveConsole(consoleId, out var console))
+        {
+            _bridge.Send("consoleActionResult", new
+            {
+                consoleId,
+                action,
+                ok = false,
+                message = "Unknown console.",
+            });
+            return;
+        }
+
+        LaunchResult result;
+
+        try
+        {
+            result = operation(console);
+        }
+        catch (Exception ex)
+        {
+            result = new LaunchResult(false, ex.Message);
+        }
+
+        _bridge.Send("consoleActionResult", new
+        {
+            consoleId,
+            action,
+            ok = result.Started,
+            message = result.Message,
+        });
+    }
+
+    private async Task CheckForUpdatesAsync(BridgeMessage message)
+    {
+        var requestId = message.ReadString("requestId");
+        var consoleId = message.ReadString("consoleId");
+
+        if (!TryResolveConsole(consoleId, out var console))
+        {
+            _bridge.Send("updateCheck", new
+            {
+                requestId,
+                consoleId,
+                emulatorName = (string?)null,
+                currentVersion = (string?)null,
+                latestVersion = (string?)null,
+                updateAvailable = (bool?)null,
+                releaseAvailable = false,
+                managerAvailable = false,
+                note = (string?)null,
+                error = "Unknown console.",
+            });
+            return;
+        }
+
+        var result = await _updates.CheckAsync(console, CancellationToken.None);
+
+        _bridge.Send("updateCheck", new
+        {
+            requestId,
+            result.ConsoleId,
+            emulatorName = result.EmulatorName,
+            currentVersion = result.CurrentVersion,
+            latestVersion = result.LatestVersion,
+            updateAvailable = result.UpdateAvailable,
+            releaseAvailable = !string.IsNullOrWhiteSpace(result.ReleasePageUrl),
+            managerAvailable = !string.IsNullOrWhiteSpace(result.ManagerPath),
+            note = result.Note,
+            error = result.Error,
+        });
+    }
+
+    private bool TryResolveConsole(string? consoleId, out ConsoleDescriptor console)
+    {
+        console = null!;
+
+        if (string.IsNullOrEmpty(consoleId) || !_consolesById.TryGetValue(consoleId, out var resolved))
+        {
+            return false;
+        }
+
+        console = resolved;
+        return true;
     }
 
     private void LaunchGame(string? gameId)

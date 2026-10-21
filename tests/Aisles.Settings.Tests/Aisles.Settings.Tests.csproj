@@ -13,5 +13,7 @@
     <Compile Include="..\..\src\Aisles.App\Domain\DsStickerExtractor.cs" Link="DsStickerExtractor.cs" />
     <Compile Include="..\..\src\Aisles.App\Domain\PlayStatsReader.cs" Link="PlayStatsReader.cs" />
     <Compile Include="..\..\src\Aisles.App\Domain\RetroAchievementsSupport.cs" Link="RetroAchievementsSupport.cs" />
+    <Compile Include="..\..\src\Aisles.App\Domain\EmulatorVersion.cs" Link="EmulatorVersion.cs" />
+    <Compile Include="..\..\src\Aisles.App\Domain\EmulatorProfile.cs" Link="EmulatorProfile.cs" />
   </ItemGroup>
 </Project>

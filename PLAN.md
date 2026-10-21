@@ -331,10 +331,25 @@ keeps the PS3 decoy `PARAM.SFO` files from being counted as games (§3.1).
 | host → web | `launchResult` | `{ gameId, started, message }` — outcome of a launch attempt, including "emulator not found" |
 | web → host | `revealGame` | `gameId` |
 | web → host | `openSettings` | — (top-bar settings) |
+| web → host | `openEmulator` | `consoleId` — console context menu |
+| web → host | `openControllerConfig` | `consoleId` — opens the emulator's config folder read-only |
+| web → host | `checkForUpdates` | `{ consoleId, requestId }` |
+| host → web | `updateCheck` | `{ requestId, consoleId, emulatorName, currentVersion, latestVersion, updateAvailable, releaseAvailable, managerAvailable, note, error }` |
+| web → host | `openReleasePage` | `consoleId` |
+| web → host | `openXeniaManager` | `consoleId` |
+| host → web | `consoleActionResult` | `{ consoleId, action, ok, message }` |
 | host → web | `scanResult` | refreshed games for a console |
 
 Messages are JSON over `CoreWebView2.PostWebMessageAsJson` /
 `window.chrome.webview.postMessage`.
+
+**Console context actions.** Right-clicking a console exposes *Open emulator*,
+*Open controller config folder*, *Check for updates* and *Rescan library*.
+Aisles reads the emulator's configuration location but never edits it; the emulator
+remains the owner of controller setup. Update checks compare the installed version
+with the emulator's published release feed and only report the result. They never
+download, install or invoke an emulator's private updater. Xbox 360 updates are
+delegated to Xenia Manager, which already owns that stack.
 
 ### 5.3 Assets
 - **Three.js bundled locally** (no CDN) so the app works fully offline.
@@ -420,10 +435,11 @@ must align to the mesh's own outer circle and center hole. Menu art and ROM icon
 remain metadata/preview assets when unsuitable for physical packaging.
 
 **Interaction**: hover lift, single click **selects**, double-click / LAUNCH
-**launches**, wheel / horizontal drag / arrow keys **page** between bays. Selecting
-a game empties its slot on the shelf — the case is "in your hands" — and fills the
-hero and details rail. The bay slide is the only transition in scope; lid, tray and
-media-insertion animations remain excluded.
+**launches**, right-click on a console opens its **actions menu**, wheel / horizontal
+drag / arrow keys **page** between bays. Selecting a game empties its slot on the
+shelf — the case is "in your hands" — and fills the hero and details rail. The bay
+slide is the only transition in scope; lid, tray and media-insertion animations
+remain excluded.
 
 ## 7. Phased roadmap
 

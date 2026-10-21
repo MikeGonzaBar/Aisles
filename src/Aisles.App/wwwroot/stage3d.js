@@ -599,6 +599,20 @@ function start(canvas, labelsRoot) {
     }
   });
 
+  // The host disables WebView2's default context menu, so the console menu is ours.
+  // The module cannot see stage.js's library state; it only reports what was hit.
+  canvas.addEventListener('contextmenu', (event) => {
+    const id = consoleIdAt(event);
+    if (!id) {
+      return;
+    }
+
+    event.preventDefault();
+    window.dispatchEvent(new CustomEvent('aisles:consoleContext', {
+      detail: { consoleId: id, x: event.clientX, y: event.clientY },
+    }));
+  });
+
   /* ---------- data flow ---------- */
 
   function update() {

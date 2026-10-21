@@ -32,6 +32,10 @@ const elements = {
   settingsConsoleMeta: document.getElementById('settings-console-meta'),
   settingsError: document.getElementById('settings-error'),
   settingsProgress: document.getElementById('settings-progress'),
+  consoleMenu: document.getElementById('console-menu'),
+  consoleMenuName: document.getElementById('console-menu-name'),
+  consoleMenuMeta: document.getElementById('console-menu-meta'),
+  consoleMenuResult: document.getElementById('console-menu-result'),
 };
 
 const state = {
@@ -87,6 +91,12 @@ const settings = {
   validationTimer: 0,
 };
 
+const consoleMenu = {
+  consoleId: null,
+  requestId: null,
+  busy: false,
+};
+
 function post(type, payload) {
   webview?.postMessage({ type, payload });
 }
@@ -137,6 +147,206 @@ function setSettingsBusy(busy, text = '') {
     control.disabled = busy;
   }
 }
+
+/* ---------- console context menu ---------- */
+
+function menuButton(action) {
+  return elements.consoleMenu.querySelector(`button[data-console-action="${action}"]`);
+}
+
+function resetConsoleMenuResult() {
+  elements.consoleMenuResult.hidden = true;
+  elements.consoleMenuResult.textContent = '';
+  elements.consoleMenuResult.removeAttribute('data-state');
+  menuButton('openReleasePage').hidden = true;
+  menuButton('openXeniaManager').hidden = true;
+
+  const check = menuButton('checkForUpdates');
+  check.disabled = false;
+  check.textContent = 'Check for updates';
+}
+
+function setMenuResult(text, state = '') {
+  elements.consoleMenuResult.hidden = !text;
+  elements.consoleMenuResult.textContent = text;
+  if (state) elements.consoleMenuResult.dataset.state = state;
+  else elements.consoleMenuResult.removeAttribute('data-state');
+}
+
+function showConsoleMenu(consoleId, x, y) {
+  const console = state.library?.consoles.find(item => item.id === consoleId);
+  if (!console || state.launchingGameId || settings.open) return;
+
+  consoleMenu.consoleId = consoleId;
+  consoleMenu.requestId = null;
+  consoleMenu.busy = false;
+  elements.consoleMenuName.textContent = console.name;
+  elements.consoleMenuMeta.textContent = `${console.shortName} · ${console.emulatorName || 'emulator'}`;
+  resetConsoleMenuResult();
+
+  elements.consoleMenu.hidden = false;
+  elements.consoleMenu.style.left = '0px';
+  elements.consoleMenu.style.top = '0px';
+
+  const margin = 8;
+  const rect = elements.consoleMenu.getBoundingClientRect();
+  const left = Math.max(margin, Math.min(x, window.innerWidth - rect.width - margin));
+  const top = Math.max(margin, Math.min(y, window.innerHeight - rect.height - margin));
+  elements.consoleMenu.style.left = `${left}px`;
+  elements.consoleMenu.style.top = `${top}px`;
+
+  if (state.selectedConsoleId !== consoleId) {
+    selectConsole(consoleId);
+  }
+
+  elements.consoleMenu
+    .querySelector('button[data-console-action]:not([hidden]):not([disabled])')
+    ?.focus({ preventScroll: true });
+}
+
+function hideConsoleMenu() {
+  elements.consoleMenu.hidden = true;
+  consoleMenu.consoleId = null;
+  consoleMenu.busy = false;
+}
+
+function runConsoleAction(action) {
+  const consoleId = consoleMenu.consoleId;
+  if (!consoleId) return;
+
+  if (action === 'checkForUpdates') {
+    if (consoleMenu.busy) return;
+
+    consoleMenu.busy = true;
+    consoleMenu.requestId = requestId('updates');
+    menuButton('openReleasePage').hidden = true;
+    menuButton('openXeniaManager').hidden = true;
+    setMenuResult('Checking the latest release…');
+    const button = menuButton('checkForUpdates');
+    button.disabled = true;
+    button.textContent = 'Checking…';
+    post('checkForUpdates', { consoleId, requestId: consoleMenu.requestId });
+    return;
+  }
+
+  hideConsoleMenu();
+
+  if (action === 'rescan') {
+    setStatus('Rescanning library…');
+    post('rescan', { requestId: requestId('context-rescan') });
+    return;
+  }
+
+  post(action, { consoleId });
+}
+
+function onConsoleActionResult(payload) {
+  if (!payload) return;
+  setStatus(payload.message || 'Done.', payload.ok ? 'ok' : 'err');
+}
+
+function onUpdateCheck(message) {
+  const payload = message?.payload;
+  if (!payload || payload.requestId !== consoleMenu.requestId) return;
+
+  consoleMenu.busy = false;
+  const check = menuButton('checkForUpdates');
+  check.disabled = false;
+  check.textContent = 'Check for updates';
+  menuButton('openReleasePage').hidden = !payload.releaseAvailable;
+  menuButton('openXeniaManager').hidden = !payload.managerAvailable;
+
+  if (payload.error) {
+    setMenuResult(payload.error, 'err');
+    setStatus(payload.error, 'err');
+    return;
+  }
+
+  let headline;
+  let state = '';
+  if (payload.updateAvailable === true) {
+    headline = `Update available${payload.latestVersion ? ` · ${payload.latestVersion}` : ''}`;
+    state = 'update';
+  } else if (payload.updateAvailable === false) {
+    headline = `Up to date${payload.currentVersion ? ` · ${payload.currentVersion}` : ''}`;
+    state = 'ok';
+  } else {
+    headline = payload.note || 'Update status could not be determined.';
+  }
+
+  const details = [];
+  if (payload.currentVersion && payload.updateAvailable != null) {
+    details.push(`installed ${payload.currentVersion}`);
+  }
+  if (payload.latestVersion) {
+    details.push(`latest ${payload.latestVersion}`);
+  }
+  if (payload.note && payload.note !== headline) {
+    details.push(payload.note);
+  }
+
+  setMenuResult([headline, ...details].join('\n'), state);
+
+  if (payload.updateAvailable === true) {
+    setStatus(`${payload.emulatorName || 'Emulator'}: update available${payload.latestVersion ? ` (${payload.latestVersion})` : ''}`);
+  } else if (payload.updateAvailable === false) {
+    setStatus(
+      `${payload.emulatorName || 'Emulator'} is up to date${payload.currentVersion ? ` (${payload.currentVersion})` : ''}`,
+      'ok',
+    );
+  } else {
+    setStatus(payload.note || `${payload.emulatorName || 'Emulator'}: update status unavailable`);
+  }
+}
+
+elements.consoleMenu.addEventListener('click', (event) => {
+  const button = event.target instanceof Element
+    ? event.target.closest('button[data-console-action]')
+    : null;
+
+  if (!button || button.hidden || button.disabled) return;
+  runConsoleAction(button.dataset.consoleAction);
+});
+
+elements.consoleMenu.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    event.stopPropagation();
+    hideConsoleMenu();
+    return;
+  }
+
+  if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+
+  const items = [...elements.consoleMenu.querySelectorAll('button[data-console-action]:not([hidden]):not([disabled])')];
+  if (!items.length) return;
+
+  const current = items.indexOf(document.activeElement);
+  let next = current;
+
+  if (event.key === 'ArrowDown') next = (current + 1 + items.length) % items.length;
+  else if (event.key === 'ArrowUp') next = (current - 1 + items.length) % items.length;
+  else if (event.key === 'Home') next = 0;
+  else if (event.key === 'End') next = items.length - 1;
+
+  event.preventDefault();
+  items[next].focus();
+});
+
+document.addEventListener('pointerdown', (event) => {
+  if (elements.consoleMenu.hidden) return;
+  if (event.target instanceof Node && elements.consoleMenu.contains(event.target)) return;
+  hideConsoleMenu();
+}, true);
+
+window.addEventListener('blur', hideConsoleMenu);
+window.addEventListener('resize', hideConsoleMenu);
+window.addEventListener('wheel', hideConsoleMenu, { passive: true });
+
+window.addEventListener('aisles:consoleContext', (event) => {
+  const { consoleId, x, y } = event.detail || {};
+  if (consoleId) showConsoleMenu(consoleId, x, y);
+});
 
 function openSettings() {
   settings.open = true;
@@ -339,6 +549,10 @@ function renderConsoles() {
       }
 
       item.addEventListener('click', () => selectConsole(console.id));
+      item.addEventListener('contextmenu', (event) => {
+        event.preventDefault();
+        showConsoleMenu(console.id, event.clientX, event.clientY);
+      });
       elements.consoleList.append(item);
     }
 
@@ -915,7 +1129,10 @@ function setFullScreen(next) {
 }
 
 window.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && settings.open) {
+  if (event.key === 'Escape' && !elements.consoleMenu.hidden) {
+    event.preventDefault();
+    hideConsoleMenu();
+  } else if (event.key === 'Escape' && settings.open) {
     event.preventDefault();
     event.stopImmediatePropagation();
     closeSettings();
@@ -931,6 +1148,8 @@ window.addEventListener('keydown', (event) => {
 /* ---------- host messages ---------- */
 
 function onLibrary(payload) {
+  const firstLibrary = !state.library || Boolean(state.library.error);
+  const updateLibraryStatus = firstLibrary || elements.status.textContent.startsWith('Library loaded');
   state.library = payload;
 
   const consoles = payload.consoles ?? [];
@@ -940,12 +1159,17 @@ function onLibrary(payload) {
     setStatus(payload.error, 'err');
   } else {
     setBadge('bridge OK', 'ok');
-    const games = consoles.reduce((sum, console) => sum + console.games.length, 0);
-    const covers = consoles.reduce(
-      (sum, console) => sum + console.games.filter((game) => game.frontCoverUrl).length,
-      0,
-    );
-    setStatus(`Library loaded · ${games} games · ${covers} with a cover`);
+
+    // Artwork resolution and rescans both refresh this payload. The normal library
+    // count may update, but it must not erase a result the user just asked for.
+    if (updateLibraryStatus) {
+      const games = consoles.reduce((sum, console) => sum + console.games.length, 0);
+      const covers = consoles.reduce(
+        (sum, console) => sum + console.games.filter((game) => game.frontCoverUrl).length,
+        0,
+      );
+      setStatus(`Library loaded · ${games} games · ${covers} with a cover`);
+    }
   }
 
 
@@ -1094,11 +1318,23 @@ if (webview) {
           setSettingsBusy(true, 'Saved. Scanning library…');
         }
         break;
+      case 'consoleActionResult':
+        onConsoleActionResult(message.payload);
+        break;
+      case 'updateCheck':
+        onUpdateCheck(message);
+        break;
       case 'selectConsole':
       case 'selectGame':
         break;
       case 'scanResult':
-        if (!settings.open) break;
+        if (!settings.open) {
+          setStatus(
+            message.payload.succeeded ? 'Library rescanned' : `Rescan failed: ${message.payload.error}`,
+            message.payload.succeeded ? 'ok' : 'err',
+          );
+          break;
+        }
         setSettingsBusy(false);
         if (message.payload.succeeded) {
           settings.savedAwaitingScan = false;

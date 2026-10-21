@@ -85,6 +85,21 @@
 
   </main>
 
+  <div class="console-menu" id="console-menu" role="menu" aria-label="Console actions" hidden>
+    <div class="console-menu-head">
+      <span class="console-menu-name" id="console-menu-name"></span>
+      <span class="console-menu-meta" id="console-menu-meta"></span>
+    </div>
+    <button type="button" role="menuitem" data-console-action="openEmulator">Open emulator</button>
+    <button type="button" role="menuitem" data-console-action="openControllerConfig">Open controller config folder</button>
+    <button type="button" role="menuitem" data-console-action="checkForUpdates">Check for updates</button>
+    <p class="console-menu-result" id="console-menu-result" role="status" hidden></p>
+    <button type="button" role="menuitem" data-console-action="openReleasePage" hidden>Open release page</button>
+    <button type="button" role="menuitem" data-console-action="openXeniaManager" hidden>Open Xenia Manager</button>
+    <div class="console-menu-separator" role="separator"></div>
+    <button type="button" role="menuitem" data-console-action="rescan">Rescan library</button>
+  </div>
+
   <footer class="statusbar">
     <span id="status">Starting&hellip;</span>
     <span id="totals"></span>
