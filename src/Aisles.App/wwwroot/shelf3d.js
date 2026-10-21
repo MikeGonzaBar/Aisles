@@ -30,6 +30,7 @@ import {
 const COLUMNS = 6;
 const TIERS = 3;
 const PER_BAY = COLUMNS * TIERS;
+const CASES_PER_FRAME = 3;
 
 /** Furniture is proportional to the media, so a shelf of DS cards is not a DVD shelf. */
 const SLOT_GAP_RATIO = 0.05;
@@ -126,10 +127,10 @@ function start(canvas) {
 
     // The fixture is walnut-stained wood, kept darker than the cover art so the media is
     // still the first thing someone sees when browsing a shelf.
-    wood = new THREE.MeshStandardMaterial({ map: oak, color: 0x744c35, roughness: 0.72, metalness: 0.02 });
-    back = new THREE.MeshStandardMaterial({ color: 0x1b120d, roughness: 0.92, metalness: 0 });
+    wood = new THREE.MeshStandardMaterial({ map: oak, color: 0x6f5847, roughness: 0.76, metalness: 0.01 });
+    back = new THREE.MeshStandardMaterial({ color: 0x17110e, roughness: 0.94, metalness: 0 });
 
-    outTexture = labelTexture('OUT');
+    outTexture = labelTexture('RETURN');
   }
 
   /* ---------- scene graph ---------- */
@@ -137,8 +138,19 @@ function start(canvas) {
   const shelfRoot = new THREE.Group();
   scene.add(shelfRoot);
 
+  const contactShadow = new THREE.Mesh(
+    new THREE.PlaneGeometry(12, 4),
+    new THREE.ShadowMaterial({ color: 0x000000, opacity: 0.24 }),
+  );
+  contactShadow.rotation.x = -Math.PI / 2;
+  contactShadow.position.z = 0.42;
+  contactShadow.receiveShadow = true;
+  scene.add(contactShadow);
+
   const bays = [];
   const cases = new Map();
+  let buildFrame = 0;
+  let buildGeneration = 0;
 
   const state = {
     games: [],
@@ -318,15 +330,30 @@ function start(canvas) {
 
     const context = source.getContext('2d');
     context.clearRect(0, 0, width, height);
+    context.fillStyle = 'rgba(18,25,49,0.42)';
+    context.fillRect(4, 4, width - 8, height - 8);
     context.strokeStyle = 'rgba(120,142,196,0.85)';
     context.lineWidth = 4;
     context.setLineDash([14, 10]);
     context.strokeRect(4, 4, width - 8, height - 8);
+
+    context.setLineDash([]);
+    context.lineWidth = 7;
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    context.beginPath();
+    context.moveTo(width * 0.63, height * 0.40);
+    context.lineTo(width * 0.39, height * 0.40);
+    context.lineTo(width * 0.47, height * 0.32);
+    context.moveTo(width * 0.39, height * 0.40);
+    context.lineTo(width * 0.47, height * 0.48);
+    context.stroke();
+
     context.fillStyle = 'rgba(150,170,220,0.9)';
-    context.font = `600 ${Math.round(width * 0.13)}px "Segoe UI", sans-serif`;
+    context.font = `600 ${Math.round(width * 0.105)}px "Segoe UI", sans-serif`;
     context.textAlign = 'center';
     context.textBaseline = 'middle';
-    context.fillText(text, width / 2, height / 2);
+    context.fillText(text, width / 2, height * 0.62);
 
     const texture = new THREE.CanvasTexture(source);
     texture.colorSpace = THREE.SRGBColorSpace;
@@ -353,8 +380,8 @@ function start(canvas) {
     const spec = state.media;
     const group = makeItem(game);
 
-    // The dashed OUT outline that stays behind when the case lifts out. Same footprint
-    // as the case, so the gap reads as a missing item, not as a gap in the furniture.
+    // The return slot that stays behind when the case lifts out. Same footprint as the
+    // case, so the gap reads as an intentional place to put the selected item back.
     const outline = new THREE.Mesh(
       new THREE.PlaneGeometry(spec.width, spec.height),
       new THREE.MeshBasicMaterial({ map: outTexture, transparent: true, depthWrite: false }),
@@ -366,6 +393,10 @@ function start(canvas) {
   }
 
   function build() {
+    cancelAnimationFrame(buildFrame);
+    buildFrame = 0;
+    const generation = ++buildGeneration;
+
     for (const bay of bays) {
       shelfRoot.remove(bay.group);
       disposeTree(bay.group);
@@ -389,36 +420,42 @@ function start(canvas) {
     const plan = measure();
     const bayPitch = plan.bayGap;
     const caseZ = plan.depth / 2 - state.media.depth / 2 - plan.margin;
+    contactShadow.position.y = -plan.plinth - 0.003;
 
     for (let index = 0; index < state.bayCount; index++) {
       const group = makeBay();
       group.position.x = index * bayPitch;
       shelfRoot.add(group);
-
-      // Every bay is built up front. Paging then moves finished furniture, so the
-      // incoming bay is already there to slide in - pre-rendered by construction.
-      for (let slot = 0; slot < PER_BAY; slot++) {
-        const gameIndex = index * PER_BAY + slot;
-        const game = state.games[gameIndex];
-        if (!game) {
-          continue;
-        }
-
-        const { x, y } = slotPosition(slot);
-        const { group: caseGroup, outline } = placeCase(group, game);
-        caseGroup.position.set(x, y, caseZ);
-        outline.position.set(x, y, caseZ - 0.01);
-        group.add(caseGroup, outline);
-        cases.set(game.id, { group: caseGroup, outline, bay: index, x, y, z: caseZ });
-      }
-
       bays.push({ group });
     }
 
-    // makeBay already sized this from the furniture it built.
     state.bayPitch = bayPitch;
-    applySelection();
     frameCamera();
+
+    // Building every cover and case in one click handler stalls WebView2's next paint.
+    // Three per frame keeps the selection responsive while the shelf fills in.
+    let gameIndex = 0;
+    const addCases = () => {
+      if (generation !== buildGeneration) return;
+
+      const end = Math.min(gameIndex + CASES_PER_FRAME, state.games.length);
+      for (; gameIndex < end; gameIndex++) {
+        const game = state.games[gameIndex];
+        const bayIndex = Math.floor(gameIndex / PER_BAY);
+        const slot = gameIndex % PER_BAY;
+        const { x, y } = slotPosition(slot);
+        const { group: caseGroup, outline } = placeCase(bays[bayIndex].group, game);
+        caseGroup.position.set(x, y, caseZ);
+        outline.position.set(x, y, caseZ - 0.01);
+        bays[bayIndex].group.add(caseGroup, outline);
+        cases.set(game.id, { group: caseGroup, outline, bay: bayIndex, x, y, z: caseZ });
+      }
+
+      applySelection();
+      buildFrame = gameIndex < state.games.length ? requestAnimationFrame(addCases) : 0;
+    };
+
+    buildFrame = requestAnimationFrame(addCases);
   }
 
   /* ---------- selection ---------- */
@@ -447,13 +484,13 @@ function start(canvas) {
     const height = canvas.clientHeight || 1;
     const aspect = Math.max(width / height, 0.4);
 
-    // Just enough margin that the cornice and the plinth are inside the frame.
-    const halfHeight = baySize.height / 2 + baySize.height * 0.06;
-    const halfWidth = baySize.width / 2 + baySize.width * 0.04;
+    // Leave enough room for the aisle and carpet to establish depth around the cabinet.
+    const halfHeight = baySize.height / 2 + baySize.height * 0.12;
+    const halfWidth = baySize.width / 2 + baySize.width * 0.10;
     const tan = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
 
     const distance = Math.max(halfHeight / tan, halfWidth / (tan * aspect));
-    const target = new THREE.Vector3(0, baySize.height / 2 - baySize.height * 0.04, 0);
+    const target = new THREE.Vector3(0, baySize.height / 2 - baySize.height * 0.07, 0);
 
     camera.position.set(0, target.y + Math.sin(TILT) * distance, Math.cos(TILT) * distance);
     camera.lookAt(target);
@@ -547,8 +584,7 @@ function start(canvas) {
 
     const targets = [];
     for (const slot of cases.values()) {
-      // A selected case is out of the shelf, so its dashed slot is the thing a person
-      // can still click - to re-select it, or to double-click and launch it.
+      // A selected case is out of the shelf, so its return slot remains clickable.
       targets.push(slot.group.visible ? slot.group : slot.outline);
     }
 
@@ -624,7 +660,11 @@ function start(canvas) {
 
     const gameId = pickAt(event);
     if (gameId) {
-      window.aislesSelectGame?.(gameId);
+      if (gameId === state.selectedGameId) {
+        window.aislesClearGameSelection?.();
+      } else {
+        window.aislesSelectGame?.(gameId);
+      }
     }
   });
 
@@ -765,4 +805,5 @@ function roomBackdrop() {
 function fail(error) {
   console.warn('Aisles: the 3D shelf is unavailable, falling back to the game list', error);
   document.body.classList.add('shelf3d-failed');
+  window.dispatchEvent(new Event('aisles:shelf3d-failed'));
 }

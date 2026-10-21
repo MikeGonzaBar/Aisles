@@ -22,6 +22,14 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
  */
 const TARGET_SIZE = 0.8;
 
+/** Small optical corrections after silhouette fitting; tall models otherwise dominate. */
+const VISUAL_SCALE = {
+  ps2: 1.04,
+  ps3: 1.04,
+  wii: 0.91,
+  xbox360: 0.92,
+};
+
 /**
  * Depth gets its own cap. A flat console scaled up by width would otherwise stretch a
  * metre toward the camera and off its plinth.
@@ -30,6 +38,14 @@ const MAX_DEPTH = 1;
 
 /** Clear space between neighbouring consoles, measured between their bounding boxes. */
 const GAP = 0.58;
+
+/**
+ * Label bookkeeping for the clamp in updateLabels: .stage-labels .slot sits 7 px below
+ * its projected point (stage.css) and needs a few pixels of air under the count line,
+ * so the block can never be sliced by .lineup's overflow.
+ */
+const LABEL_MARGIN = 7;
+const LABEL_PAD = 4;
 
 /** How much bigger, and how much higher off the floor, the selected console reads. */
 const SELECTED_SCALE = 1.16;
@@ -230,6 +246,7 @@ function start(canvas, labelsRoot) {
       pool,
       placeholder,
       label,
+      labelHeight: 0,
       model: null,
       x: 0,
       width: TARGET_SIZE,
@@ -273,7 +290,7 @@ function start(canvas, labelsRoot) {
     if (!platform.gamesPathExists || platform.games.length === 0) {
       const note = document.createElement('span');
       note.className = 'pending';
-      note.textContent = 'drop games here';
+      note.textContent = platform.gamesPathExists ? 'No games' : 'Folder not set';
       slot.label.append(note);
       return;
     }
@@ -358,6 +375,7 @@ function start(canvas, labelsRoot) {
     // stretch toward the viewer just because it is wide.
     const size = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
     let scale = TARGET_SIZE / Math.max(size.x, size.y, 1e-6);
+    scale *= VISUAL_SCALE[slot.console.id] ?? 1;
 
     if (size.z * scale > MAX_DEPTH) {
       scale = MAX_DEPTH / size.z;
@@ -474,9 +492,22 @@ function start(canvas, labelsRoot) {
 
     for (const slot of slots.values()) {
       labelPoint.set(slot.x, 0, 0).project(camera);
+
+      // The label hangs from the plinth it names. On a short lineup the plinth can
+      // project close enough to the bottom edge that the second line ("12 games",
+      // "Folder not set") runs past .lineup's overflow and is clipped, which happens
+      // at 1280 wide and never at 2560. Lift the block just enough to keep it whole;
+      // at heights where it already fits, this changes nothing.
+      slot.labelHeight ||= slot.label.offsetHeight;
+      const reserve = LABEL_MARGIN + slot.labelHeight + LABEL_PAD;
+      const top = Math.max(
+        0,
+        Math.min((-labelPoint.y * 0.5 + 0.5) * height, height - reserve),
+      );
+
       slot.label.style.transform =
         `translate(-50%, 0) translate(${((labelPoint.x * 0.5 + 0.5) * width).toFixed(1)}px, ` +
-        `${((-labelPoint.y * 0.5 + 0.5) * height).toFixed(1)}px)`;
+        `${top.toFixed(1)}px)`;
     }
   }
 

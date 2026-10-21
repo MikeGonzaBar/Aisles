@@ -17,7 +17,7 @@ PNG signage rasterizes its text for predictable runtime rendering without a font
 
 ## Use in this project
 
-Assets are already inside wwwroot/art/retail-wood-v1/ and will be copied by the existing wwwroot content rule. They are not yet referenced by the running app.
+Assets are already inside wwwroot/art/retail-wood-v1/ and are copied by the existing wwwroot content rule. The running app now references them: the slatwall and the shop-aisle backdrop come in through stage.css (`console-slatwall-warm.svg`, `rental-store-perspective-v1.webp`), `shelf3d.js` maps `oak-laminate.webp` onto the boards, and `stage.js` points the plaque image at `category-<platformId>.png` for the selected console.
 
 ### shelf3d.js
 

@@ -8,6 +8,11 @@ the workshop's idle medium turn.
 
 ![LittleBigPlanet on the PS3 shelf and hero](../artifacts/phase5/look/hero-ps3-2560.png)
 
+The same window at 1280 × 860 — shop aisle behind the shelf, the platform plaque over
+the bay, the head card with LAUNCH, and the rail under it:
+
+![The final window at 1280, Shrek the Third on the PS2 shelf](../artifacts/phase5/look/hero-ps2-1280.png)
+
 ## One table, two views
 
 `wwwroot/media.js` is the only place the physical presets live:
@@ -51,6 +56,10 @@ is no orbit or zoom. The case is never opened, nothing is inserted, and there is
 flicker between selections: the canvas persists, and the scene renders on selection,
 resize and while the idle turn runs.
 
+Title and LAUNCH share one card (`.hero-head`) that overlaps the bottom of the stage
+rather than sitting below it, so the stage keeps the vertical space and the rail under it
+never reflows when a title wraps or a platform has less data.
+
 The medium has a slow idle turn borrowed from the workshop's **Spin media** control. A
 disc turns in its own plane at `0.55 rad/s` (the workshop's speed), so its label reads
 like a record. A DS/3DS card makes the workshop's full revolution on its vertical axis.
@@ -65,7 +74,7 @@ row does not reflow when a platform has less data:
 
 | Section | Contents |
 |---|---|
-| INFORMATION | Game ID, Region, Emulator, Shelf (`1 of 1`, or `2 of 3` on a paged console) |
+| INFORMATION | Game ID, Region, Version, Emulator, Shelf (`1 of 1`, or `2 of 3` on a paged console) |
 | PLAYED | duration and last-played date where the emulator stores them; otherwise muted `—` and the reason |
 | ACHIEVEMENTS | *Supported · not linked* · *Not supported on this platform* · *Linked* with an earned/total bar |
 
@@ -79,12 +88,24 @@ The PLAYED row is fed by `Domain/PlayStatsReader.cs`:
 
 - **PCSX2** `inis\playtime.dat` — fixed-width serial, seconds played, last-played Unix
   timestamp. Example: `SLUS-21454 16104 1765476516` → *4h 28m, last played 11 Dec 2025*.
+- **DuckStation** `Documents\DuckStation\playtime.dat` — the same fixed-width line as
+  PCSX2: serial, seconds played, last-played Unix timestamp.
 - **Dolphin** `Config\TimePlayed.ini` — `[TimePlayed]` and `GAMEID = 0x…`. Dolphin's
   `TimePlayed::AddTime` stores `time_emulated.count()` in milliseconds, so the reader
   divides by 1000. Dolphin stores no last-played date.
-- **DuckStation, RPCS3, DeSmuME, Citra and Xenia** store no play time. Their rows read
-  `—` with the exact reason (for example, *DeSmuME does not record play time*), keeping
-  the rail's height stable.
+- **RPCS3** `GuiConfigs\persistent_settings.dat` — `[Playtime]` maps a TITLE_ID to
+  milliseconds and `[LastPlayed]` maps it to a local ISO 8601 date. Both are shown, so a
+  first session reads like RPCS3's own list (*52s, last played 21 Nov 2025*).
+  `config\games.yml` is only the disc-path registry and is not a play-time source.
+- **DeSmuME, Citra and Xenia** store no play time. Their rows read `—` with the exact
+  reason (for example, *DeSmuME does not record play time*), keeping the rail's height
+  stable.
+
+The PS3 shelf also includes installed HDD/PSN titles from `dev_hdd0\game`
+(`CATEGORY=HG`, bootable) alongside the disc dumps. A title ID already registered as a
+disc is skipped, so an installed update never becomes a second case. Version comes from
+`APP_VER`, preferring the installed update over the disc's own value — which is why
+LittleBigPlanet reads 01.30 rather than the disc's 01.01, matching RPCS3.
 
 Achievements still stop at the Phase 6 boundary: the host marks PS1/PS2/GameCube/Wii as
 *supported, not linked* and DS/3DS/PS3/360 as *not supported*. The linked branch and
@@ -125,6 +146,26 @@ in the measured DS scan family are cropped to their sticker before they are mapp
 the selected medium. The smaller 260 x 270 stock mockups stay blocked because their
 label area contains resized box art rather than a genuine cartridge sticker.
 
+## The room
+
+![The console lineup in its room](../artifacts/phase5/look/console-row-1280.png)
+
+The furniture stands in a shop instead of a void. The pack at
+`wwwroot/art/retail-wood-v1/` supplies the surfaces and each layer is referenced where it
+belongs:
+
+| Surface | Where it comes from |
+|---|---|
+| Warm slatwall behind the console lineup | `console-slatwall-warm.svg` as the `.lineup` background |
+| Shop aisle behind the shelf | `rental-store-perspective-v1.webp`, the bottom layer of `#shelf-canvas`'s CSS background, visible because the shelf renderer is built with `alpha: true` |
+| Shelf boards | `oak-laminate.webp`, mapped in `shelf3d.js` with `color: 0x6f5847`, roughness `0.76`; backboards stay dark charcoal `#17110e` |
+| Platform plaque over the selected bay | `category-<id>.png` in `#shelf-sign`, centred by `.shelf-sign` and re-pointed on every console change |
+
+The plaque is a DOM image rather than a 3D plane, so it stays crisp at 2560 and never
+z-fights the cornice. `renderShelfSign` shows it for the eight shipped platform ids and
+hides it for anything else, so a custom console in `consoles.json` never wears another
+platform's name.
+
 ## Light and colour
 
 The first geometry captures were brighter than the workshop: the shelf's oak read
@@ -153,22 +194,38 @@ down around them.
 ## Verification
 
 - `dotnet build Aisles.slnx -c Debug`: clean, 0 warnings, 0 errors.
-- Settings tests: 28 assertions (settings, DS sticker preparation, PCSX2/Dolphin parsing,
-  and RetroAchievements support states).
+- Settings tests: 37 assertions (settings, DS sticker preparation, PCSX2/DuckStation/
+  Dolphin/RPCS3 parsing, and RetroAchievements support states).
 - Workshop tests: 13 passed.
 - Live spin probe: PS1 disc on axis `z`, `0.661 → 1.828 rad` over ~2.1 s (`0.55 rad/s`);
   DS card on axis `y`, `0.386 → 1.540 rad` over ~2.1 s, confirming the full revolution.
 - Live details rail: PS2 showed *4h 28m · last played 11 Dec 2025 · PCSX2 playtime.dat*;
-  PS1 showed the DuckStation reason; PS3 and DS showed *Not supported on this platform*;
-  Wii resolved `SW2E52` on selection and showed Dolphin's `1m`; the empty GameCube shelf
-  showed *Drop games here*. The linked achievements branch was exercised at
-  `12 of 40 · 240 pts · 30%`.
+  PS1 showed DuckStation's play time; PS3 and DS showed *Not supported on this platform*
+  in the achievements row; Wii resolved `SW2E52` on selection and showed Dolphin's `1m`;
+  the empty GameCube shelf showed *Drop games here*. The linked achievements branch was
+  exercised at `12 of 40 · 240 pts · 30%`.
+- PS3 scanner harness against the installed library: 4 games (2 disc dumps + 2 installed
+  HDD titles), versions `01.30`/`01.33`/`01.00`/`01.00`, play time `12m`/`51s`/`7m`/`3m`
+  and last-played dates matching RPCS3's list. Updates, the `_USER1` profile and the empty
+  `TEST12345` folder were excluded.
 - The console camera now pulls back by the front half-depth of the models, so the Xbox 360
   no longer meets the right edge at 1280; the row was checked at 2560 and 1280.
 - Live selections: PS1, PS2, PS3, Wii, DS and the empty GameCube shelf, at 2560 and 1280.
 - 1:1 crops were used to confirm the covers, jewel-case proportions, DS label fitting,
   the `OUT` slot and the rail. WebView2 PrintWindow/CDP captures occasionally duplicate
   text at 2560; that is a capture artifact only — the live surface is not tiled.
+- **Evidence set refreshed from the final build.** All 15 shots in
+  `artifacts/phase5/look/` were re-captured on 2026-10-20 at 16:39: each state selected
+  over the WebView2 DevTools protocol (`aislesSelectConsole` / `aislesSelectGame`), the
+  window set to 1280 × 860 or maximised (2576 × 1408 as printed), then
+  `PrintWindow(PW_RENDERFULLCONTENT)` for full windows and a CDP clip for the rails and
+  the console row. The two exposure comparisons are historical and were not re-shot.
+- **Lineup labels clamped for short windows.** At 1280 × 860 the plinth projects low
+  enough that the count line ran past `.lineup`'s `overflow: hidden` and read as sliced;
+  `updateLabels` in `stage3d.js` now reserves `LABEL_MARGIN + height + LABEL_PAD` and
+  lifts the block when it would not fit. Measured after the change: label bottom
+  `207 px` inside a `211.8 px` lineup, with no movement at 2560. Re-shots at 1280 show
+  both lines clear of the shelf rule.
 
 ## Still open
 

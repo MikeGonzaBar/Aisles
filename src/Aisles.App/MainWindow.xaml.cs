@@ -70,6 +70,7 @@ public sealed partial class MainWindow : Window
 
     private async Task InitialiseWebViewAsync()
     {
+        var stopwatch = Stopwatch.StartNew();
         var userDataFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "Aisles",
@@ -104,6 +105,7 @@ public sealed partial class MainWindow : Window
 
         _bridge.Attach(core, OnMessageFromWeb);
         core.Navigate($"https://{WebHostName}/index.html");
+        Debug.WriteLine($"Startup: WebView navigation began after {stopwatch.ElapsedMilliseconds} ms.");
     }
 
     private void LoadCatalog()
@@ -253,7 +255,6 @@ public sealed partial class MainWindow : Window
         var scanner = new LibraryScanner();
         var playStats = new PlayStatsReader();
         var consoles = new List<ConsolePayload>(_catalog.Consoles.Count);
-
         _gamesById.Clear();
 
         foreach (var console in _catalog.Consoles)
@@ -292,6 +293,7 @@ public sealed partial class MainWindow : Window
                         game.Title,
                         game.LaunchTarget,
                         game.Serial,
+                        game.Version,
                         identity.Id,
                         identity.Region,
                         game.TitleSource,
@@ -357,6 +359,7 @@ public sealed partial class MainWindow : Window
             {
                 gameId = game.Id,
                 identityId = identity.Id,
+                version = game.Version,
                 region,
                 played = new PlayedPayload(played.Seconds, played.LastPlayed, played.Source, played.Reason),
                 achievements = new AchievementsPayload(

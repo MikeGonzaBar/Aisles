@@ -5,26 +5,44 @@ namespace Aisles.App.Domain;
 /// <summary>
 /// Minimal reader for a PlayStation <c>PARAM.SFO</c>.
 ///
-/// Only the two keys Aisles cares about are exposed. <c>TITLE_ID</c> is the useful one:
-/// it is exact and stable ("BCUS98148"). <c>TITLE</c> is often an internal abbreviation —
-/// on this machine it reads "LittleBigPlanetT" — so it is treated as a last resort for
-/// the display name and never as the first choice.
+/// The keys Aisles exposes are the identity ones (<c>TITLE_ID</c>, <c>TITLE</c>), the
+/// installed-version number (<c>APP_VER</c>) and the flags that separate a real game
+/// from the rest of <c>dev_hdd0\game</c> (<c>CATEGORY</c>, <c>BOOTABLE</c>).
+/// <c>TITLE_ID</c> is the exact, stable key ("BCUS98148"). <c>TITLE</c> is often an
+/// internal abbreviation — on this machine it reads "LittleBigPlanet™" — so it is
+/// treated as a last resort for a disc's display name and trusted for installed titles.
 /// </summary>
 public sealed class ParamSfo
 {
     private const ushort Utf8StringFormat = 0x0204;
+    private const ushort IntegerFormat = 0x0404;
 
     private static readonly byte[] Magic = { 0x00, 0x50, 0x53, 0x46 }; // "\0PSF"
 
     private readonly Dictionary<string, string> _values;
+    private readonly Dictionary<string, uint> _numbers;
 
-    private ParamSfo(Dictionary<string, string> values) => _values = values;
+    private ParamSfo(Dictionary<string, string> values, Dictionary<string, uint> numbers)
+    {
+        _values = values;
+        _numbers = numbers;
+    }
 
     public string? Title => Get("TITLE");
 
     public string? TitleId => Get("TITLE_ID");
 
+    /// <summary>The installed patch level, e.g. "01.33". Absent on some homebrew.</summary>
+    public string? AppVer => Get("APP_VER");
+
+    /// <summary><c>DG</c> disc game, <c>HG</c> HDD game, <c>GD</c> game data.</summary>
+    public string? Category => Get("CATEGORY");
+
+    public bool IsBootable => Number("BOOTABLE") == 1;
+
     public string? Get(string key) => _values.TryGetValue(key, out var value) ? value : null;
+
+    public uint? Number(string key) => _numbers.TryGetValue(key, out var value) ? value : null;
 
     /// <summary>Reads the file, returning null rather than throwing when anything is off.</summary>
     public static ParamSfo? TryRead(string path)
@@ -59,6 +77,7 @@ public sealed class ParamSfo
         var count = BitConverter.ToUInt32(bytes, 16);
 
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
+        var numbers = new Dictionary<string, uint>(StringComparer.Ordinal);
 
         for (var index = 0u; index < count; index++)
         {
@@ -75,7 +94,7 @@ public sealed class ParamSfo
             var dataOffset = BitConverter.ToUInt32(bytes, entry + 12);
 
             var key = ReadNullTerminated(bytes, keyTable + keyOffset);
-            if (key is null || format != Utf8StringFormat)
+            if (key is null)
             {
                 continue;
             }
@@ -86,10 +105,17 @@ public sealed class ParamSfo
                 continue;
             }
 
-            values[key] = Encoding.UTF8.GetString(bytes, (int)start, (int)length).TrimEnd('\0');
+            if (format == Utf8StringFormat)
+            {
+                values[key] = Encoding.UTF8.GetString(bytes, (int)start, (int)length).TrimEnd('\0');
+            }
+            else if (format == IntegerFormat && length == 4)
+            {
+                numbers[key] = BitConverter.ToUInt32(bytes, (int)start);
+            }
         }
 
-        return new ParamSfo(values);
+        return new ParamSfo(values, numbers);
     }
 
     private static string? ReadNullTerminated(byte[] bytes, uint offset)

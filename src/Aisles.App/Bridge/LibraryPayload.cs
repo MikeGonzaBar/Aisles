@@ -26,6 +26,7 @@ public sealed record GamePayload(
     string Title,
     string LaunchTarget,
     string? Serial,
+    string? Version,
     string? IdentityId,
     string? Region,
     string? TitleSource,

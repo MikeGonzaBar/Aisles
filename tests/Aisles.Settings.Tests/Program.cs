@@ -77,12 +77,38 @@ try
     var noDolphinEntry = PlayStatsReader.ParseDolphin("[TimePlayed]\nRSBE01 = 0x1", "RMCE01");
     True(noDolphinEntry.Reason is not null, "missing Dolphin record explains itself");
 
+    var duckStation = PlayStatsReader.ParseDuckStation(
+        "SCUS-94288                       27                    1792469733          \n" +
+        "SLUS-00113                       5                     1765476661          ",
+        "scus-94288");
+    EqualNumber(27, duckStation.Seconds, "DuckStation play time is seconds");
+    Equal(
+        DateTimeOffset.FromUnixTimeSeconds(1792469733).ToLocalTime().ToString("d MMM yyyy", System.Globalization.CultureInfo.InvariantCulture),
+        duckStation.LastPlayed,
+        "DuckStation last played is local time");
+    Equal("DuckStation playtime.dat", duckStation.Source, "DuckStation source is named");
+
+    var unplayedDuckStation = PlayStatsReader.ParseDuckStation("SLUS-00113 0 0", "SLUS-00113");
+    EqualNumber(0, unplayedDuckStation.Seconds, "DuckStation zero stays zero");
+    True(unplayedDuckStation.Reason is not null, "DuckStation zero explains itself");
+
+    var rpcs3 = PlayStatsReader.ParseRpcs3(
+        "[LastPlayed]\nBCUS98245=2025-11-21T20:35:50\nNPUA70096=2025-11-24T23:31:01\n" +
+        "[Playtime]\nBCUS98245=51133\nNPUA70096=422013\n",
+        "bcuS98245");
+    EqualNumber(51, rpcs3.Seconds, "RPCS3 milliseconds become seconds");
+    Equal("21 Nov 2025", rpcs3.LastPlayed, "RPCS3 last played is a date");
+    Equal("RPCS3 persistent_settings.dat", rpcs3.Source, "RPCS3 source is named");
+
+    var noRpcs3Entry = PlayStatsReader.ParseRpcs3("[Playtime]\nNPUA70096=1", "BCUS98148");
+    True(noRpcs3Entry.Reason is not null, "missing RPCS3 record explains itself");
+
     Equal("notLinked", RetroAchievementsSupport.StateFor("ps2"), "PS2 has RetroAchievements support");
     Equal("notLinked", RetroAchievementsSupport.StateFor("gamecube"), "GameCube has RetroAchievements support");
     Equal("notSupported", RetroAchievementsSupport.StateFor("ds"), "DS has no RetroAchievements support");
     Equal("notSupported", RetroAchievementsSupport.StateFor("ps3"), "PS3 has no RetroAchievements support");
 
-    Console.WriteLine("Settings, play stats and DS sticker tests passed (28 assertions).");
+    Console.WriteLine("Settings, play stats and DS sticker tests passed (37 assertions).");
 }
 finally
 {

@@ -24,6 +24,11 @@ public sealed class EmulatorLauncher
             return new LaunchResult(false, "Game has no launch target.");
         }
 
+        if (!File.Exists(game.LaunchTarget) && !Directory.Exists(game.LaunchTarget))
+        {
+            return new LaunchResult(false, $"Game not found: {game.LaunchTarget}");
+        }
+
         var startInfo = new ProcessStartInfo
         {
             FileName = console.EmulatorPath,

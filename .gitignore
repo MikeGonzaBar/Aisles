@@ -21,6 +21,10 @@ node_modules/
 # Aisles' own metadata/artwork cache is machine-local, never a source artifact.
 appdata/
 
+# --- Generated retrospective background sources ---
+# Runtime copies live under src/Aisles.App/wwwroot/art/retail-wood-v1/.
+artifacts/retroshelf-backgrounds/
+
 # --- OS noise ---
 Thumbs.db
 desktop.ini

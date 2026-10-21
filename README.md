@@ -8,7 +8,7 @@ real media — and launches the correct emulator when you pick a game.
 
 ## Status
 
-**Phases 0–4 complete; Phase 5 is in progress.** `Aisles.exe` opens a WinUI 3 window hosting WebView2, loads `consoles.json`, finds all 47 games across eight platforms with real titles and serials, launches the right emulator, and drives a live host↔web message bridge. The 3D console lineup, the paged shelf and the hero are built; the media pass draws true-scale cases, discs and cards from one preset table, resolves local and online artwork into a cache, and keeps selection across pages. The hero's details rail shows game identity, PCSX2/Dolphin play time with honest reasons elsewhere, and the three achievement states; linking RetroAchievements is Phase 6. Alongside the app, six console GLBs have prepared runtime copies, and a workshop generates the cases, discs and DS cartridge procedurally. See `docs/phase0-verification.md`, `docs/phase1-discovery.md`, `docs/phase3-stage.md`, `docs/model-preparation.md`, `docs/media-models.md` and `docs/phase5-media.md`.
+**Phases 0–4 complete; Phase 5 is in progress.** `Aisles.exe` opens a WinUI 3 window hosting WebView2, loads `consoles.json`, finds all 49 games across eight platforms with real titles and serials (including installed PS3 HDD titles), launches the right emulator, and drives a live host↔web message bridge. The 3D console lineup, the paged shelf and the hero are built and now sit in the finished rental-store room: warm slatwall behind the consoles, an oak shelf against a shop aisle, and a per-platform plaque over the selected bay. The media pass draws true-scale cases, discs and cards from one preset table, resolves local and online artwork into a cache, and keeps selection across pages. The hero's head card and details rail show game identity, version, PCSX2/DuckStation/Dolphin/RPCS3 play time with honest reasons elsewhere, and the three achievement states; linking RetroAchievements is Phase 6. Alongside the app, six console GLBs have prepared runtime copies, and a workshop generates the cases, discs and DS cartridge procedurally. See `docs/phase0-verification.md`, `docs/phase1-discovery.md`, `docs/phase3-stage.md`, `docs/model-preparation.md`, `docs/media-models.md` and `docs/phase5-media.md`.
 
 ## Repository layout
 
@@ -29,7 +29,7 @@ real media — and launches the correct emulator when you pick a game.
 | `tools/prepare-models.cjs` | Reproducible texture resizing and GLB repacking |
 | `docs/model-preparation.md` | Setup, preparation results and remaining visual checks |
 | `docs/media-models.md` | Physical dimensions, procedural construction and artwork integration rules |
-| `docs/phase5-media.md` | True-scale shelf/hero media, artwork resolution, the idle medium turn and the exposure pass |
+| `docs/phase5-media.md` | True-scale shelf/hero media, artwork resolution, the idle turn, the finished room look, the details rail and the exposure pass |
 | `docs/library-workshop.md` | Current local scanner adapter, artwork route and native-host handoff |
 | `tools/artwork-workshop.cjs` | Artwork resolver, bounded provider lookup, local cache and saved selections |
 | `docs/artwork-endpoints.md` | Workshop API contracts, provider URLs, region mappings, errors and request limits |

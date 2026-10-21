@@ -29,7 +29,8 @@ import {
 
 const FOV = 30;
 const GAP_MM = 14;
-const SPIN_SPEED = 0.00055; // radians per millisecond, the workshop's turntable speed
+const IDLE_SPIN_SPEED = 0.00042;
+const LAUNCH_SPIN_SPEED = 0.009;
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 let renderer;
@@ -90,6 +91,8 @@ function start() {
     canvas,
     show,
     clear,
+    launch,
+    settleLaunch,
     resize: () => resize(true),
     getSpin: () => (spin ? { axis: spin.axis, angle: spin.group.rotation[spin.axis] } : null),
   };
@@ -100,16 +103,19 @@ function start() {
 /** The group's real width, before the slight yaw, in scene units. */
 function layoutFor(preset) {
   const [caseWidth, caseHeight, caseDepth] = preset.case.map((value) => value * HERO_UNIT);
+  const mediumDisplayScale = preset.medium.kind === 'card' ? 1.42 : 1;
   const mediumWidth =
     preset.medium.kind === 'disc' ? preset.medium.size[0] : preset.medium.size[0];
+  const displayedMediumWidth = mediumWidth * HERO_UNIT * mediumDisplayScale;
 
   return {
     caseWidth,
     caseHeight,
     caseDepth,
-    mediumWidth: mediumWidth * HERO_UNIT,
+    mediumDisplayScale,
+    mediumWidth: displayedMediumWidth,
     gap: GAP_MM * HERO_UNIT,
-    groupWidth: caseWidth + GAP_MM * HERO_UNIT + mediumWidth * HERO_UNIT,
+    groupWidth: caseWidth + GAP_MM * HERO_UNIT + displayedMediumWidth,
   };
 }
 
@@ -127,8 +133,8 @@ function fit() {
 
   const yaw = 0.1;
   const projectedWidth = current.groupWidth * Math.cos(yaw) + current.caseDepth * Math.sin(yaw);
-  const halfWidth = (projectedWidth / 2) * 1.06;
-  const halfHeight = (current.caseHeight / 2) * 1.14;
+  const halfWidth = (projectedWidth / 2) * 0.99;
+  const halfHeight = (current.caseHeight / 2) * 1.12;
   const aspect = Math.max(width / height, 0.35);
   const tan = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
 
@@ -137,8 +143,8 @@ function fit() {
 
   camera.aspect = aspect;
   camera.updateProjectionMatrix();
-  camera.position.set(distance * 0.07, centreY + distance * 0.055, distance);
-  camera.lookAt(0, centreY, 0);
+  camera.position.set(distance * 0.07, centreY + distance * 0.07, distance);
+  camera.lookAt(0, centreY * 0.94, 0);
 }
 
 function render() {
@@ -177,8 +183,9 @@ function spinStep(now) {
 
   spin.elapsed += delta;
 
-  if (!reducedMotion.matches) {
-    spin.group.rotation[spin.axis] += delta * SPIN_SPEED;
+  if (!reducedMotion.matches && now >= spin.holdUntil) {
+    spin.speed += (spin.targetSpeed - spin.speed) * Math.min(1, delta / 110);
+    spin.group.rotation[spin.axis] += delta * spin.speed;
   }
 
   render();
@@ -201,6 +208,25 @@ document.addEventListener('visibilitychange', () => {
     startSpin();
   }
 });
+
+function launch() {
+  if (!spin) {
+    return;
+  }
+
+  spin.holdUntil = 0;
+  spin.targetSpeed = LAUNCH_SPIN_SPEED;
+  startSpin();
+}
+
+function settleLaunch() {
+  if (!spin) {
+    return;
+  }
+
+  spin.targetSpeed = IDLE_SPIN_SPEED;
+  startSpin();
+}
 
 function resize(force = false) {
   if (!renderer) {
@@ -286,6 +312,8 @@ function show(console, game) {
           labelAspect: game.mediumLabelRect ? game.mediumLabelRect[2] / game.mediumLabelRect[3] : null,
         });
 
+  medium.group.scale.setScalar(plan.mediumDisplayScale);
+
   const caseX = -plan.groupWidth / 2 + plan.caseWidth / 2;
   const mediumX = plan.groupWidth / 2 - plan.mediumWidth / 2;
   const centreY = plan.caseHeight / 2;
@@ -293,7 +321,34 @@ function show(console, game) {
   cover.group.position.set(caseX, centreY, 0);
   medium.group.position.set(mediumX, centreY, 0.001);
 
-  stage.add(cover.group, medium.group);
+  const plinthWidth = plan.groupWidth * 1.1;
+  const plinthDepth = Math.max(plan.caseDepth * 3.5, 0.36);
+  const plinth = new THREE.Mesh(
+    new THREE.BoxGeometry(plinthWidth, 0.05, plinthDepth),
+    new THREE.MeshStandardMaterial({
+      color: 0x182544,
+      emissive: 0x120d05,
+      emissiveIntensity: 0.45,
+      roughness: 0.42,
+      metalness: 0.24,
+    }),
+  );
+  plinth.position.set(0, -0.025, 0);
+
+  const plinthEdge = new THREE.Mesh(
+    new THREE.BoxGeometry(plinthWidth * 0.96, 0.008, plinthDepth * 0.96),
+    new THREE.MeshStandardMaterial({
+      color: 0xd7a64d,
+      emissive: 0x51320d,
+      emissiveIntensity: 0.6,
+      roughness: 0.44,
+      metalness: 0.3,
+    }),
+  );
+  plinthEdge.position.y = 0.004;
+  plinth.add(plinthEdge);
+
+  stage.add(plinth, cover.group, medium.group);
   stage.rotation.y = -0.1;
 
   // The disc turns like a record and the card makes the workshop's full vertical-axis
@@ -302,6 +357,9 @@ function show(console, game) {
     group: medium.group,
     axis: medium.group.userData.spinAxis ?? (preset.medium.kind === 'disc' ? 'z' : 'y'),
     elapsed: 0,
+    holdUntil: 0,
+    speed: IDLE_SPIN_SPEED,
+    targetSpeed: IDLE_SPIN_SPEED,
   };
 
   resize(true);

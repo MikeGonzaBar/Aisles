@@ -76,7 +76,7 @@ which is why the rendering stack below was chosen.
 | Console selection cue | **Lift + spotlight + yellow name**; scale capped ~1.25×, never scale alone (§6) |
 | Camera | **Fixed** with a gentle idle drift; the shelf owns wheel and drag — no free orbit/zoom in v1 |
 | Shelf | **Paged bays** — 18 games per bay; moving between bays slides sideways (~400 ms) |
-| Played stats | Shown where the emulator records them (PS2, Wii today); muted `—` elsewhere (§3.5) |
+| Played stats | Shown where the emulator records them (PS1, PS2, PS3, GC and Wii today); muted `—` elsewhere (§3.5) |
 
 ## 3. Verified facts the design depends on
 
@@ -103,8 +103,9 @@ Two scanning traps found while verifying the counts:
   `xenia_canary.zip`. Neither is a game. The 360 scanner must accept only extracted
   formats and must never treat an archive as a title.
 
-Library total at time of writing: **47 games** (PS1 8, PS2 17, PS3 2, Wii 8, DS 12).
-GameCube and 3DS have no games folder on `D:\Emulation` at all.
+Library total at time of writing: **49 games** (PS1 8, PS2 17, PS3 4, Wii 8, DS 12).
+The PS3 count includes two installed HDD titles from RPCS3's `dev_hdd0\game`; the
+other two are disc dumps. GameCube and 3DS have no games folder on `D:\Emulation`.
 
 ### 3.2 Emulators (all portable, in `C:\Emulation`)
 | Console | Emulator | Arguments |
@@ -127,7 +128,7 @@ coverage are recorded in `docs/emulator-metadata-audit.md`.
 |---|---|---|
 | PS1 | embedded disc serial + DuckStation YAML databases | front covers 8/8 |
 | PS2 | embedded disc serial + PCSX2 `GameIndex.yaml` | front covers 17/17 |
-| PS3 | `PS3_GAME/PARAM.SFO` | `ICON0.PNG` and `PIC1.PNG` 2/2 |
+| PS3 | `PARAM.SFO` (disc and `dev_hdd0\game`) | `ICON0.PNG` and `PIC1.PNG` 2/2 |
 | Wii | `DolphinTool.exe header --json` | no front covers |
 | DS | embedded ROM header/banner | one front cover; 12/12 embedded icons |
 | Xbox 360 / 3DS / GameCube | no games currently | none |
@@ -138,7 +139,7 @@ persistence contract.
 
 Case fronts are resolved from `artworkPath`, an optional per-console folder in
 `consoles.json`. On this machine that is PCSX2's serial-named `covers` folder for PS2
-and DuckStation's title-named one for PS1, giving 26 of 47 games a real cover; the
+and DuckStation's title-named one for PS1, giving 26 of 49 games a real cover; the
 rest stay generated. Files are referenced in place and served over one WebView2
 virtual host per folder (§5.3) rather than copied.
 
@@ -172,6 +173,14 @@ remain generated until reviewed or prepared. A different printed serial can be
 selected manually with its mismatch visible; never silently claim it is an exact
 match. Provider-ID matching identifies how an image was looked up; it does not
 prove the printed serial has been visually checked.
+
+In the stage, the selected game shows its **case front** and its **medium** — a
+12 cm disc, a DS card, a 3DS card — at the platform's real shape. Both use this
+same precedence, and the generated rung is explicit: the case gets the platform
+accent bands and the title, the medium gets a printed label with the title and
+serial. A cover is never reused as a label. The DS/3DS shelf currently draws an
+unlabelled card body (shell, recess, grip ridges); sticker textures for those
+cards are the next artwork pass.
 
 The workshop currently uses GameTDB exact-ID lookup for PS3/Wii and LaunchBox
 title/platform/region search for the six workshop platforms. Missing artwork is
@@ -217,21 +226,31 @@ Checked against the actual installs on this machine rather than assumed:
 | Console | Source | Total time | Last played |
 |---|---|---|---|
 | PS2 | PCSX2 `inis\playtime.dat` | ✅ seconds | ✅ Unix timestamp |
-| Wii / GC | Dolphin `Config\TimePlayed.ini` | ✅ hex, unit unconfirmed | ❌ |
-| PS1 | DuckStation | ❌ not stored | ❌ |
-| PS3 | RPCS3 `config\games.yml` | ❌ serial → path only | ❌ |
+| Wii / GC | Dolphin `Config\TimePlayed.ini` | ✅ hex milliseconds | ❌ |
+| PS1 | DuckStation `playtime.dat` | ✅ seconds | ✅ Unix timestamp |
+| PS3 | RPCS3 `GuiConfigs\persistent_settings.dat` | ✅ milliseconds | ✅ ISO 8601 local date |
 | DS | DeSmuME | ❌ not stored | ❌ |
+| 3DS | Citra | ❌ not stored | ❌ |
 | Xbox 360 | Xenia | ❌ not stored | ❌ |
 
-`playtime.dat` is fixed-width — `SLUS-21151    32387    1765476533` is serial,
-**seconds played**, **last-played Unix timestamp**. Dolphin's `TimePlayed.ini` is
-`[TimePlayed]` → `GAMEID = 0x…`; confirm seconds vs milliseconds against one real
-session before displaying it.
+PCSX2's and DuckStation's `playtime.dat` are fixed-width — `SLUS-21151    32387    1765476533`
+is serial, **seconds played**, **last-played Unix timestamp**. Dolphin's `TimePlayed.ini` is
+`[TimePlayed]` → `GAMEID = 0x…`; its source (`TimePlayed::AddTime`) stores
+`time_emulated.count()`, so the value is **milliseconds**. It has no last-played time.
+RPCS3's `persistent_settings.dat` has `[Playtime]` (`TITLE_ID=milliseconds`) and
+`[LastPlayed]` (`TITLE_ID=2025-11-21T20:35:50`), keyed by the same ID the rail shows.
 
-Consequences: **played time exists on 2 of 6 platforms.** The details rail always
-renders the row and shows a muted `—` naming the reason on the other four, so the
-rail keeps a stable height instead of reflowing per platform. Both files are
-emulator binary caches — read once, keep an Aisles-owned copy, never treat them as
+`config\games.yml` is not RPCS3's play-time file: it only maps disc title IDs to paths.
+Installed HDD/PSN games are found in `dev_hdd0\game`, not there; the scanner reads their
+`PARAM.SFO` (`CATEGORY=HG`, bootable) and skips IDs already claimed by a disc dump.
+The disc's `APP_VER` is replaced by the installed update's value when one exists, which
+is the version RPCS3 displays.
+
+Consequences: **played time exists for five of the eight configured consoles**
+(PS1, PS2, PS3, Wii and GameCube). DS, 3DS and Xbox 360 remain without it. The
+details rail always renders the row and shows a muted `—` naming the reason on those
+three, so the rail keeps a stable height instead of reflowing per platform. These files
+are emulator binary caches — read once, keep an Aisles-owned copy, never treat them as
 the source of truth (§3.3).
 
 Achievement state has **three** values, not two: *supported, not linked* ·
@@ -287,6 +306,11 @@ Separation of concerns:
 ```
 
 Adding a new platform = editing this file, no recompile.
+
+`installedGamesPath` is an optional second library for platforms whose emulator keeps
+installed games outside the disc folder. PS3 uses it for RPCS3's `dev_hdd0\game`; entries
+there must be bootable `CATEGORY=HG` titles, and an ID already claimed by a disc is
+skipped.
 
 `scanMarker` is required by `DiscFolders` only, and the launch target is the
 folder *holding* the marker, never the marker itself — anchoring on it is what
@@ -409,8 +433,8 @@ media-insertion animations remain excluded.
 | 1 | Discovery ✅ | Correct scanning of all four shapes, clean titles and serials, 26/47 local case fronts | done |
 | 2 | **Launching** ✅ | Select a game (2D list first) → emulator opens it → **usable app** | done |
 | 3 | 3D consoles ✅ | Three.js stage + fixed camera + console lineup (low-LOD pipeline) + lighting | done — look sign-off pending |
-| 4 | 3D shelf | Paged shelf bays (18 per bay, ~400 ms slide), procedural media models, sticker textures, hit-testing, select-vs-launch wiring | 1–2 days |
-| 5 | Polish | Details rail (information / played / achievements), transitions, settings, error states, icon | 1–2 days |
+| 4 | 3D shelf ✅ | Paged shelf bays (18 per bay, ~400 ms slide), procedural media models, sticker textures, hit-testing, select-vs-launch wiring | done — look sign-off pending; DS/3DS shelf cards stay blank until their sticker pass |
+| 5 | Polish 🔄 | Details rail (information / played / achievements), settings, error states, the final room look (oak shelf, warm slatwall, per-platform plaque, head card) and the refreshed evidence set | in progress — UI shots re-captured 2026-10-20 |
 | 6 | *(optional)* RA | Achievement progress on media (PS1/PS2/GC/Wii only) | 2–4 days |
 
 Phases 0→2 produce a genuinely useful launcher; 3→5 deliver the showcase.
@@ -431,7 +455,7 @@ before integrating the rest**), after Phase 4 (full shelf).
 | Large libraries overwhelm a 3D shelf | **Paged bays** — only the current bay and its immediate neighbours are resident; a 2D grid mode stays an option |
 | All 8 console GLBs resident at once (PS2 alone is 42 MB / ~469 MiB of textures) | Low-LOD lineup variant; the full model loads only for the selected slot (§6) |
 | GameCube and 3DS have no console model | Placeholder silhouette in the lineup; never block the lineup on a missing model |
-| Played stats absent on 4 of 6 platforms | Rail keeps a stable row and names the reason (§3.5); never imply data that isn't there |
+| Played stats absent on 3 of 8 platforms | Rail keeps a stable row and names the reason (§3.5); never imply data that isn't there |
 | Shelf paging and camera gestures collide | Wheel, drag and arrows all page the shelf; camera is fixed with idle drift only (§6) |
 | Many cover images hurting startup | Virtual-host mapping + lazy texture loading |
 | RA file→game hash matching (Phase 6) | Defer; start with filename matching, add `rcheevos` hashing only if needed |

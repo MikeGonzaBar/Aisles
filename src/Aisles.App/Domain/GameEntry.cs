@@ -17,6 +17,12 @@ public sealed record GameEntry
     public string? Serial { get; init; }
 
     /// <summary>
+    /// The installed version the emulator would report, when the platform records one:
+    /// PS3 <c>APP_VER</c> ("01.33"). Null for platforms with no version metadata.
+    /// </summary>
+    public string? Version { get; init; }
+
+    /// <summary>
     /// Which rule produced <see cref="Title"/>. Titles are derived from names and
     /// emulator caches rather than a catalogue, so keeping the provenance makes the
     /// heuristics auditable instead of mysterious.

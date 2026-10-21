@@ -43,6 +43,7 @@
       "scan": "DiscFolders",
       "scanMarker": "PS3_DISC.SFB",
       "gamesPath": "D:\\Emulation\\PS3\\ISO",
+      "installedGamesPath": "C:\\Emulation\\RPCS3\\dev_hdd0\\game",
       "extensions": [],
       "emulatorPath": "C:\\Emulation\\RPCS3\\rpcs3.exe",
       "arguments": "\"{0}\"",

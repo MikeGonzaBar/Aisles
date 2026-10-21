@@ -15,21 +15,46 @@ public sealed class LibraryScanner
 {
     public IReadOnlyList<GameEntry> Scan(ConsoleDescriptor console)
     {
-        if (!console.GamesPathExists)
+        if (!console.GamesPathExists && !console.InstalledGamesPathExists)
         {
             return Array.Empty<GameEntry>();
         }
 
         var metadata = MetadataSource.Resolve(console);
         var artwork = ArtworkLookup.For(console);
+        var entries = new List<GameEntry>();
 
-        return Discover(console)
-            .Select(found => CreateEntry(console, found, metadata, artwork))
-            .ToList();
+        // Serial is the join key between a disc dump and its installed update or an
+        // installed copy of the same game, so it is collected while the disc roots are
+        // walked and used to keep the installed pass from listing a game twice.
+        var knownSerials = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        if (console.GamesPathExists)
+        {
+            foreach (var found in Discover(console))
+            {
+                var entry = CreateEntry(console, found, metadata, artwork);
+                entry = entry with { Version = InstalledVersion(console, entry.Serial) ?? entry.Version };
+                entries.Add(entry);
+
+                if (!string.IsNullOrWhiteSpace(entry.Serial))
+                {
+                    knownSerials.Add(entry.Serial);
+                }
+            }
+        }
+
+        entries.AddRange(DiscoverInstalled(console, knownSerials)
+            .Select(found => CreateInstalledEntry(console, found, artwork)));
+
+        return entries;
     }
 
     /// <summary>A launch target plus the best name we can guess for it from the path alone.</summary>
     private readonly record struct Discovered(string LaunchTarget, string NameHint);
+
+    /// <summary>An installed (non-disc) game folder and the metadata that identifies it.</summary>
+    private readonly record struct InstalledGame(string Folder, ParamSfo Sfo);
 
     private static IEnumerable<Discovered> Discover(ConsoleDescriptor console) => console.Scan switch
     {
@@ -115,7 +140,8 @@ public sealed class LibraryScanner
             serial = cached.Serial;
         }
 
-        serial ??= ReadSerialFromDisc(found.LaunchTarget);
+        var disc = ReadDiscMetadata(found.LaunchTarget);
+        serial ??= disc.Serial;
 
         return new GameEntry
         {
@@ -126,26 +152,120 @@ public sealed class LibraryScanner
             Title = title,
             LaunchTarget = found.LaunchTarget,
             Serial = serial,
+            Version = disc.Version,
             TitleSource = titleSource,
             FrontCover = artwork.Resolve(title, serial, found.LaunchTarget),
         };
     }
 
-    /// <summary>Reads a serial out of whatever metadata the target happens to carry.</summary>
-    private static string? ReadSerialFromDisc(string launchTarget)
+    /// <summary>
+    /// Installed HDD/PSN games live beside the disc registrations, in RPCS3's
+    /// <c>dev_hdd0\game</c>. Only bootable <c>HG</c> entries are games; the folder also
+    /// holds disc updates (<c>GD</c>), per-profile data such as
+    /// <c>BCUS98148_USER1</c>, and empty test folders. A title ID already claimed by a
+    /// disc is skipped, so an installed update does not become a second shelf entry.
+    /// </summary>
+    private static IEnumerable<InstalledGame> DiscoverInstalled(
+        ConsoleDescriptor console,
+        HashSet<string> knownSerials)
+    {
+        if (!console.InstalledGamesPathExists)
+        {
+            yield break;
+        }
+
+        string[] folders;
+
+        try
+        {
+            folders = Directory.GetDirectories(console.InstalledGamesPath!);
+        }
+        catch (IOException)
+        {
+            yield break;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            yield break;
+        }
+
+        foreach (var folder in folders)
+        {
+            var sfo = ParamSfo.TryRead(Path.Combine(folder, "PARAM.SFO"));
+
+            if (sfo is null
+                || !string.Equals(sfo.Category, "HG", StringComparison.OrdinalIgnoreCase)
+                || !sfo.IsBootable
+                || string.IsNullOrWhiteSpace(sfo.TitleId)
+                || !knownSerials.Add(sfo.TitleId))
+            {
+                continue;
+            }
+
+            yield return new InstalledGame(folder, sfo);
+        }
+    }
+
+    private static GameEntry CreateInstalledEntry(
+        ConsoleDescriptor console,
+        InstalledGame found,
+        ArtworkLookup artwork)
+    {
+        // Installed titles are the one place PARAM.SFO is more trustworthy than the
+        // folder name: RPCS3 shows this TITLE, and there is no human folder name to
+        // preserve. The trademark mark is typography, not part of the name.
+        var title = TitleNormalizer.Normalize(CleanTitle(found.Sfo.Title));
+        if (title.Length == 0)
+        {
+            title = TitleNormalizer.Normalize(Path.GetFileName(found.Folder));
+        }
+
+        return new GameEntry
+        {
+            Id = $"{console.Id}:{found.Folder}".ToLowerInvariant(),
+            ConsoleId = console.Id,
+            Title = title,
+            LaunchTarget = found.Folder,
+            Serial = found.Sfo.TitleId,
+            Version = found.Sfo.AppVer,
+            TitleSource = "param-sfo",
+            FrontCover = artwork.Resolve(title, found.Sfo.TitleId, found.Folder),
+        };
+    }
+
+    /// <summary>
+    /// A disc dump reports the version burned into it (LBP: 01.01), while RPCS3 shows the
+    /// installed patch level from <c>dev_hdd0\game\&lt;TITLE_ID&gt;</c> (01.30). Reading
+    /// the installed copy when one exists keeps the rail in step with the emulator.
+    /// </summary>
+    private static string? InstalledVersion(ConsoleDescriptor console, string? serial)
+    {
+        if (string.IsNullOrWhiteSpace(serial) || !console.InstalledGamesPathExists)
+        {
+            return null;
+        }
+
+        return ParamSfo.TryRead(Path.Combine(console.InstalledGamesPath!, serial, "PARAM.SFO"))?.AppVer;
+    }
+
+    private static string? CleanTitle(string? title) =>
+        title?.Replace("™", string.Empty).Replace("®", string.Empty);
+
+    /// <summary>Reads a serial and version out of whatever metadata the target carries.</summary>
+    private static (string? Serial, string? Version) ReadDiscMetadata(string launchTarget)
     {
         if (Directory.Exists(launchTarget))
         {
-            return ReadDiscSerial(launchTarget);
+            return ReadDiscMetadataFromSfo(launchTarget);
         }
 
         if (Path.GetExtension(launchTarget).Equals(".nds", StringComparison.OrdinalIgnoreCase))
         {
             var header = NdsRomHeader.TryRead(launchTarget);
-            return string.IsNullOrWhiteSpace(header?.GameCode) ? null : header?.GameCode;
+            return (string.IsNullOrWhiteSpace(header?.GameCode) ? null : header?.GameCode, null);
         }
 
-        return null;
+        return (null, null);
     }
 
     /// <summary>
@@ -154,35 +274,35 @@ public sealed class LibraryScanner
     /// laid out slightly differently still yields its serial, and it rejects any
     /// <c>PARAM.SFO</c> that has no <c>TITLE_ID</c> — which is what the decoy files are.
     /// </summary>
-    private static string? ReadDiscSerial(string discRoot)
+    private static (string? Serial, string? Version) ReadDiscMetadataFromSfo(string discRoot)
     {
-        var titleId = ParamSfo.TryRead(Path.Combine(discRoot, "PS3_GAME", "PARAM.SFO"))?.TitleId;
-        if (!string.IsNullOrWhiteSpace(titleId))
+        var sfo = ParamSfo.TryRead(Path.Combine(discRoot, "PS3_GAME", "PARAM.SFO"));
+        if (!string.IsNullOrWhiteSpace(sfo?.TitleId))
         {
-            return titleId;
+            return (sfo.TitleId, sfo.AppVer);
         }
 
         try
         {
             foreach (var folder in Directory.EnumerateDirectories(discRoot))
             {
-                var candidate = ParamSfo.TryRead(Path.Combine(folder, "PARAM.SFO"))?.TitleId;
-                if (!string.IsNullOrWhiteSpace(candidate))
+                var candidate = ParamSfo.TryRead(Path.Combine(folder, "PARAM.SFO"));
+                if (!string.IsNullOrWhiteSpace(candidate?.TitleId))
                 {
-                    return candidate;
+                    return (candidate.TitleId, candidate.AppVer);
                 }
             }
         }
         catch (IOException)
         {
-            return null;
+            return (null, null);
         }
         catch (UnauthorizedAccessException)
         {
-            return null;
+            return (null, null);
         }
 
-        return null;
+        return (null, null);
     }
 
     /// <summary>Metadata available from the emulator configured for this console.</summary>

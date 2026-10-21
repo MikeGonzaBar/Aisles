@@ -8,7 +8,7 @@ Snapshot: 2026-10-18. The inspection was read-only. Games are under `D:\Emulatio
 |---|---:|---|---|---|
 | PlayStation | 8 | Disc serial embedded in each BIN, then `DuckStation\resources\gamedb.yaml` and `discdb.yaml` | 8/8 front covers in `Documents\DuckStation\covers` | Strong: canonical title, serial, region-specific release data, publisher, developer, genre, languages and cover |
 | PlayStation 2 | 17 | Serial embedded in each ISO, then PCSX2 `resources\GameIndex.yaml` | 17/17 front covers in PCSX2 `covers` | Strong: canonical title, serial, region and cover |
-| PlayStation 3 | 2 disc folders | Each game's `PS3_GAME\PARAM.SFO` | 2/2 `ICON0.PNG` and `PIC1.PNG` sets | Strong identity and presentation art; the icon is horizontal menu art rather than a box-cover scan |
+| PlayStation 3 | 2 disc folders + 2 installed HDD titles | Each game's `PARAM.SFO` (disc `PS3_GAME` or `dev_hdd0\game\<TITLE_ID>`) | 2/2 disc sets, plus per-title `ICON0.PNG`/`PIC1.PNG` | Strong identity and presentation art; the icon is horizontal menu art rather than a box-cover scan |
 | Wii | 8 RVZ files | `DolphinTool.exe header -i <game> -j` | No front-cover files found | Strong identity: game ID, internal title, country, region and revision; use generated case art until covers are added |
 | Nintendo DS | 12 ROMs | Standard NDS header and banner embedded in each ROM | 1/12 external covers; every ROM has a built-in 32x32 icon | Strong identity, weak case art: game code, region code, internal/localized title and publisher text are available |
 | Xbox 360 | 0 | Xenia Manager `games.json` is currently empty | None | Nothing to import until games are added |
@@ -19,7 +19,7 @@ The PS1 discs were directly checked for executable serials. Seven use the usual 
 
 PCSX2's local game-list cache currently maps all 17 ISO paths to serials and canonical titles. Its cover directory contains a matching cover for every current game, including title-named fallbacks for Cars and I-Ninja. DuckStation's eight covers are 500x500 square images. PCSX2's covers are portrait images, mostly 567x878, with several 512x736 images.
 
-RPCS3's current disc registrations are `BCUS98148` (LittleBigPlanet) and `BCUS98245` (LittleBigPlanet 2). Aisles should read the `PARAM.SFO` and artwork from the original game folders on `D:` rather than installed updates and demos under RPCS3's `dev_hdd0`.
+RPCS3's current disc registrations are `BCUS98148` (LittleBigPlanet) and `BCUS98245` (LittleBigPlanet 2). Its installed library also holds `NPUA80479` (Sackboy's Prehistoric Moves) and `NPUA70096` (ModNation Racers Demo) under `dev_hdd0\game`; RPCS3 lists all four. Aisles reads disc identity and art from the original game folders on `D:`, then adds bootable `CATEGORY=HG` entries from `dev_hdd0\game`, skipping any title ID already claimed by a disc. The installed folder also contains disc updates (`GD`), a profile (`BCUS98148_USER1`) and an empty `TEST12345`, which are not games.
 
 All eight Wii files returned valid JSON through Dolphin's supported command-line tool. The current IDs are `SW2E52`, `SXIE52`, `R6LEWR`, `RMCE01`, `SMNE01`, `RSBE01`, `RSPE01`, and `RZTE01`; all report `NTSC-U` / USA. Dolphin's binary `gamelist.cache` also contains localized titles and dates, but it is an internal version-dependent cache and should not be Aisles' primary interface.
 

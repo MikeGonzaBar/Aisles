@@ -29,6 +29,13 @@ public sealed class ConsoleDescriptor
     public string GamesPath { get; set; } = string.Empty;
 
     /// <summary>
+    /// Optional folder of installed (non-disc) games. RPCS3 keeps HDD/PSN titles and
+    /// disc updates under <c>dev_hdd0\game</c>; the scanner reads those separately from
+    /// <see cref="GamesPath"/> and drops any entry that duplicates a disc serial.
+    /// </summary>
+    public string? InstalledGamesPath { get; set; }
+
+    /// <summary>
     /// Optional folder of case fronts supplied by the emulator or the user. PS2
     /// points at PCSX2's serial-named <c>covers</c> folder; PS1 points at
     /// DuckStation's title-named one. Files are referenced in place.
@@ -42,5 +49,7 @@ public sealed class ConsoleDescriptor
     public string BodyColor { get; set; } = "#C9CBD0";
 
     public bool GamesPathExists => Directory.Exists(GamesPath);
+    public bool InstalledGamesPathExists =>
+        !string.IsNullOrWhiteSpace(InstalledGamesPath) && Directory.Exists(InstalledGamesPath);
     public bool EmulatorExists => File.Exists(EmulatorPath);
 }

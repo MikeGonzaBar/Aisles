@@ -10,22 +10,28 @@ namespace Aisles.App.Domain;
 public sealed record PlayStats(long? Seconds, string? LastPlayed, string? Source, string? Reason);
 
 /// <summary>
-/// Reads the two emulator-owned play-time caches that exist on this machine
-/// (PLAN.md section 3.5): PCSX2's fixed-width <c>inis\playtime.dat</c> and Dolphin's
-/// <c>Config\TimePlayed.ini</c>. Both are read once per payload and never written.
+/// Reads the emulator-owned play-time caches that exist on this machine
+/// (PLAN.md section 3.5): PCSX2's and DuckStation's fixed-width <c>playtime.dat</c>,
+/// Dolphin's <c>Config\TimePlayed.ini</c> and RPCS3's
+/// <c>GuiConfigs\persistent_settings.dat</c>. All are read once per payload and never
+/// written.
 ///
 /// The formats are deliberately parsed from text rather than treated as our storage
-/// contract. PCSX2 stores seconds and a Unix timestamp; Dolphin stores milliseconds in
-/// hex and no timestamp. Every other configured emulator stores nothing, and the caller
-/// gets the sentence that explains why.
+/// contract. PCSX2 and DuckStation both store seconds and a Unix timestamp; Dolphin
+/// stores milliseconds in hex and no timestamp; RPCS3 stores milliseconds and a local
+/// ISO 8601 date, both keyed by title ID. Every other configured emulator stores
+/// nothing, and the caller gets the sentence that explains why.
 /// </summary>
 public sealed class PlayStatsReader
 {
     private const string Pcsx2Source = "PCSX2 playtime.dat";
+    private const string DuckStationSource = "DuckStation playtime.dat";
     private const string DolphinSource = "Dolphin TimePlayed.ini";
+    private const string Rpcs3Source = "RPCS3 persistent_settings.dat";
 
-    private readonly Dictionary<string, Dictionary<string, Pcsx2Record>> _pcsx2Files = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Dictionary<string, PlayedTimeRecord>> _playtimeFiles = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Dictionary<string, long>> _dolphinFiles = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Dictionary<string, Rpcs3Record>> _rpcs3Files = new(StringComparer.OrdinalIgnoreCase);
 
     public PlayStats For(ConsoleDescriptor console, string? gameId)
     {
@@ -35,8 +41,8 @@ public sealed class PlayStatsReader
         {
             "ps2" => ForPcsx2(console, id),
             "wii" or "gamecube" => ForDolphin(console, id),
-            "ps1" => Unavailable("DuckStation does not record play time."),
-            "ps3" => Unavailable("RPCS3 stores installed paths, not play time."),
+            "ps1" => ForDuckStation(console, id),
+            "ps3" => ForRpcs3(console, id),
             "ds" => Unavailable("DeSmuME does not record play time."),
             "3ds" => Unavailable("Citra does not record play time."),
             "xbox360" => Unavailable("Xenia does not record play time."),
@@ -49,12 +55,42 @@ public sealed class PlayStatsReader
     /// <c>SLUS-21151    32387    1765476533</c>. The serial is the key; the second
     /// column is seconds and the third is the last-played Unix timestamp.
     /// </summary>
-    public static PlayStats ParsePcsx2(string text, string? gameId)
+    public static PlayStats ParsePcsx2(string text, string? gameId) =>
+        ParsePlayedTimeFile(
+            text,
+            gameId,
+            Pcsx2Source,
+            "The game has no disc serial, so PCSX2 cannot match a play-time record.",
+            "PCSX2 has not recorded a session for this game.",
+            "PCSX2 has no playtime record for this game.");
+
+    /// <summary>
+    /// DuckStation writes the same fixed-width shape as PCSX2
+    /// (<c>SLUS-00650    1058    1755836210</c>): serial, seconds played and the
+    /// last-played Unix timestamp, one record per line in
+    /// <c>Documents\DuckStation\playtime.dat</c>.
+    /// </summary>
+    public static PlayStats ParseDuckStation(string text, string? gameId) =>
+        ParsePlayedTimeFile(
+            text,
+            gameId,
+            DuckStationSource,
+            "The game has no disc serial, so DuckStation cannot match a play-time record.",
+            "DuckStation has not recorded a session for this game.",
+            "DuckStation has no playtime record for this game.");
+
+    private static PlayStats ParsePlayedTimeFile(
+        string text,
+        string? gameId,
+        string source,
+        string noIdReason,
+        string zeroReason,
+        string noRecordReason)
     {
         var id = (gameId ?? string.Empty).Trim().ToUpperInvariant();
         if (id.Length == 0)
         {
-            return new PlayStats(null, null, null, "The game has no disc serial, so PCSX2 cannot match a play-time record.");
+            return new PlayStats(null, null, null, noIdReason);
         }
 
         foreach (var line in text.Split('\n'))
@@ -78,13 +114,13 @@ public sealed class PlayStatsReader
 
             if (seconds <= 0)
             {
-                return new PlayStats(0, null, Pcsx2Source, "PCSX2 has not recorded a session for this game.");
+                return new PlayStats(0, null, source, zeroReason);
             }
 
-            return new PlayStats(seconds, FormatLastPlayed(lastPlayedUnix), Pcsx2Source, null);
+            return new PlayStats(seconds, FormatLastPlayed(lastPlayedUnix), source, null);
         }
 
-        return new PlayStats(null, null, Pcsx2Source, "PCSX2 has no playtime record for this game.");
+        return new PlayStats(null, null, source, noRecordReason);
     }
 
     /// <summary>
@@ -147,6 +183,32 @@ public sealed class PlayStatsReader
         return new PlayStats(null, null, DolphinSource, "Dolphin has no play-time record for this game.");
     }
 
+    /// <summary>
+    /// RPCS3 writes two sections in <c>persistent_settings.dat</c>:
+    /// <c>[Playtime]</c> maps a TITLE_ID to milliseconds and <c>[LastPlayed]</c> maps it
+    /// to a local ISO 8601 date. The game list shows both, so the rail does too.
+    /// </summary>
+    public static PlayStats ParseRpcs3(string text, string? gameId)
+    {
+        var id = (gameId ?? string.Empty).Trim().ToUpperInvariant();
+        if (id.Length == 0)
+        {
+            return new PlayStats(null, null, null, "The game has no title ID, so RPCS3 cannot match a play-time record.");
+        }
+
+        var records = ParseRpcs3Records(text);
+
+        if (!records.TryGetValue(id, out var record))
+        {
+            return new PlayStats(null, null, Rpcs3Source, "RPCS3 has no playtime record for this game.");
+        }
+
+        var seconds = record.Milliseconds / 1000;
+        return seconds <= 0
+            ? new PlayStats(0, record.LastPlayed, Rpcs3Source, "RPCS3 has not recorded a session for this game.")
+            : new PlayStats(seconds, record.LastPlayed, Rpcs3Source, null);
+    }
+
     private PlayStats ForPcsx2(ConsoleDescriptor console, string id)
     {
         if (id.Length == 0)
@@ -160,10 +222,10 @@ public sealed class PlayStatsReader
             return Unavailable("PCSX2's playtime.dat was not found.");
         }
 
-        if (!_pcsx2Files.TryGetValue(file, out var records))
+        if (!_playtimeFiles.TryGetValue(file, out var records))
         {
-            records = ReadPcsx2File(file);
-            _pcsx2Files[file] = records;
+            records = ReadPlayedTimeFile(file);
+            _playtimeFiles[file] = records;
         }
 
         if (!records.TryGetValue(id, out var record))
@@ -177,6 +239,38 @@ public sealed class PlayStatsReader
         }
 
         return new PlayStats(record.Seconds, FormatLastPlayed(record.LastPlayedUnix), Pcsx2Source, null);
+    }
+
+    private PlayStats ForDuckStation(ConsoleDescriptor console, string id)
+    {
+        if (id.Length == 0)
+        {
+            return new PlayStats(null, null, null, "The game has no disc serial, so DuckStation cannot match a play-time record.");
+        }
+
+        var file = DuckStationFile(console);
+        if (file is null)
+        {
+            return Unavailable("DuckStation's playtime.dat was not found.");
+        }
+
+        if (!_playtimeFiles.TryGetValue(file, out var records))
+        {
+            records = ReadPlayedTimeFile(file);
+            _playtimeFiles[file] = records;
+        }
+
+        if (!records.TryGetValue(id, out var record))
+        {
+            return new PlayStats(null, null, DuckStationSource, "DuckStation has no playtime record for this game.");
+        }
+
+        if (record.Seconds <= 0)
+        {
+            return new PlayStats(0, null, DuckStationSource, "DuckStation has not recorded a session for this game.");
+        }
+
+        return new PlayStats(record.Seconds, FormatLastPlayed(record.LastPlayedUnix), DuckStationSource, null);
     }
 
     private PlayStats ForDolphin(ConsoleDescriptor console, string id)
@@ -209,6 +303,36 @@ public sealed class PlayStatsReader
             : new PlayStats(seconds, null, DolphinSource, null);
     }
 
+    private PlayStats ForRpcs3(ConsoleDescriptor console, string id)
+    {
+        if (id.Length == 0)
+        {
+            return new PlayStats(null, null, null, "The game has no title ID, so RPCS3 cannot match a play-time record.");
+        }
+
+        var file = Rpcs3File(console);
+        if (file is null)
+        {
+            return Unavailable("RPCS3's persistent_settings.dat was not found.");
+        }
+
+        if (!_rpcs3Files.TryGetValue(file, out var records))
+        {
+            records = ReadRpcs3File(file);
+            _rpcs3Files[file] = records;
+        }
+
+        if (!records.TryGetValue(id, out var record))
+        {
+            return new PlayStats(null, null, Rpcs3Source, "RPCS3 has no playtime record for this game.");
+        }
+
+        var seconds = record.Milliseconds / 1000;
+        return seconds <= 0
+            ? new PlayStats(0, record.LastPlayed, Rpcs3Source, "RPCS3 has not recorded a session for this game.")
+            : new PlayStats(seconds, record.LastPlayed, Rpcs3Source, null);
+    }
+
     private static PlayStats Unavailable(string reason) => new(null, null, null, reason);
 
     private static string? Pcsx2File(ConsoleDescriptor console)
@@ -221,6 +345,22 @@ public sealed class PlayStatsReader
             string.IsNullOrEmpty(emulatorDirectory) ? null : Path.Combine(emulatorDirectory, "inis", "playtime.dat"),
             Path.Combine(documents, "PCSX2", "inis", "playtime.dat"),
             Path.Combine(appData, "PCSX2", "inis", "playtime.dat"));
+    }
+
+    /// <summary>
+    /// DuckStation keeps its user data, including <c>playtime.dat</c>, in
+    /// <c>Documents\DuckStation</c>. Portable builds keep it beside the executable, and
+    /// some launchers nest that in a <c>portable</c> folder.
+    /// </summary>
+    private static string? DuckStationFile(ConsoleDescriptor console)
+    {
+        var emulatorDirectory = Path.GetDirectoryName(console.EmulatorPath);
+        var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
+        return FirstFile(
+            Path.Combine(documents, "DuckStation", "playtime.dat"),
+            string.IsNullOrEmpty(emulatorDirectory) ? null : Path.Combine(emulatorDirectory, "playtime.dat"),
+            string.IsNullOrEmpty(emulatorDirectory) ? null : Path.Combine(emulatorDirectory, "portable", "playtime.dat"));
     }
 
     private static string? DolphinFile(ConsoleDescriptor console)
@@ -238,12 +378,30 @@ public sealed class PlayStatsReader
             Path.Combine(appData, "Dolphin", "Config", "TimePlayed.ini"));
     }
 
+    /// <summary>
+    /// RPCS3 keeps this beside the executable in a portable install, and its folder has
+    /// been spelled both <c>GuiConfigs</c> and <c>gui_configs</c> across releases.
+    /// </summary>
+    private static string? Rpcs3File(ConsoleDescriptor console)
+    {
+        var emulatorDirectory = Path.GetDirectoryName(console.EmulatorPath);
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+
+        return FirstFile(
+            string.IsNullOrEmpty(emulatorDirectory) ? null : Path.Combine(emulatorDirectory, "GuiConfigs", "persistent_settings.dat"),
+            string.IsNullOrEmpty(emulatorDirectory) ? null : Path.Combine(emulatorDirectory, "gui_configs", "persistent_settings.dat"),
+            Path.Combine(appData, "rpcs3", "GuiConfigs", "persistent_settings.dat"));
+    }
+
     private static string? FirstFile(params string?[] paths)
         => paths.FirstOrDefault(path => !string.IsNullOrWhiteSpace(path) && File.Exists(path));
 
-    private static Dictionary<string, Pcsx2Record> ReadPcsx2File(string path)
+    /// <summary>
+    /// PCSX2 and DuckStation share the same fixed-width line, so one reader serves both.
+    /// </summary>
+    private static Dictionary<string, PlayedTimeRecord> ReadPlayedTimeFile(string path)
     {
-        var records = new Dictionary<string, Pcsx2Record>(StringComparer.OrdinalIgnoreCase);
+        var records = new Dictionary<string, PlayedTimeRecord>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
@@ -262,7 +420,7 @@ public sealed class PlayStatsReader
                     _ = long.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out lastPlayedUnix);
                 }
 
-                records[parts[0].ToUpperInvariant()] = new Pcsx2Record(seconds, lastPlayedUnix);
+                records[parts[0].ToUpperInvariant()] = new PlayedTimeRecord(seconds, lastPlayedUnix);
             }
         }
         catch (IOException)
@@ -327,6 +485,88 @@ public sealed class PlayStatsReader
         return records;
     }
 
+    private static Dictionary<string, Rpcs3Record> ReadRpcs3File(string path)
+    {
+        if (!File.Exists(path))
+        {
+            return new Dictionary<string, Rpcs3Record>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        try
+        {
+            return ParseRpcs3Records(File.ReadAllText(path));
+        }
+        catch (IOException)
+        {
+            // The emulator may be writing the file. The rail says "not found" and a
+            // later rescan tries again.
+            return new Dictionary<string, Rpcs3Record>(StringComparer.OrdinalIgnoreCase);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return new Dictionary<string, Rpcs3Record>(StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
+    private static Dictionary<string, Rpcs3Record> ParseRpcs3Records(string text)
+    {
+        var playtime = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+        var lastPlayed = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var section = string.Empty;
+
+        foreach (var rawLine in text.Split('\n'))
+        {
+            var line = rawLine.Trim();
+            if (line.Length == 0 || line.StartsWith(';') || line.StartsWith('#'))
+            {
+                continue;
+            }
+
+            if (line.StartsWith('['))
+            {
+                section = line.Trim('[', ']').Trim();
+                continue;
+            }
+
+            var equals = line.IndexOf('=');
+            if (equals <= 0)
+            {
+                continue;
+            }
+
+            var key = line[..equals].Trim();
+            var value = line[(equals + 1)..].Trim();
+
+            if (section.Equals("Playtime", StringComparison.OrdinalIgnoreCase))
+            {
+                if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var milliseconds))
+                {
+                    playtime[key] = milliseconds;
+                }
+            }
+            else if (section.Equals("LastPlayed", StringComparison.OrdinalIgnoreCase))
+            {
+                lastPlayed[key] = value;
+            }
+        }
+
+        var records = new Dictionary<string, Rpcs3Record>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var (id, milliseconds) in playtime)
+        {
+            records[id] = new Rpcs3Record(
+                milliseconds,
+                lastPlayed.TryGetValue(id, out var value) ? FormatRpcs3Date(value) : null);
+        }
+
+        return records;
+    }
+
+    private static string? FormatRpcs3Date(string value) =>
+        DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed)
+            ? parsed.ToString("d MMM yyyy", CultureInfo.InvariantCulture)
+            : null;
+
     private static bool TryParseDolphinMilliseconds(string value, out long milliseconds)
     {
         if (value.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
@@ -350,5 +590,7 @@ public sealed class PlayStatsReader
             .ToString("d MMM yyyy", CultureInfo.InvariantCulture);
     }
 
-    private sealed record Pcsx2Record(long Seconds, long LastPlayedUnix);
+    private sealed record PlayedTimeRecord(long Seconds, long LastPlayedUnix);
+
+    private sealed record Rpcs3Record(long Milliseconds, string? LastPlayed);
 }

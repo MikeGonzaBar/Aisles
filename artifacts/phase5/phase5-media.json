@@ -1,6 +1,7 @@
 {
   "phase": 5,
   "captured": "2026-10-20",
+  "refreshed": "2026-10-20 16:39, final build of the working tree (retail-wood room, category plaque, head card + details rail, 1280 label clamp): 15 shots re-captured at 1280x860 and maximised 2576x1408",
   "lighting": {
     "shelf": { "exposure": 0.92, "key": 2.0, "fill": 0.6, "rim": 0.34, "environment": 0.25, "wood": "#744c35" },
     "hero": { "exposure": 0.96, "key": 2.35, "fill": 0.82, "rim": 0.38, "environment": 0.28 },

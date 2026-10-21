@@ -12,6 +12,8 @@ const elements = {
   gameList: document.getElementById('game-list'),
   gamesHeading: document.getElementById('games-heading'),
   hero: document.getElementById('hero'),
+  shelf: document.querySelector('.shelf'),
+  shelfSign: document.getElementById('shelf-sign'),
   shelfPager: document.getElementById('shelf-pager'),
   shelfLabel: document.getElementById('shelf-label'),
   shelfHint: document.getElementById('shelf-hint'),
@@ -36,6 +38,9 @@ const state = {
   library: null,
   selectedConsoleId: null,
   selectedGameId: null,
+  launchingGameId: null,
+  launchTimer: 0,
+  launchSettleTimer: 0,
 };
 
 let spatialUiScheduled = false;
@@ -271,57 +276,92 @@ elements.settingsDialog.addEventListener('keydown', event => {
 
 /* ---------- rendering ---------- */
 
+let renderedConsoleSignature = '';
+
 function renderConsoles() {
   const consoles = state.library?.consoles ?? [];
-  elements.consoleList.replaceChildren();
+  const signature = consoles
+    .map((console) => [
+      console.id,
+      console.shortName,
+      console.name,
+      console.games.length,
+      console.gamesPathExists,
+      console.emulatorExists,
+    ].join(':'))
+    .join('|');
 
-  for (const console of consoles) {
-    const item = document.createElement('li');
-    item.className = 'console';
-    item.setAttribute('role', 'option');
-    item.setAttribute('aria-selected', String(console.id === state.selectedConsoleId));
+  if (signature === renderedConsoleSignature && elements.consoleList.children.length === consoles.length) {
+    consoles.forEach((console, index) => {
+      elements.consoleList.children[index]
+        .setAttribute('aria-selected', String(console.id === state.selectedConsoleId));
+    });
+  } else {
+    elements.consoleList.replaceChildren();
 
-    const short = document.createElement('span');
-    short.className = 'short';
-    short.textContent = console.shortName;
+    for (const console of consoles) {
+      const item = document.createElement('li');
+      item.className = 'console';
+      item.setAttribute('role', 'option');
+      item.setAttribute('aria-selected', String(console.id === state.selectedConsoleId));
 
-    const name = document.createElement('span');
-    name.className = 'name';
-    name.textContent = console.name;
+      const short = document.createElement('span');
+      short.className = 'short';
+      short.textContent = console.shortName;
 
-    const count = document.createElement('span');
-    count.className = 'count';
-    count.textContent = String(console.games.length);
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = console.name;
 
-    item.append(short, name, count);
+      const count = document.createElement('span');
+      count.className = 'count';
+      count.textContent = String(console.games.length);
 
-    if (!console.gamesPathExists) {
-      item.classList.add('is-empty');
-      const flag = document.createElement('span');
-      flag.className = 'flag';
-      flag.textContent = 'games folder missing';
-      item.append(flag);
-    } else if (!console.emulatorExists) {
-      const flag = document.createElement('span');
-      flag.className = 'flag';
-      flag.textContent = 'emulator missing';
-      item.append(flag);
-    } else if (console.games.length === 0) {
-      item.classList.add('is-empty');
-      const flag = document.createElement('span');
-      flag.className = 'flag';
-      flag.textContent = 'no games found';
-      item.append(flag);
+      item.append(short, name, count);
+
+      if (!console.gamesPathExists) {
+        item.classList.add('is-empty');
+        const flag = document.createElement('span');
+        flag.className = 'flag';
+        flag.textContent = 'games folder missing';
+        item.append(flag);
+      } else if (!console.emulatorExists) {
+        const flag = document.createElement('span');
+        flag.className = 'flag';
+        flag.textContent = 'emulator missing';
+        item.append(flag);
+      } else if (console.games.length === 0) {
+        item.classList.add('is-empty');
+        const flag = document.createElement('span');
+        flag.className = 'flag';
+        flag.textContent = 'no games found';
+        item.append(flag);
+      }
+
+      item.addEventListener('click', () => selectConsole(console.id));
+      elements.consoleList.append(item);
     }
 
-    item.addEventListener('click', () => selectConsole(console.id));
-    elements.consoleList.append(item);
+    renderedConsoleSignature = signature;
   }
 
   const totalGames = consoles.reduce((sum, console) => sum + console.games.length, 0);
   elements.totals.textContent = `${consoles.length} consoles · ${totalGames} games`;
+  renderShelfSign();
+}
 
-  publishSnapshot();
+const SHELF_SIGN_IDS = new Set(['ps1', 'ps2', 'ps3', 'wii', 'gamecube', 'ds', '3ds', 'xbox360']);
+
+function renderShelfSign() {
+  const console = currentConsole();
+  const supported = console && SHELF_SIGN_IDS.has(console.id);
+
+  elements.shelfSign.hidden = !supported;
+  elements.shelfSign.src = supported
+    ? `art/retail-wood-v1/category-${console.id}.png`
+    : '';
+  elements.shelfSign.alt = supported ? `${console.name} section` : '';
+  elements.shelf?.setAttribute('aria-label', console ? `${console.name} shelf` : 'Shelf');
 }
 
 function renderGames() {
@@ -373,7 +413,6 @@ function renderGames() {
       meta.append(serial);
     }
 
-    // Titles are derived rather than catalogued, so the row says where each came from.
     if (game.titleSource) {
       const source = document.createElement('span');
       source.className = 'source';
@@ -382,8 +421,6 @@ function renderGames() {
       meta.append(source);
     }
 
-    // Loose artwork matches are labelled; an exact serial or title match is not
-    // dressed up as anything more than "cover" (PLAN.md section 3.3.1).
     if (game.frontCoverUrl) {
       const cover = document.createElement('span');
       cover.className = 'cover';
@@ -413,10 +450,8 @@ function renderGames() {
     });
 
     item.append(artwork(game), text, launch);
-
     item.addEventListener('click', () => selectGame(game.id));
     item.addEventListener('dblclick', () => launchGame(game.id));
-
     elements.gameList.append(item);
   }
 }
@@ -483,41 +518,73 @@ function currentConsole() {
 }
 
 function selectConsole(consoleId) {
+  if (state.launchingGameId) {
+    return;
+  }
+
   state.selectedConsoleId = consoleId;
   state.selectedGameId = null;
-  post('selectConsole', { consoleId });
   renderConsoles();
-  renderGames();
+  if (document.body.classList.contains('shelf3d-failed')) renderGames();
   renderHero();
+  publishSnapshot();
+  post('selectConsole', { consoleId });
 }
 
 // The 3D lineup clicks back into the same selection path as the list.
 window.aislesSelectConsole = selectConsole;
 
 function selectGame(gameId) {
+  if (state.launchingGameId) {
+    return;
+  }
+
   state.selectedGameId = gameId;
   post('selectGame', { gameId });
-  renderGames();
+  if (document.body.classList.contains('shelf3d-failed')) renderGames();
+  renderHero();
+  publishSnapshot();
+}
+
+function clearGameSelection() {
+  if (state.launchingGameId || state.selectedGameId === null) {
+    return;
+  }
+
+  state.selectedGameId = null;
+  if (document.body.classList.contains('shelf3d-failed')) renderGames();
   renderHero();
   publishSnapshot();
 }
 
 function launchGame(gameId) {
+  if (state.launchingGameId) {
+    return;
+  }
+
   const game = currentConsole()?.games.find((entry) => entry.id === gameId);
   if (!game) {
     return;
   }
 
   state.selectedGameId = gameId;
-  renderGames();
+  state.launchingGameId = gameId;
+  if (document.body.classList.contains('shelf3d-failed')) renderGames();
   renderHero();
   publishSnapshot();
-  setStatus(`Launching ${game.title}…`);
-  post('launchGame', { gameId });
+  setStatus(`Spinning up ${game.title}…`);
+
+  state.launchTimer = window.setTimeout(() => {
+    state.launchTimer = 0;
+    if (state.launchingGameId === gameId) {
+      post('launchGame', { gameId });
+    }
+  }, 420);
 }
 
 // The shelf clicks and double-clicks back into these same paths.
 window.aislesSelectGame = selectGame;
+window.aislesClearGameSelection = clearGameSelection;
 window.aislesLaunchGame = launchGame;
 
 /* ---------- hero ---------- */
@@ -532,7 +599,15 @@ window.aislesLaunchGame = launchGame;
 const SHELF_GAMES = 18;
 
 function formatDuration(seconds) {
-  const totalMinutes = Math.max(1, Math.floor(seconds / 60));
+  // RPCS3 reports short sessions in seconds ("52 second(s)"); a rail that rounds a
+  // first launch up to "1m" would be claiming more play time than was recorded.
+  const totalSeconds = Math.max(1, Math.round(seconds));
+
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`;
+  }
+
+  const totalMinutes = Math.floor(totalSeconds / 60);
 
   if (totalMinutes < 60) {
     return `${totalMinutes}m`;
@@ -585,6 +660,7 @@ function informationSection(console, game) {
   grid.append(
     detailRow('Game ID', game.identityId ?? game.serial),
     detailRow('Region', game.region),
+    detailRow('Version', game.version),
     detailRow('Emulator', console?.emulatorName),
     detailRow('Shelf', shelfPosition(console, game)),
   );
@@ -763,7 +839,9 @@ function renderHero() {
   const launch = document.createElement('button');
   launch.className = 'launch';
   launch.type = 'button';
-  launch.textContent = 'LAUNCH';
+  const launching = state.launchingGameId === game.id;
+  launch.textContent = launching ? 'STARTING…' : 'LAUNCH';
+  launch.disabled = launching;
   launch.addEventListener('click', () => launchGame(game.id));
 
   elements.hero.append(row, heroHead(title, meta, launch), detailsRail(console, game));
@@ -772,6 +850,9 @@ function renderHero() {
   if (hero) {
     stage.append(hero.canvas);
     hero.show(console, game);
+    if (launching) {
+      hero.launch();
+    }
   } else {
     stage.textContent = 'Loading 3D view…';
     heroModulePromise ??= import('./hero3d.js')
@@ -819,6 +900,7 @@ function renderPager(detail) {
 }
 
 window.addEventListener('aisles:shelf', (event) => renderPager(event.detail));
+window.addEventListener('aisles:shelf3d-failed', renderGames);
 
 /* ---------- window mode ----------
  * The stage opens maximized with its standard title bar. F11 can still opt into full
@@ -880,8 +962,9 @@ function onLibrary(payload) {
   if (!selectedGameStillExists) state.selectedGameId = null;
 
   renderConsoles();
-  renderGames();
+  if (document.body.classList.contains('shelf3d-failed')) renderGames();
   renderHero();
+  publishSnapshot();
   scheduleSpatialUi();
   scheduleStartupArtwork();
 }
@@ -901,6 +984,7 @@ function onGameDetails(payload) {
   // read must be able to fill a blank Game ID, not clear one the library had.
   if (payload.identityId) game.identityId = payload.identityId;
   if (payload.region) game.region = payload.region;
+  if (payload.version) game.version = payload.version;
   if (payload.played) game.played = payload.played;
   if (payload.achievements) game.achievements = payload.achievements;
 
@@ -911,6 +995,29 @@ function onGameDetails(payload) {
 }
 
 function onLaunchResult(payload) {
+  if (payload?.gameId === state.launchingGameId) {
+    if (state.launchTimer) {
+      window.clearTimeout(state.launchTimer);
+      state.launchTimer = 0;
+    }
+
+    const settle = () => {
+      state.launchSettleTimer = 0;
+      state.launchingGameId = null;
+      window.aislesHero3d?.settleLaunch();
+      const launch = elements.hero?.querySelector('.launch');
+      if (launch) {
+        launch.disabled = false;
+        launch.textContent = 'LAUNCH';
+      }
+    };
+
+    if (payload.started) {
+      state.launchSettleTimer = window.setTimeout(settle, 1100);
+    } else {
+      settle();
+    }
+  }
   setStatus(payload.message, payload.started ? 'ok' : 'err');
 }
 
