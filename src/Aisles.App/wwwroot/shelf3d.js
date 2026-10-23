@@ -31,6 +31,7 @@ const COLUMNS = 6;
 const TIERS = 3;
 const PER_BAY = COLUMNS * TIERS;
 const CASES_PER_FRAME = 3;
+const CASES_DURING_CONSOLE_TRANSITION = 1;
 
 /** Furniture is proportional to the media, so a shelf of DS cards is not a DVD shelf. */
 const SLOT_GAP_RATIO = 0.05;
@@ -43,6 +44,12 @@ const TILT = THREE.MathUtils.degToRad(7);
 
 /** One page of bays, ease-out, no overshoot. */
 const SLIDE_MS = 400;
+const FILTER_CASE_MS = 180;
+const CONSOLE_RECEDE_MS = 140;
+const CONSOLE_SWIPE_MS = 150;
+const CONSOLE_ENTER_MS = 230;
+const CONSOLE_DEPTH = 0.48;
+const CONSOLE_SWIPE_DISTANCE = 1.8;
 
 /**
  * The shelf stands at 0.0022 units per millimetre, so a DVD case is the 0.30 x 0.42 the
@@ -92,7 +99,7 @@ function start(canvas) {
   const key = new THREE.DirectionalLight(0xfff0dc, 2.0);
   key.position.set(-1.9, 3.4, 2.6);
   key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.mapSize.set(1024, 1024);
   key.shadow.camera.left = -2.1;
   key.shadow.camera.right = 2.1;
   key.shadow.camera.top = 1.9;
@@ -151,6 +158,8 @@ function start(canvas) {
   const cases = new Map();
   let buildFrame = 0;
   let buildGeneration = 0;
+  let artworkQueue = [];
+  let artworkLoading = false;
 
   const state = {
     games: [],
@@ -161,6 +170,8 @@ function start(canvas) {
     body: '#2E2E34',
     accent: '#FFCE00',
     platformId: null,
+    // null means every case is in the current shelf; a query supplies matching IDs.
+    visibleGameIds: null,
     bay: 0,
     bayCount: 1,
     bayPitch: 2.4,
@@ -279,16 +290,33 @@ function start(canvas) {
 
   /* ---------- media ---------- */
 
+  function pumpArtwork() {
+    if (artworkLoading || shelfTransition || artworkQueue.length === 0) return;
+
+    artworkLoading = true;
+    artworkQueue.shift()().finally(() => {
+      artworkLoading = false;
+      requestAnimationFrame(pumpArtwork);
+    });
+  }
+
+  function enqueueArtwork(load) {
+    artworkQueue.push(load);
+    pumpArtwork();
+  }
+
   /**
    * One shelf object: the closed retail case with its cover at the real inlay size.
    * Printed faces are unlit, so cover art is read rather than lit; the shell keeps the
    * room's light.
    */
-  function makeItem(game) {
+  function makeItem(game, generation) {
     const group = new THREE.Group();
     const built = buildCase(state.preset, SHELF_UNIT, {
       body: state.body,
-      cover: generatedCoverTexture(state.preset, { accentColor: state.accent }, game, 320),
+      // Most games replace this immediately with local artwork. Keep that placeholder
+      // cheap so a console switch does not synchronously paint full-size covers.
+      cover: generatedCoverTexture(state.preset, { accentColor: state.accent }, game, game.frontCoverUrl ? 96 : 256),
       detail: false,
     });
 
@@ -302,8 +330,12 @@ function start(canvas) {
     });
 
     if (game.frontCoverUrl) {
-      loadTexture(game.frontCoverUrl, 512)
+      enqueueArtwork(() => loadTexture(game.frontCoverUrl, 384)
         .then((texture) => {
+          if (generation !== buildGeneration) {
+            texture.dispose();
+            return;
+          }
           fitTexture(texture, state.preset.inlay[0] / state.preset.inlay[1]);
           built.coverMaterial.map?.dispose();
           built.coverMaterial.map = texture;
@@ -311,7 +343,7 @@ function start(canvas) {
         })
         .catch(() => {
           // The generated case stays. A missing file is not a shelf with a hole in it.
-        });
+        }));
     }
 
     return group;
@@ -376,9 +408,9 @@ function start(canvas) {
     };
   }
 
-  function placeCase(holder, game) {
+  function placeCase(holder, game, generation) {
     const spec = state.media;
-    const group = makeItem(game);
+    const group = makeItem(game, generation);
 
     // The return slot that stays behind when the case lifts out. Same footprint as the
     // case, so the gap reads as an intentional place to put the selected item back.
@@ -392,10 +424,11 @@ function start(canvas) {
     return { group, outline };
   }
 
-  function build() {
+  function build(snapshot = window.aislesSnapshot) {
     cancelAnimationFrame(buildFrame);
     buildFrame = 0;
     const generation = ++buildGeneration;
+    artworkQueue = [];
 
     for (const bay of bays) {
       shelfRoot.remove(bay.group);
@@ -405,8 +438,8 @@ function start(canvas) {
     cases.clear();
     shelfRoot.position.x = 0;
 
-    const platform = window.aislesSnapshot?.platform;
-    state.games = window.aislesSnapshot?.games ?? [];
+    const platform = snapshot?.platform;
+    state.games = snapshot?.games ?? [];
     state.platformId = platform?.id ?? null;
     state.preset = presetFor(platform);
     state.media = shelfItemFor(state.preset, SHELF_UNIT);
@@ -438,17 +471,29 @@ function start(canvas) {
     const addCases = () => {
       if (generation !== buildGeneration) return;
 
-      const end = Math.min(gameIndex + CASES_PER_FRAME, state.games.length);
+      // Let the entering shelf stay fluid on slower GPUs. Once it has settled,
+      // return to the normal incremental build rate.
+      const perFrame = shelfTransition ? CASES_DURING_CONSOLE_TRANSITION : CASES_PER_FRAME;
+      const end = Math.min(gameIndex + perFrame, state.games.length);
       for (; gameIndex < end; gameIndex++) {
         const game = state.games[gameIndex];
         const bayIndex = Math.floor(gameIndex / PER_BAY);
         const slot = gameIndex % PER_BAY;
         const { x, y } = slotPosition(slot);
-        const { group: caseGroup, outline } = placeCase(bays[bayIndex].group, game);
+        const { group: caseGroup, outline } = placeCase(bays[bayIndex].group, game, generation);
         caseGroup.position.set(x, y, caseZ);
         outline.position.set(x, y, caseZ - 0.01);
         bays[bayIndex].group.add(caseGroup, outline);
-        cases.set(game.id, { group: caseGroup, outline, bay: bayIndex, x, y, z: caseZ });
+        cases.set(game.id, {
+          group: caseGroup,
+          outline,
+          bay: bayIndex,
+          x,
+          y,
+          z: caseZ,
+          filterProgress: 1,
+          targetFilterProgress: 1,
+        });
       }
 
       applySelection();
@@ -467,17 +512,62 @@ function start(canvas) {
    */
   function applySelection() {
     for (const [gameId, slot] of cases) {
+      const matchesFilter = state.visibleGameIds === null || state.visibleGameIds.has(gameId);
+      slot.targetFilterProgress = matchesFilter ? 1 : 0;
+
+      if (!matchesFilter) {
+        slot.outline.visible = false;
+        // Keep the case alive until the frame loop has pulled it out of the bay.
+        slot.group.visible = slot.filterProgress > 0;
+        continue;
+      }
+
       const chosen = gameId === state.selectedGameId;
       slot.group.visible = !chosen;
       slot.outline.visible = chosen;
 
       if (chosen) {
+        // A selected matching game is represented by its RETURN slot, not a
+        // case that joins the search animation.
+        slot.filterProgress = 1;
+        slot.targetFilterProgress = 1;
+        slot.group.scale.setScalar(1);
         slot.group.position.z = slot.z;
       }
     }
   }
 
+  function animateFilteredCases(elapsed) {
+    const step = Math.min(1, elapsed / FILTER_CASE_MS);
+
+    for (const [gameId, slot] of cases) {
+      if (slot.filterProgress === slot.targetFilterProgress || gameId === state.selectedGameId) {
+        continue;
+      }
+
+      slot.filterProgress += Math.sign(slot.targetFilterProgress - slot.filterProgress) * step;
+      slot.filterProgress = THREE.MathUtils.clamp(slot.filterProgress, 0, 1);
+
+      // Non-matching cases slide toward the player, then disappear; restoring a
+      // match reverses the same motion. Furniture and matching cases never rebuild.
+      const removed = 1 - slot.filterProgress;
+      slot.group.visible = slot.filterProgress > 0;
+      slot.group.position.z = slot.z + removed * 0.34;
+      slot.group.scale.setScalar(0.92 + slot.filterProgress * 0.08);
+
+      if (slot.filterProgress === 0) {
+        slot.group.scale.setScalar(1);
+      }
+    }
+  }
+
   /* ---------- camera and resizing ---------- */
+
+  // A console can change while Covers or List has hidden this canvas. Keep the
+  // last visible dimensions separate from the WebGL buffer: the buffer can still
+  // be correct when the canvas returns, while the camera was framed at 1 x 1.
+  let lastVisibleWidth = 0;
+  let lastVisibleHeight = 0;
 
   function frameCamera() {
     const width = canvas.clientWidth || 1;
@@ -501,14 +591,23 @@ function start(canvas) {
     const height = canvas.clientHeight;
 
     if (width === 0 || height === 0) {
+      lastVisibleWidth = 0;
+      lastVisibleHeight = 0;
       return;
     }
 
-    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const visibilityChanged = width !== lastVisibleWidth || height !== lastVisibleHeight;
+    lastVisibleWidth = width;
+    lastVisibleHeight = height;
+
+    const ratio = Math.min(window.devicePixelRatio || 1, 1.25);
     const bufferWidth = Math.round(width * ratio);
     const bufferHeight = Math.round(height * ratio);
 
     if (canvas.width === bufferWidth && canvas.height === bufferHeight) {
+      // Returning from a hidden view keeps the existing pixels, but it must not
+      // keep the camera that was framed from the hidden canvas's 1 x 1 fallback.
+      if (visibilityChanged) frameCamera();
       return;
     }
 
@@ -527,6 +626,8 @@ function start(canvas) {
   let sliding = false;
 
   function pageTo(index, animate = true) {
+    if (shelfTransition) return;
+
     const clamped = Math.max(0, Math.min(state.bayCount - 1, index));
     state.bay = clamped;
 
@@ -585,7 +686,9 @@ function start(canvas) {
     const targets = [];
     for (const slot of cases.values()) {
       // A selected case is out of the shelf, so its return slot remains clickable.
-      targets.push(slot.group.visible ? slot.group : slot.outline);
+      if (slot.targetFilterProgress > 0) {
+        targets.push(slot.group.visible ? slot.group : slot.outline);
+      }
     }
 
     const hit = raycaster.intersectObjects(targets, true)[0];
@@ -697,6 +800,16 @@ function start(canvas) {
       return;
     }
 
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement || event.target.isContentEditable) {
+      return;
+    }
+
+    // While the shelf is hidden (Covers or List is up), the arrow keys belong to
+    // that view: no paging, and no preventDefault stealing the scroll.
+    if (canvas.closest('[hidden]')) {
+      return;
+    }
+
     // The shelf owns the arrow keys (PLAN.md section 6); the lineup does not use them.
     event.preventDefault();
     pageBy(event.key === 'ArrowRight' ? 1 : -1);
@@ -713,37 +826,188 @@ function start(canvas) {
 
   /* ---------- data flow ---------- */
 
+  function snapshotSignature(snapshot) {
+    return [
+      snapshot.platform?.id ?? '',
+      snapshot.platform?.media ?? '',
+      (snapshot.games ?? []).map((game) => game.id).join('|'),
+    ].join('::');
+  }
+
+  function applySnapshotState(snapshot) {
+    state.visibleGameIds = snapshot.visibleGameIds ? new Set(snapshot.visibleGameIds) : null;
+    state.selectedGameId = snapshot.selectedGameId ?? null;
+  }
+
+  function beginConsoleTransition() {
+    if (!queuedSnapshot || shelfTransition) return;
+
+    const consoles = queuedSnapshot.consoles ?? [];
+    const currentIndex = consoles.findIndex((item) => item.id === state.platformId);
+    const nextIndex = consoles.findIndex((item) => item.id === queuedSnapshot.platform?.id);
+    const direction = nextIndex > currentIndex ? 1 : -1;
+
+    // Freeze shelf paging while its whole bay moves as one scene.
+    sliding = false;
+    shelfTransition = {
+      phase: 'recede',
+      started: performance.now(),
+      direction: currentIndex < 0 || nextIndex < 0 ? 1 : direction,
+      fromX: shelfRoot.position.x,
+    };
+    transitionMetrics = { samples: [], lastFrameAt: performance.now() };
+  }
+
+  function easeOut(t) {
+    return 1 - (1 - t) ** 3;
+  }
+
+  function animateConsoleTransition(now) {
+    if (!shelfTransition) return;
+
+    const transition = shelfTransition;
+    if (transition.phase === 'recede') {
+      const t = Math.min(1, (now - transition.started) / CONSOLE_RECEDE_MS);
+      shelfRoot.position.x = transition.fromX;
+      shelfRoot.position.z = -CONSOLE_DEPTH * easeOut(t);
+      if (t < 1) return;
+      transition.phase = 'swipe-out';
+      transition.started = now;
+      return;
+    }
+
+    if (transition.phase === 'swipe-out') {
+      const t = Math.min(1, (now - transition.started) / CONSOLE_SWIPE_MS);
+      shelfRoot.position.x = transition.fromX - transition.direction * CONSOLE_SWIPE_DISTANCE * easeOut(t);
+      shelfRoot.position.z = -CONSOLE_DEPTH;
+      if (t < 1) return;
+
+      // The old shelf is now fully offscreen. Give the rebuild its own frame so
+      // geometry and canvas-texture work cannot interrupt the visible swipe.
+      transition.phase = 'prepare-incoming';
+      transition.started = now;
+      return;
+    }
+
+    if (transition.phase === 'prepare-incoming') {
+      const incomingSnapshot = queuedSnapshot;
+      const incomingSignature = queuedSignature;
+      queuedSnapshot = null;
+      queuedSignature = null;
+      applySnapshotState(incomingSnapshot);
+      build(incomingSnapshot);
+      builtSignature = incomingSignature;
+      shelfRoot.position.set(transition.direction * CONSOLE_SWIPE_DISTANCE, 0, -CONSOLE_DEPTH);
+      applySelection();
+      announce();
+      transition.phase = 'enter';
+      transition.started = now;
+      return;
+    }
+
+    const t = Math.min(1, (now - transition.started) / CONSOLE_ENTER_MS);
+    const remaining = 1 - easeOut(t);
+    shelfRoot.position.set(
+      transition.direction * CONSOLE_SWIPE_DISTANCE * remaining,
+      0,
+      -CONSOLE_DEPTH * remaining,
+    );
+    if (t >= 1) {
+      shelfRoot.position.set(0, 0, 0);
+      shelfTransition = null;
+      finishTransitionMetrics();
+      pumpArtwork();
+      beginConsoleTransition();
+    }
+  }
+
   function update() {
     const snapshot = window.aislesSnapshot;
     if (!snapshot) {
       return;
     }
 
-    const signature = [
-      snapshot.platform?.id ?? '',
-      snapshot.platform?.media ?? '',
-      (snapshot.games ?? []).map((game) => game.id).join('|'),
-    ].join('::');
+    const signature = snapshotSignature(snapshot);
 
-    if (signature !== builtSignature) {
-      build();
-      builtSignature = signature;
+    // If the user returns to the shelf already on screen before the handoff
+    // crosses over, keep it rather than completing an obsolete transition.
+    if (shelfTransition && signature === builtSignature) {
+      queuedSnapshot = null;
+      queuedSignature = null;
+      shelfRoot.position.set(shelfTransition.fromX, 0, 0);
+      shelfTransition = null;
+      finishTransitionMetrics(true);
+      pumpArtwork();
     }
 
-    state.selectedGameId = snapshot.selectedGameId ?? null;
+    if (signature !== builtSignature) {
+      // Only a console change gets the full aisle-to-aisle handoff. A library
+      // refresh on the same console can rebuild immediately without decoration.
+      if (builtSignature !== null && snapshot.platform?.id !== state.platformId) {
+        queuedSnapshot = snapshot;
+        queuedSignature = signature;
+        beginConsoleTransition();
+        return;
+      }
+
+      applySnapshotState(snapshot);
+      build(snapshot);
+      builtSignature = signature;
+      applySelection();
+      announce();
+      return;
+    }
+
+    applySnapshotState(snapshot);
     applySelection();
     announce();
   }
 
   let builtSignature = null;
+  let shelfTransition = null;
+  let queuedSnapshot = null;
+  let queuedSignature = null;
+  let transitionMetrics = null;
+  let lastTransitionMetrics = null;
+
+  function sampleTransitionFrame(now) {
+    if (!transitionMetrics) return;
+    const elapsed = now - transitionMetrics.lastFrameAt;
+    transitionMetrics.lastFrameAt = now;
+    if (elapsed > 0) transitionMetrics.samples.push(elapsed);
+  }
+
+  function finishTransitionMetrics(cancelled = false) {
+    if (!transitionMetrics) return;
+    const samples = transitionMetrics.samples;
+    const ordered = [...samples].sort((a, b) => a - b);
+    const averageMs = samples.reduce((sum, value) => sum + value, 0) / Math.max(samples.length, 1);
+    lastTransitionMetrics = {
+      cancelled,
+      frames: samples.length,
+      averageMs: Number(averageMs.toFixed(2)),
+      fps: Number((1000 / averageMs).toFixed(1)),
+      p95Ms: Number((ordered[Math.max(0, Math.ceil(ordered.length * 0.95) - 1)] ?? 0).toFixed(2)),
+      worstMs: Number((ordered.at(-1) ?? 0).toFixed(2)),
+    };
+    transitionMetrics = null;
+  }
 
   /* ---------- frame loop ---------- */
+
+  let filterAnimationAt = performance.now();
 
   function tick() {
     resize();
 
+    const now = performance.now();
+    sampleTransitionFrame(now);
+    animateFilteredCases(now - filterAnimationAt);
+    filterAnimationAt = now;
+    animateConsoleTransition(now);
+
     if (sliding) {
-      const elapsed = performance.now() - slideStarted;
+      const elapsed = now - slideStarted;
       const t = Math.min(1, elapsed / SLIDE_MS);
       // Ease-out cubic: fast off the mark, no overshoot, so the snap is exact.
       const eased = 1 - (1 - t) ** 3;
@@ -775,6 +1039,7 @@ function start(canvas) {
     pageTo,
     pickAt,
     shelfRoot,
+    getTransitionMetrics: () => lastTransitionMetrics,
   };
 }
 

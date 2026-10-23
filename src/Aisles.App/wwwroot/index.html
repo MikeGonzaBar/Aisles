@@ -15,6 +15,11 @@
       AISLES
     </span>
     <span class="phase">Walk the aisles of your collection.</span>
+    <label class="search-field topbar-search">
+      <span class="visually-hidden">Search games</span>
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14Z"/></svg>
+      <input id="game-filter" type="search" placeholder="Search games…" autocomplete="off" />
+    </label>
     <button class="settings-trigger" id="settings-trigger" type="button" aria-haspopup="dialog">
       <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M19.14 12.94a7.5 7.5 0 0 0 .05-.94 7.5 7.5 0 0 0-.05-.94l2.03-1.58-1.92-3.32-2.39.96a7.3 7.3 0 0 0-1.62-.94L14.88 3h-3.84l-.36 3.18a7.3 7.3 0 0 0-1.62.94l-2.39-.96-1.92 3.32 2.03 1.58a7.5 7.5 0 0 0-.05.94c0 .32.02.63.05.94l-2.03 1.58 1.92 3.32 2.39-.96c.5.39 1.04.7 1.62.94l.36 3.18h3.84l.36-3.18a7.3 7.3 0 0 0 1.62-.94l2.39.96 1.92-3.32-2.03-1.58ZM12.96 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z"/></svg>
       Settings
@@ -54,33 +59,52 @@
   </div>
 
   <main class="layout">
-    <section class="lineup" aria-label="Consoles">
+    <section class="lineup" aria-label="Console lineup">
       <canvas id="stage-canvas"></canvas>
       <div class="stage-labels" id="stage-labels"></div>
       <!-- Shown only if WebGL or the model tier fails, so platform switching survives. -->
       <ul id="console-list" class="list console-fallback"></ul>
     </section>
 
-    <section class="stage-row">
-      <section class="shelf" aria-label="Shelf">
-        <canvas id="shelf-canvas"></canvas>
-        <img class="shelf-sign" id="shelf-sign" alt="" hidden />
-        <div class="shelf-pager" id="shelf-pager">
-          <button type="button" data-page="-1" aria-label="Previous shelf">&lsaquo;</button>
-          <span id="shelf-label">Shelf 1 of 1</span>
-          <button type="button" data-page="1" aria-label="Next shelf">&rsaquo;</button>
-        </div>
-        <p class="shelf-hint" id="shelf-hint">
-          A 19th game opens Shelf 2. The bay slides and the consoles stay put.
-        </p>
-      </section>
-
-      <section class="hero" id="hero" aria-label="Selected game"></section>
+    <!-- The filter dock stays first in the DOM (keyboard order: filters, then the
+         browse views) but renders at the bottom, so the two 3D scenes stack without
+         a toolbar band between them. The console names are their own labels. -->
+    <section class="library-toolbar" aria-label="Library">
+      <div class="console-filter" id="console-filter" role="group" aria-label="Console filter"></div>
+      <div class="view-switch" id="view-switch" role="group" aria-label="Browse view">
+        <button type="button" data-view="shelf" aria-pressed="false">Shelf</button>
+        <button type="button" data-view="covers" aria-pressed="false">Covers</button>
+        <button type="button" data-view="list" aria-pressed="false">List</button>
+      </div>
     </section>
 
-    <section class="panel games" aria-label="Games">
-      <h2 id="games-heading">Games</h2>
-      <ul id="game-list" class="list"></ul>
+    <section class="stage-row">
+      <div class="browse" id="browse">
+        <h2 id="games-heading" class="visually-hidden">Games</h2>
+
+        <section class="shelf" aria-label="Shelf">
+          <canvas id="shelf-canvas"></canvas>
+          <img class="shelf-sign" id="shelf-sign" alt="" hidden />
+          <div class="shelf-pager" id="shelf-pager">
+            <button type="button" data-page="-1" aria-label="Previous shelf">&lsaquo;</button>
+            <span id="shelf-label">Shelf 1 of 1</span>
+            <button type="button" data-page="1" aria-label="Next shelf">&rsaquo;</button>
+          </div>
+          <p class="shelf-hint" id="shelf-hint">
+            A 19th game opens Shelf 2. The bay slides and the consoles stay put.
+          </p>
+        </section>
+
+        <section class="browse-view covers-view" id="covers-view" hidden aria-label="Covers">
+          <ul id="cover-grid" class="cover-grid" role="listbox" aria-label="Games by cover"></ul>
+        </section>
+
+        <section class="browse-view list-view" id="list-view" hidden aria-label="List">
+          <ul id="game-list" class="list" role="listbox" aria-labelledby="games-heading"></ul>
+        </section>
+      </div>
+
+      <section class="hero" id="hero" aria-label="Selected game"></section>
     </section>
 
   </main>

@@ -30,7 +30,7 @@ import {
 const FOV = 30;
 const GAP_MM = 14;
 const IDLE_SPIN_SPEED = 0.00042;
-const LAUNCH_SPIN_SPEED = 0.009;
+const LAUNCH_SPIN_SPEED = 0.018;
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 let renderer;
@@ -55,7 +55,7 @@ try {
 
 function start() {
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.96;
@@ -244,7 +244,7 @@ function resize(force = false) {
     return;
   }
 
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
   renderer.setSize(width, height, false);
   fit();
   render();

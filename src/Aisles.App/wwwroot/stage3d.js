@@ -98,7 +98,7 @@ if (canvas && labelsRoot) {
 function start(canvas, labelsRoot) {
   // Slatwall is supplied by the responsive CSS background behind the live models.
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.96;
@@ -129,7 +129,7 @@ function start(canvas, labelsRoot) {
   const key = new THREE.DirectionalLight(0xfff0dc, 2.1);
   key.position.set(-2.6, 4.2, 3.4);
   key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.mapSize.set(1024, 1024);
   key.shadow.camera.left = -7;
   key.shadow.camera.right = 7;
   key.shadow.camera.top = 3.2;
@@ -694,7 +694,7 @@ function start(canvas, labelsRoot) {
       return;
     }
 
-    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const ratio = Math.min(window.devicePixelRatio || 1, 1.25);
     const bufferWidth = Math.round(width * ratio);
     const bufferHeight = Math.round(height * ratio);
 

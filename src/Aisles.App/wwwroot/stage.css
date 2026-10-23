@@ -35,6 +35,12 @@ body {
   user-select: none;
 }
 
+/* Every switched-out view (shelf, covers, list, dialogs) uses the hidden attribute,
+   which also removes its controls from the tab order. */
+[hidden] {
+  display: none !important;
+}
+
 /* ---------- top bar ---------- */
 
 .topbar {
@@ -72,7 +78,6 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  margin-left: auto;
   padding: 7px 11px;
   border: 1px solid var(--navy-line);
   border-radius: 6px;
@@ -274,9 +279,179 @@ button:disabled { opacity: .55; cursor: wait; }
 
 .layout {
   display: grid;
-  grid-template-rows: auto 1fr;
+  /* The 3D scenery forms the spine: the console wall, then the browse row, and only
+     the quiet filter dock sits between the content and the statusbar. The dock stays
+     first in the DOM, so keyboard focus still reaches the filters before the grid. */
+  grid-template-rows: auto minmax(0, 1fr) auto;
   flex: 1;
   min-height: 0;
+}
+
+/* ---------- the filter dock ---------- */
+
+/* A deliberately quiet rail: the console names ARE the labels, so the dock uses no
+   boxed pills or visible headings that would compete with the 3D lineup above. It
+   renders at the bottom of the main layout, directly above the statusbar. */
+.library-toolbar {
+  order: 3;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding: 7px 18px 9px;
+  border-top: 1px solid var(--navy-line);
+  background: #0a0f1f;
+}
+
+/* A horizontally scrollable rail: All plus eight consoles fits on wide screens and
+   scrolls on narrow ones, without ever hiding the search or view switch. */
+.console-filter {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 2px 14px;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.console-filter::-webkit-scrollbar { height: 6px; }
+.console-filter::-webkit-scrollbar-thumb { background: #243154; border-radius: 3px; }
+
+/* Chips are plain text tabs — uppercase micro-caps with a thin count — and the
+   active one is marked by the cream text and a yellow underline, never by a box. */
+.filter-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 4px 1px 5px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--dim);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.filter-chip:hover:not(:disabled) {
+  color: var(--cream);
+}
+
+.filter-chip:focus-visible {
+  outline: 1px solid #6378bd;
+  outline-offset: 3px;
+}
+
+/* Selection is carried by aria-pressed (announced) plus the underline, so it does
+   not rely on colour alone. */
+.filter-chip[aria-pressed="true"] {
+  color: var(--cream);
+  border-bottom-color: var(--yellow);
+}
+
+.chip-count {
+  font-size: 9px;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.filter-chip[aria-pressed="true"] .chip-count {
+  color: #8a94ad;
+}
+
+/* Search loses the visible label: the magnifier and the placeholder carry the
+   purpose, the hidden label keeps the accessible name. */
+.search-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.search-field svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  fill: var(--dim);
+}
+
+.search-field input {
+  width: clamp(150px, 16vw, 230px);
+  padding: 5px 2px;
+  border: 0;
+  border-bottom: 1px solid #2b385f;
+  border-radius: 0;
+  outline: none;
+  background: transparent;
+  color: var(--cream);
+  font: inherit;
+}
+
+.search-field input:focus {
+  border-bottom-color: var(--yellow);
+  box-shadow: 0 1px 0 0 rgb(255 206 0 / 25%);
+}
+
+.search-field input::placeholder {
+  color: var(--dim);
+}
+
+/* The search is part of the app chrome, where it is always available without
+   competing with the console chooser beneath the shelf. Auto margins keep it in
+   the visual gap between the Aisles identity and Settings. */
+.topbar-search {
+  flex: 0 1 440px;
+  width: min(440px, 32vw);
+  margin-inline: auto;
+}
+
+.topbar-search input {
+  width: 100%;
+  min-width: 0;
+}
+
+.view-switch {
+  display: inline-flex;
+  margin-left: auto;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid #243154;
+  border-radius: 7px;
+  background: transparent;
+  overflow: hidden;
+}
+
+.view-switch button {
+  padding: 4px 11px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--dim);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.view-switch button:hover:not(:disabled),
+.view-switch button:focus-visible {
+  color: var(--cream);
+  background: #141d3d;
+}
+
+.view-switch button[aria-pressed="true"] {
+  background: #1c2546;
+  color: var(--yellow);
+}
+
+.view-switch button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* ---------- the shelf and the hero ---------- */
@@ -287,6 +462,27 @@ button:disabled { opacity: .55; cursor: wait; }
   gap: 14px;
   min-height: 0;
   padding: 10px 18px 10px;
+}
+
+/* One browse column holds whichever of the three views is active. The shelf keeps
+   its own flex column on top of it; covers and list each get a scrollable pane. */
+.browse {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.browse .shelf {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.browse-view {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .shelf {
@@ -308,7 +504,7 @@ button:disabled { opacity: .55; cursor: wait; }
      The grades keep distant cases quieter than the interactive foreground covers. */
   background-color: #15131a;
   background-image:
-    radial-gradient(ellipse at 50% 48%, transparent 34%, rgb(5 8 17 / 28%) 76%, rgb(5 8 17 / 62%) 100%),
+    radial-gradient(ellipse at 50% 48%, rgb(211 145 52 / 12%) 0%, transparent 38%, rgb(5 8 17 / 28%) 76%, rgb(5 8 17 / 62%) 100%),
     linear-gradient(180deg, rgb(11 14 25 / 12%) 0%, rgb(8 11 22 / 25%) 58%, rgb(8 11 22 / 46%) 100%),
     url("art/retail-wood-v1/rental-store-perspective-v1.webp");
   background-position: center, center, 50% 58%;
@@ -407,7 +603,7 @@ button:disabled { opacity: .55; cursor: wait; }
   border: 1px solid rgb(54 67 111 / 46%);
   border-radius: 6px;
   background:
-    radial-gradient(64% 52% at 50% 58%, rgb(203 139 52 / 18%), rgb(34 48 94 / 42%) 48%, rgb(10 15 31 / 0%) 76%),
+    radial-gradient(64% 52% at 50% 58%, rgb(235 166 58 / 26%), rgb(48 47 82 / 48%) 48%, rgb(10 15 31 / 0%) 76%),
     linear-gradient(180deg, rgb(20 29 59 / 58%), rgb(9 13 29 / 16%));
   overflow: hidden;
 }
@@ -533,7 +729,7 @@ button:disabled { opacity: .55; cursor: wait; }
   background:
     radial-gradient(circle at 1px 1px, rgb(71 61 32 / 13%) 1px, transparent 1.5px) 0 0 / 13px 13px,
     linear-gradient(135deg, #fffdf2, #e8dfc4);
-  box-shadow: 0 12px 30px rgb(0 0 0 / 42%), inset 0 0 0 1px rgb(255 255 255 / 72%);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 42%), inset 0 0 0 1px rgb(255 255 255 / 72%), 0 0 24px rgb(217 169 0 / 12%);
   z-index: 2;
 }
 
@@ -916,6 +1112,15 @@ button:disabled { opacity: .55; cursor: wait; }
     display: none;
   }
 
+  .library-toolbar {
+    padding-inline: 12px;
+    gap: 8px 12px;
+  }
+
+  .topbar-search {
+    width: min(320px, 38vw);
+  }
+
   .lineup {
     height: 136px;
   }
@@ -1022,29 +1227,112 @@ body.stage3d-failed #stage-labels {
   display: none;
 }
 
-/* The shelf failing means falling back to the Phase 2 list; the hero goes with it. */
-body:not(.shelf3d-failed) .panel.games {
-  display: none;
+/* The whole browse row used to disappear when the shelf failed; now only the shelf
+   does, and its view switch steps aside so Covers and List stay reachable. */
+body.shelf3d-failed .shelf {
+  display: none !important;
 }
 
-body.shelf3d-failed .stage-row {
-  display: none;
+/* ---------- covers and list ---------- */
+
+.cover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  align-content: start;
+  flex: 1;
+  margin: 0;
+  padding: 12px 2px;
+  list-style: none;
+  overflow-y: auto;
 }
 
-.panel {
+.cover-card {
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  padding: 16px 20px;
+  gap: 6px;
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid #1b2442;
+  border-radius: 7px;
+  background: #101731;
+  cursor: pointer;
 }
 
-.panel h2 {
-  margin: 0 0 10px;
-  font-size: 11px;
+.cover-card:hover {
+  border-color: #35446e;
+  background: var(--navy-raised);
+}
+
+.cover-card:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: 2px;
+}
+
+/* Selected cards keep the border plus an inner ring, so colour is not the only cue. */
+.cover-card[aria-selected="true"] {
+  border-color: var(--yellow);
+  box-shadow: inset 0 0 0 1px var(--yellow);
+}
+
+.cover-grid .empty {
+  grid-column: 1 / -1;
+  border: 0;
+  background: transparent;
+  padding: 24px 10px;
+}
+
+/* The cover keeps its source artwork's proportions inside every card width. */
+.cover-card .art {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 4;
+  border-radius: 4px;
+}
+
+.cover-card .art-fallback {
+  font-size: 18px;
+}
+
+.cover-title {
+  min-height: 2.5em;
+  overflow: hidden;
+  color: var(--cream);
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.badge-console {
+  flex: 0 0 auto;
+  padding: 1px 7px;
+  border: 1px solid #2d3d5c;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--muted);
   text-transform: uppercase;
-  color: var(--dim);
+}
+
+.cover-card .badge-console {
+  align-self: flex-start;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .list {
@@ -1120,6 +1408,11 @@ body.shelf3d-failed .stage-row {
 
 .game:hover {
   background: var(--navy-raised);
+}
+
+.game:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: -2px;
 }
 
 .game[aria-selected="true"] {
@@ -1233,10 +1526,32 @@ body.shelf3d-failed .stage-row {
 /* ---------- empty state ---------- */
 
 .empty {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 24px 10px;
   color: var(--dim);
   font-size: 13px;
   line-height: 1.5;
+}
+
+.empty button {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border: 1px solid #35446e;
+  border-radius: 5px;
+  background: #172140;
+  color: var(--cream);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.empty button:hover,
+.empty button:focus-visible {
+  border-color: var(--yellow);
+  color: var(--yellow);
 }
 
 .empty code {

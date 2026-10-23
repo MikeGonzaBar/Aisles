@@ -9,7 +9,13 @@ const webview = window.chrome?.webview;
 const elements = {
   badge: document.getElementById('bridge-badge'),
   consoleList: document.getElementById('console-list'),
+  consoleFilter: document.getElementById('console-filter'),
+  viewSwitch: document.getElementById('view-switch'),
+  gameFilter: document.getElementById('game-filter'),
   gameList: document.getElementById('game-list'),
+  coverGrid: document.getElementById('cover-grid'),
+  coversView: document.getElementById('covers-view'),
+  listView: document.getElementById('list-view'),
   gamesHeading: document.getElementById('games-heading'),
   hero: document.getElementById('hero'),
   shelf: document.querySelector('.shelf'),
@@ -46,7 +52,17 @@ const state = {
   launchingGameId: null,
   launchTimer: 0,
   launchSettleTimer: 0,
+  gameFilter: '',
+  // The toolbar filter the user is browsing by: null means All. The shelf, the
+  // hero and the host bridge keep using selectedConsoleId, which is always a
+  // concrete console.
+  consoleFilterId: null,
+  viewMode: 'shelf',
 };
+
+// The shelf module owns its own WebGL context; when it cannot start, the other
+// two browse views must still be reachable.
+let shelfAvailable = true;
 
 let spatialUiScheduled = false;
 let heroModulePromise = null;
@@ -689,6 +705,27 @@ elements.settingsTrigger.addEventListener('click', openSettings);
 elements.settingsClose.addEventListener('click', () => closeSettings());
 elements.settingsCancel.addEventListener('click', () => closeSettings());
 elements.settingsSave.addEventListener('click', saveSettings);
+elements.gameFilter.addEventListener('input', () => {
+  state.gameFilter = elements.gameFilter.value;
+  renderGames();
+  publishSnapshot();
+});
+
+elements.viewSwitch.addEventListener('click', (event) => {
+  const button = event.target instanceof Element
+    ? event.target.closest('button[data-view]')
+    : null;
+  if (!button || button.disabled) return;
+  setViewMode(button.dataset.view);
+});
+
+elements.consoleFilter.addEventListener('click', (event) => {
+  const chip = event.target instanceof Element
+    ? event.target.closest('button[data-console-filter]')
+    : null;
+  if (!chip || chip.disabled) return;
+  setConsoleFilter(chip.dataset.consoleFilter === 'all' ? null : chip.dataset.consoleFilter);
+});
 elements.settingsBackdrop.addEventListener('mousedown', event => {
   if (event.target === elements.settingsBackdrop) closeSettings();
 });
@@ -797,37 +834,297 @@ function renderShelfSign() {
   elements.shelf?.setAttribute('aria-label', console ? `${console.name} shelf` : 'Shelf');
 }
 
+/* ---------- library toolbar and browse views ----------
+ * The bottom game list is gone: one main browsing area holds the shelf, the cover
+ * grid and the compact list, and a toolbar sits above it with the console filters,
+ * the search field and the view switch. `consoleFilterId: null` means All.
+ */
+
+function filteredGameEntries() {
+  // One filter shape shared by the Covers grid and the List: All combines every
+  // console in library order, a concrete console keeps only that one, and the
+  // search always runs inside the active filter.
+  const filter = state.gameFilter.trim().toLocaleLowerCase();
+  const entries = [];
+
+  for (const item of state.library?.consoles ?? []) {
+    if (state.consoleFilterId !== null && item.id !== state.consoleFilterId) continue;
+    // A console whose games folder has gone missing offers its recovery actions
+    // (path, "Choose games folder") rather than silently listing stale entries.
+    if (!item.gamesPathExists) continue;
+
+    for (const game of item.games) {
+      if (filter && !game.title.toLocaleLowerCase().includes(filter)) continue;
+      entries.push({ game, console: item });
+    }
+  }
+
+  return entries;
+}
+
+let consoleFilterSignature = null;
+
+function renderLibraryToolbar() {
+  const consoles = state.library?.consoles ?? [];
+  const total = consoles.reduce((sum, item) => sum + item.games.length, 0);
+
+  // Chips rebuild only when the payload changes, so a filter click keeps its focus
+  // and a background rescan does not repaint the row under the pointer.
+  const signature = consoles
+    .map((item) => [item.id, item.shortName, item.games.length].join(':'))
+    .join('|');
+  if (signature !== consoleFilterSignature || !elements.consoleFilter.childElementCount) {
+    consoleFilterSignature = signature;
+
+    const chips = (filterId, label, count, className = 'filter-chip') => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = className;
+      chip.dataset.consoleFilter = filterId ?? 'all';
+      const name = document.createElement('span');
+      name.textContent = label;
+      const held = document.createElement('span');
+      held.className = 'chip-count';
+      held.textContent = String(count);
+      chip.append(name, held);
+      return chip;
+    };
+
+    const fragment = document.createDocumentFragment();
+    fragment.append(chips(null, 'All', total));
+    for (const item of consoles) fragment.append(chips(item.id, item.shortName, item.games.length));
+    elements.consoleFilter.replaceChildren(fragment);
+  }
+
+  for (const chip of elements.consoleFilter.querySelectorAll('button[data-console-filter]')) {
+    const id = chip.dataset.consoleFilter === 'all' ? null : chip.dataset.consoleFilter;
+    chip.setAttribute('aria-pressed', String(id === state.consoleFilterId));
+  }
+}
+
+function renderBrowseView() {
+  // Only visibility flips here. The shelf canvas is never recreated, so switching
+  // views does not reset the WebGL bay or the lineup lineup state behind it.
+  elements.shelf.hidden = state.viewMode !== 'shelf' || !shelfAvailable;
+  elements.coversView.hidden = state.viewMode !== 'covers';
+  elements.listView.hidden = state.viewMode !== 'list';
+
+  for (const button of elements.viewSwitch.querySelectorAll('button[data-view]')) {
+    const view = button.dataset.view;
+    button.setAttribute('aria-pressed', String(view === state.viewMode));
+
+    const unusable = view === 'shelf' && (state.consoleFilterId === null || !shelfAvailable);
+    button.disabled = unusable;
+    if (unusable) {
+      button.title = !shelfAvailable
+        ? 'The 3D shelf is unavailable.'
+        : 'Choose a console to use Shelf view.';
+    } else {
+      button.removeAttribute('title');
+    }
+  }
+}
+
+function setViewMode(viewMode) {
+  if (state.launchingGameId) return;
+  if (viewMode === state.viewMode) return;
+  if (viewMode === 'shelf' && (state.consoleFilterId === null || !shelfAvailable)) return;
+
+  state.viewMode = viewMode;
+  renderGames();
+}
+
+function setConsoleFilter(filterId) {
+  if (state.launchingGameId) return;
+  if ((filterId ?? null) === (state.consoleFilterId ?? null)) return;
+
+  if (filterId === null) {
+    // All is a web-side view: no host message, and the single-platform shelf
+    // renderer stays out of the mix, so the view steps across to Covers.
+    state.consoleFilterId = null;
+    if (state.viewMode === 'shelf') state.viewMode = 'covers';
+    renderGames();
+    return;
+  }
+
+  if (!state.library?.consoles.some((item) => item.id === filterId)) return;
+  selectConsole(filterId);
+}
+
 function renderGames() {
-  const console = currentConsole();
-  elements.gameList.replaceChildren();
+  const entries = filteredGameEntries();
 
-  if (!console) {
-    elements.gamesHeading.textContent = 'Games';
-    elements.gameList.append(emptyState('Select a console.'));
-    return;
-  }
+  renderGamesHeading(entries);
+  renderLibraryToolbar();
+  renderBrowseView();
+  renderCoverGrid(entries);
+  renderGameList(entries);
+}
 
-  elements.gamesHeading.textContent = `Games · ${console.name}`;
+function renderGamesHeading(entries) {
+  const filter = state.gameFilter.trim();
+  const scope = state.consoleFilterId === null
+    ? 'All consoles'
+    : state.library?.consoles.find((item) => item.id === state.consoleFilterId)?.name ?? 'Games';
+  const base = filter ? `Games · ${scope} · matching “${filter}”` : `Games · ${scope}`;
+  elements.gamesHeading.textContent = entries.length ? `${base} · ${entries.length}` : base;
+}
 
-  if (!console.gamesPathExists) {
-    elements.gameList.append(
-      emptyState(
-        `No games folder at ${console.gamesPath}. Open Settings to choose the correct folder.`,
-      ),
+function emptyStateDetails(entries) {
+  if (entries.length > 0) return null;
+
+  const consoles = state.library?.consoles ?? [];
+
+  if (state.consoleFilterId === null) {
+    const total = consoles.reduce(
+      (sum, item) => sum + (item.gamesPathExists ? item.games.length : 0),
+      0,
     );
+    if (total === 0) {
+      return {
+        message: 'No games found in the configured libraries',
+        actionLabel: 'Open Settings',
+        action: openSettings,
+      };
+    }
+    return searchMissDetails();
+  }
+
+  const item = consoles.find((c) => c.id === state.consoleFilterId);
+  if (!item) return null;
+  if (state.gameFilter.trim()) return searchMissDetails();
+  if (!item.gamesPathExists) {
+    return {
+      message: `No games folder at ${item.gamesPath}.`,
+      actionLabel: 'Choose games folder',
+      action: openSettings,
+    };
+  }
+  if (item.games.length === 0) {
+    return {
+      message: `No games found in ${item.gamesPath}.`,
+      actionLabel: 'Rescan library',
+      action: requestLibraryRescan,
+    };
+  }
+  return searchMissDetails();
+}
+
+function searchMissDetails() {
+  return {
+    message: `No games match “${state.gameFilter.trim()}”.`,
+    actionLabel: 'Clear filter',
+    action: clearGameFilter,
+  };
+}
+
+function clearGameFilter() {
+  state.gameFilter = '';
+  elements.gameFilter.value = '';
+  elements.gameFilter.focus();
+  renderGames();
+  publishSnapshot();
+}
+
+function requestLibraryRescan() {
+  setStatus('Rescanning library…');
+  post('rescan', { requestId: requestId('library-rescan') });
+}
+
+function emptyStateElement(details) {
+  const element = document.createElement('li');
+  element.className = 'empty';
+  const message = document.createElement('span');
+  message.textContent = details.message;
+  element.append(message);
+  if (details.actionLabel && details.action) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = details.actionLabel;
+    button.addEventListener('click', details.action);
+    element.append(button);
+  }
+  return element;
+}
+
+function consoleBadge(item) {
+  const badge = document.createElement('span');
+  badge.className = 'badge-console';
+  badge.textContent = item.shortName;
+  badge.title = item.name;
+  return badge;
+}
+
+function renderCoverGrid(entries) {
+  const grid = elements.coverGrid;
+  grid.replaceChildren();
+
+  const empty = emptyStateDetails(entries);
+  if (empty) {
+    grid.append(emptyStateElement(empty));
     return;
   }
 
-  if (console.games.length === 0) {
-    elements.gameList.append(emptyState(`No games found in ${console.gamesPath}.`));
+  // A specific console's rows all carry it already; the badge is for mixing.
+  const showBadges = state.consoleFilterId === null;
+  for (const entry of entries) {
+    grid.append(coverCard(entry, showBadges));
+  }
+}
+
+function coverCard(entry, showBadge) {
+  const item = document.createElement('li');
+  item.className = 'cover-card';
+  item.dataset.gameId = entry.game.id;
+  item.setAttribute('role', 'option');
+  item.setAttribute('aria-selected', String(entry.game.id === state.selectedGameId));
+  item.tabIndex = 0;
+
+  if (showBadge) item.append(consoleBadge(entry.console));
+  item.append(artwork(entry.game, 'art cover-card-art'));
+
+  const display = document.createElement('span');
+  display.className = 'cover-title';
+  display.textContent = entry.game.title;
+  item.append(display);
+
+  item.addEventListener('click', () => {
+    // A mouse pick must also move focus: with focus left behind the page, Space
+    // then scrolls the grid instead of acting on the selection.
+    item.focus({ preventScroll: true });
+    selectEntry(entry);
+  });
+  item.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      selectEntry(entry);
+    }
+  });
+  item.addEventListener('dblclick', () => launchEntry(entry));
+
+  return item;
+}
+
+function renderGameList(entries) {
+  const list = elements.gameList;
+  list.replaceChildren();
+
+  const empty = emptyStateDetails(entries);
+  if (empty) {
+    list.append(emptyStateElement(empty));
     return;
   }
 
-  for (const game of console.games) {
+  const showBadges = state.consoleFilterId === null;
+
+  for (const entry of entries) {
+    const game = entry.game;
     const item = document.createElement('li');
     item.className = 'game';
+    item.dataset.gameId = game.id;
     item.setAttribute('role', 'option');
     item.setAttribute('aria-selected', String(game.id === state.selectedGameId));
+    item.tabIndex = 0;
 
     const text = document.createElement('span');
     text.className = 'text';
@@ -838,6 +1135,8 @@ function renderGames() {
 
     const meta = document.createElement('span');
     meta.className = 'meta';
+
+    if (showBadges) meta.append(consoleBadge(entry.console));
 
     if (game.serial) {
       const serial = document.createElement('span');
@@ -879,19 +1178,37 @@ function renderGames() {
     launch.textContent = 'LAUNCH';
     launch.addEventListener('click', (event) => {
       event.stopPropagation();
-      launchGame(game.id);
+      launchEntry(entry);
     });
 
     item.append(artwork(game), text, launch);
-    item.addEventListener('click', () => selectGame(game.id));
-    item.addEventListener('dblclick', () => launchGame(game.id));
-    elements.gameList.append(item);
+    item.addEventListener('click', () => {
+      // Click and focus travel together, so Space acts on the pick instead of
+      // scrolling the list from wherever focus was left behind.
+      item.focus({ preventScroll: true });
+      selectEntry(entry);
+    });
+    item.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        selectEntry(entry);
+      }
+    });
+    item.addEventListener('dblclick', () => launchEntry(entry));
+    list.append(item);
   }
 }
 
-function artwork(game) {
+function onShelf3dFailed() {
+  shelfAvailable = false;
+  if (state.viewMode === 'shelf') state.viewMode = 'covers';
+  renderGames();
+}
+
+
+function artwork(game, className = 'art') {
   const tile = document.createElement('span');
-  tile.className = 'art';
+  tile.className = className;
 
   // The generated tile always exists underneath. A missing host mapping or an
   // unreadable file therefore degrades to a typographic case, not a broken image.
@@ -921,25 +1238,28 @@ function initialsFor(title) {
     .join('');
 }
 
-function emptyState(text) {
-  const element = document.createElement('li');
-  element.className = 'empty';
-  element.textContent = text;
-  return element;
-}
-
 /* ---------- state ---------- */
 
 function publishSnapshot() {
   // The 3D layer is a module, so it cannot read this file's top-level bindings.
   // A snapshot plus an event is the whole contract between them.
   const console = currentConsole();
+  const query = state.gameFilter.trim().toLocaleLowerCase();
+  const shelfGames = console?.games ?? [];
+  const visibleGameIds = query
+    ? shelfGames
+      .filter((game) => game.title.toLocaleLowerCase().includes(query))
+      .map((game) => game.id)
+    : null;
 
   window.aislesSnapshot = {
     consoles: state.library?.consoles ?? [],
     selectedConsoleId: state.selectedConsoleId,
     platform: console,
-    games: console?.games ?? [],
+    // Search changes only this visibility set. Shelf furniture and cases stay mounted
+    // so non-matches can animate out instead of blinking through a full rebuild.
+    games: shelfGames,
+    visibleGameIds,
     selectedGameId: state.selectedGameId,
   };
 
@@ -956,9 +1276,12 @@ function selectConsole(consoleId) {
   }
 
   state.selectedConsoleId = consoleId;
+  // A concrete console IS the toolbar filter, so the two move together whichever
+  // way the user goes: lineup, fallback list, right-click menu or toolbar chip.
+  state.consoleFilterId = consoleId;
   state.selectedGameId = null;
   renderConsoles();
-  if (document.body.classList.contains('shelf3d-failed')) renderGames();
+  renderGames();
   renderHero();
   publishSnapshot();
   post('selectConsole', { consoleId });
@@ -967,6 +1290,46 @@ function selectConsole(consoleId) {
 // The 3D lineup clicks back into the same selection path as the list.
 window.aislesSelectConsole = selectConsole;
 
+/**
+ * Selecting a result that surfaced under All: the game keeps its owning console.
+ * This is deliberately not selectConsole() — which would also overwrite the All
+ * filter and clear the selection. It only re-homes the selected console, tells the
+ * host (so hero artwork and readiness follow), and keeps the visible filter as All.
+ */
+function adoptConsoleForGame(consoleId) {
+  state.selectedConsoleId = consoleId;
+  renderConsoles();
+  post('selectConsole', { consoleId });
+}
+
+function selectEntry(entry) {
+  if (state.launchingGameId) {
+    return;
+  }
+
+  if (entry.console.id !== state.selectedConsoleId) {
+    adoptConsoleForGame(entry.console.id);
+  }
+
+  state.selectedGameId = entry.game.id;
+  post('selectGame', { gameId: entry.game.id });
+  markSelectedRows();
+  renderHero();
+  publishSnapshot();
+}
+
+function launchEntry(entry) {
+  if (state.launchingGameId) {
+    return;
+  }
+
+  if (entry.console.id !== state.selectedConsoleId) {
+    adoptConsoleForGame(entry.console.id);
+  }
+
+  launchGame(entry.game.id);
+}
+
 function selectGame(gameId) {
   if (state.launchingGameId) {
     return;
@@ -974,7 +1337,7 @@ function selectGame(gameId) {
 
   state.selectedGameId = gameId;
   post('selectGame', { gameId });
-  if (document.body.classList.contains('shelf3d-failed')) renderGames();
+  markSelectedRows();
   renderHero();
   publishSnapshot();
 }
@@ -985,9 +1348,23 @@ function clearGameSelection() {
   }
 
   state.selectedGameId = null;
-  if (document.body.classList.contains('shelf3d-failed')) renderGames();
+  markSelectedRows();
   renderHero();
   publishSnapshot();
+}
+
+/**
+ * Selection is marked on the live rows: rebuilding a collection between the user's
+ * click and the repaint would strand focus on the page, so the next Space would
+ * scroll that view instead of acting on the pick.
+ */
+function markSelectedRows() {
+  for (const scope of [elements.coverGrid, elements.gameList]) {
+    if (!scope) continue;
+    for (const node of scope.querySelectorAll('li[role="option"]')) {
+      node.setAttribute('aria-selected', String(node.dataset.gameId === state.selectedGameId));
+    }
+  }
 }
 
 function launchGame(gameId) {
@@ -1002,7 +1379,7 @@ function launchGame(gameId) {
 
   state.selectedGameId = gameId;
   state.launchingGameId = gameId;
-  if (document.body.classList.contains('shelf3d-failed')) renderGames();
+  renderGames();
   renderHero();
   publishSnapshot();
   setStatus(`Spinning up ${game.title}…`);
@@ -1510,8 +1887,8 @@ function renderPager(detail) {
     elements.shelfHint.textContent =
       shelves === 1
         ? games === 0
-          ? 'This shelf is empty. Open Settings to choose a games folder.'
-          : 'Plays like a shelf: a case lifts out when you pick it. Double-click or LAUNCH to play.'
+          ? 'This shelf is empty. Choose a games folder below, then rescan.'
+          : 'Select a case, then INSERT & BOOT to play. Use Ctrl+K to filter this console.'
         : remaining > 0
           ? `${Math.max(0, remaining)} more games open Shelf ${bay + 1}. The bay slides and the consoles stay put.`
           : 'Wheel, drag or the arrow keys page the shelf. The consoles stay put.';
@@ -1519,7 +1896,7 @@ function renderPager(detail) {
 }
 
 window.addEventListener('aisles:shelf', (event) => renderPager(event.detail));
-window.addEventListener('aisles:shelf3d-failed', renderGames);
+window.addEventListener('aisles:shelf3d-failed', onShelf3dFailed);
 
 /* ---------- window mode ----------
  * The stage opens maximized with its standard title bar. F11 can still opt into full
@@ -1534,7 +1911,10 @@ function setFullScreen(next) {
 }
 
 window.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && !elements.consoleMenu.hidden) {
+  if (event.ctrlKey && event.key.toLowerCase() === 'k' && !settings.open) {
+    event.preventDefault();
+    elements.gameFilter.focus();
+  } else if (event.key === 'Escape' && !elements.consoleMenu.hidden) {
     event.preventDefault();
     hideConsoleMenu();
   } else if (event.key === 'Escape' && settings.open) {
@@ -1585,13 +1965,28 @@ function onLibrary(payload) {
     const firstPopulated = consoles.find((console) => console.games.length > 0) ?? consoles[0];
     state.selectedConsoleId = firstPopulated?.id ?? null;
   }
+
+  // The very first populated library lands on the concrete console the shelf will
+  // show, so the default Shelf view is usable; later refreshes keep the user's
+  // filter while it still names an existing console.
+  if (firstLibrary) {
+    state.consoleFilterId = state.selectedConsoleId;
+  }
+  if (state.consoleFilterId !== null && !consoles.some((c) => c.id === state.consoleFilterId)) {
+    state.consoleFilterId = null;
+  }
+  // All combines consoles, so the single-platform shelf renderer is out of scope.
+  if (state.consoleFilterId === null && state.viewMode === 'shelf') {
+    state.viewMode = 'covers';
+  }
+
   const selectedGameStillExists = consoles.some(console =>
     console.games.some(game => game.id === state.selectedGameId),
   );
   if (!selectedGameStillExists) state.selectedGameId = null;
 
   renderConsoles();
-  if (document.body.classList.contains('shelf3d-failed')) renderGames();
+  renderGames();
   renderHero();
   publishSnapshot();
   scheduleSpatialUi();
