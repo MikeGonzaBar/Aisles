@@ -116,6 +116,14 @@ Aisles reads `TROPCONF.SFM` and `TROPUSR.DAT` from `dev_hdd0` and shows
 has not been launched yet falls back to its `TROPHY.TRP` package for definitions.
 See `docs/phase7-ps3-trophies.md`.
 
+## Releases
+
+Every commit pushed to `main` runs the release workflow. It tests the app,
+publishes a self-contained x64 build, packages it as an `Aisles-Setup-*.exe`
+installer, and creates a GitHub Release with the installer plus an attached
+`changes.md` generated from commits since the previous release. The installer
+does not include games, emulator executables, or local settings.
+
 ## Console preview
 
 Run `npm install`, then `npm run import:models`, `npm run prepare:models`, and `npm run preview`. Open http://127.0.0.1:8766/prototype/model-preview.html . Use `npm run check:models` to check the prepared files. Setup and verification limits are in `docs/model-preparation.md`.

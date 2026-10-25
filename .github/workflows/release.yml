@@ -1,0 +1,81 @@
+name: Release Windows installer
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore and test
+        shell: pwsh
+        run: |
+          dotnet restore Aisles.slnx
+          dotnet run --project tests/Aisles.Settings.Tests/Aisles.Settings.Tests.csproj -c Release --no-restore
+
+      - name: Publish self-contained Windows app
+        shell: pwsh
+        env:
+          RELEASE_VERSION: 1.0.${{ github.run_number }}
+        run: |
+          $publishDir = Join-Path $env:RUNNER_TEMP 'aisles-publish'
+          dotnet publish src/Aisles.App/Aisles.App.csproj -c Release --no-restore -r win-x64 --self-contained true -p:WindowsAppSDKSelfContained=true -p:PublishSingleFile=false -p:Version=$env:RELEASE_VERSION -o $publishDir
+          "PUBLISH_DIR=$publishDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+
+      - name: Build installer and change log
+        shell: pwsh
+        env:
+          RELEASE_VERSION: 1.0.${{ github.run_number }}
+        run: |
+          $releaseDir = Join-Path $env:RUNNER_TEMP 'aisles-release'
+          New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
+          $iscc = Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup *\ISCC.exe" | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $iscc) { throw 'Inno Setup compiler was not installed.' }
+          & $iscc "/DSourceDir=$env:PUBLISH_DIR" "/DOutputDir=$releaseDir" "/DAppVersion=$env:RELEASE_VERSION" installer/Aisles.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $previousTag = git tag --list 'v*' --sort=-version:refname | Select-Object -First 1
+          $range = if ($previousTag) { "$previousTag..$env:GITHUB_SHA" } else { $env:GITHUB_SHA }
+          $commits = git log $range --pretty=format:'- %s (%h)'
+          if (-not $commits) { $commits = '- No source changes recorded.' }
+          @(
+            "# Aisles $env:RELEASE_VERSION"
+            ''
+            "Built from $env:GITHUB_SHA."
+            ''
+            '## Changes'
+            $commits
+          ) | Set-Content (Join-Path $releaseDir 'changes.md') -Encoding utf8
+          "RELEASE_DIR=$releaseDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: 1.0.${{ github.run_number }}
+        run: |
+          $tag = "v$env:RELEASE_VERSION"
+          $installer = Get-ChildItem $env:RELEASE_DIR -Filter 'Aisles-Setup-*.exe' | Select-Object -First 1 -ExpandProperty FullName
+          $changes = Join-Path $env:RELEASE_DIR 'changes.md'
+          if (-not $installer) { throw 'Installer output was not created.' }
+          gh release create $tag $installer $changes --target $env:GITHUB_SHA --title "Aisles $env:RELEASE_VERSION" --notes-file $changes
