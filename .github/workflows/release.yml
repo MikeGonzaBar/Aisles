@@ -21,7 +21,9 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.0.x
+          # Pin an available SDK; the moving 10.0.x channel can briefly resolve
+          # to a build that has not reached the public download feed.
+          dotnet-version: 10.0.402
 
       - name: Restore and test
         shell: pwsh
