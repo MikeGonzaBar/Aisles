@@ -24,6 +24,10 @@ jobs:
           # Pin an available SDK; the moving 10.0.x channel can briefly resolve
           # to a build that has not reached the public download feed.
           dotnet-version: 10.0.402
+          # The hosted runner already has a dotnet host. Avoid setup-dotnet's
+          # separate LTS runtime pre-pass, which can temporarily point at an
+          # unpublished runtime version.
+          skip-lts-prepass: true
 
       - name: Restore and test
         shell: pwsh
