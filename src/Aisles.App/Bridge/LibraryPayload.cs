@@ -18,6 +18,8 @@ public sealed record ConsolePayload(
     string GamesPath,
     bool GamesPathExists,
     bool EmulatorExists,
+    bool RequiresCore,
+    bool CoreReady,
     string EmulatorName,
     IReadOnlyList<GamePayload> Games);
 

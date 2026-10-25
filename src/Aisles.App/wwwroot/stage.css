@@ -98,6 +98,33 @@ body {
   color: var(--muted);
 }
 
+/* ---------- startup ---------- */
+
+.startup-panel {
+  position: fixed;
+  z-index: 90;
+  inset: 64px 0 30px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  padding: 24px;
+  background: rgb(8 12 27 / 76%);
+  backdrop-filter: blur(3px);
+}
+
+.startup-message {
+  margin: 0;
+  color: var(--cream);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.startup-actions {
+  display: flex;
+  gap: 10px;
+}
+
 /* ---------- settings ---------- */
 
 .settings-backdrop {
@@ -462,6 +489,18 @@ button:disabled { opacity: .55; cursor: wait; }
   gap: 14px;
   min-height: 0;
   padding: 10px 18px 10px;
+  transition: grid-template-columns 180ms ease;
+}
+
+.stage-row[data-hero-collapsed] {
+  grid-template-columns: minmax(0, 1fr) 0;
+}
+
+.stage-row[data-hero-collapsed] .hero {
+  overflow: hidden;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* One browse column holds whichever of the three views is active. The shelf keeps
@@ -512,6 +551,39 @@ button:disabled { opacity: .55; cursor: wait; }
   background-repeat: no-repeat;
   /* The shelf owns drag-to-page; without this a pointer drag scrolls the page instead. */
   touch-action: none;
+}
+
+#shelf-canvas:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: -3px;
+}
+
+.shelf-listbox {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.shelf-launch {
+  position: absolute;
+  z-index: 3;
+  right: 10px;
+  bottom: 34px;
+  padding: 6px 10px;
+  border: 1px solid #d3ab00;
+  border-radius: 5px;
+  background: var(--yellow);
+  color: var(--navy);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .shelf-sign {
@@ -1032,6 +1104,11 @@ button:disabled { opacity: .55; cursor: wait; }
   box-shadow: 0 0 0 3px rgb(194 59 59 / 16%);
 }
 
+.launch-deck-status.is-needs-core .launch-deck-light {
+  background: #d19c2d;
+  box-shadow: 0 0 0 3px rgb(209 156 45 / 18%);
+}
+
 .launch-deck-status-detail {
   min-width: 0;
   margin-left: auto;
@@ -1055,6 +1132,32 @@ button:disabled { opacity: .55; cursor: wait; }
   color: #fffced;
   font-size: 14px;
   text-shadow: 0 1px 0 rgb(0 0 0 / 34%);
+}
+
+.launch-deck-fix {
+  align-self: flex-start;
+  margin: -2px 12px 10px;
+  padding: 5px 8px;
+  border: 1px solid #8e7300;
+  border-radius: 4px;
+  background: transparent;
+  color: #795e00;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  cursor: pointer;
+}
+
+.launch-deck-fix:hover,
+.launch-deck-fix:focus-visible {
+  border-color: #d3ab00;
+  color: #4d3c00;
+}
+
+.launch-deck-fix:focus-visible {
+  outline: 2px solid #263b64;
+  outline-offset: 2px;
 }
 
 .hero .launch-deck-boot:hover:not(:disabled) {
@@ -1180,13 +1283,59 @@ button:disabled { opacity: .55; cursor: wait; }
   display: flex;
   flex-direction: column;
   align-items: center;
+  min-width: 52px;
+  min-height: 34px;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: rgb(9 13 29 / 32%);
   gap: 1px;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
   color: var(--muted);
   white-space: nowrap;
-  transition: color 180ms ease;
+  transition: color 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.stage-labels .slot:hover {
+  border-color: #35446e;
+  background: rgb(16 23 49 / 88%);
+}
+
+.stage-labels .slot:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.stage-labels .slot[aria-pressed="true"] {
+  color: var(--yellow);
+  border-color: #8e7300;
+  background: rgb(94 72 0 / 42%);
+  box-shadow: 0 0 0 1px rgb(230 193 31 / 22%);
+}
+
+.stage-labels .slot[data-setup="true"] .pending {
+  display: none;
+}
+
+.stage-labels .slot[data-setup="true"]::after {
+  content: 'Set folder';
+  padding: 1px 5px;
+  border: 1px solid #566688;
+  border-radius: 999px;
+  color: var(--cream);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.stage-labels .slot[data-setup="true"]:hover::after,
+.stage-labels .slot[data-setup="true"]:focus-visible::after {
+  border-color: var(--yellow);
+  color: var(--yellow);
 }
 
 .stage-labels .slot[data-selected="true"] {
@@ -1235,9 +1384,21 @@ body.shelf3d-failed .shelf {
 
 /* ---------- covers and list ---------- */
 
+.games-heading {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 7px 4px 8px;
+  border-bottom: 1px solid var(--navy-line);
+  color: var(--cream);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: .02em;
+}
+
 .cover-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(170px, 190px));
+  justify-content: start;
   gap: 10px;
   align-content: start;
   flex: 1;
@@ -1469,7 +1630,7 @@ body.shelf3d-failed .shelf {
   gap: 8px;
   margin-top: 2px;
   font-size: 11px;
-  color: var(--dim);
+  color: #77829d;
   min-width: 0;
 }
 
@@ -1530,9 +1691,38 @@ body.shelf3d-failed .shelf {
   align-items: center;
   gap: 12px;
   padding: 24px 10px;
-  color: var(--dim);
+  color: #7d88a3;
   font-size: 13px;
   line-height: 1.5;
+}
+
+.empty--recovery {
+  align-items: flex-start;
+  flex-direction: column;
+  max-width: 620px;
+  padding: 32px 18px;
+}
+
+.empty--recovery h3,
+.empty--recovery p {
+  margin: 0;
+}
+
+.empty--recovery h3 {
+  color: var(--cream);
+  font-size: 18px;
+}
+
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.empty-button--primary {
+  border-color: #d3ab00 !important;
+  background: var(--yellow) !important;
+  color: var(--navy) !important;
 }
 
 .empty button {
@@ -1572,7 +1762,20 @@ body.shelf3d-failed .shelf {
   background: #0a0f1f;
   font-size: 11px;
   line-height: 30px;
-  color: var(--dim);
+  color: #77829d;
+}
+
+@media (max-width: 900px) {
+  .startup-panel { inset-block: 54px 26px; }
+
+  .stage-row[data-hero-collapsed] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-row { transition: none; }
 }
 
 .statusbar .ok {

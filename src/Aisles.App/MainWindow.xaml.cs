@@ -326,6 +326,9 @@ public sealed partial class MainWindow : Window
                 console.GamesPath,
                 console.GamesPathExists,
                 console.EmulatorExists,
+                console.Arguments.Contains("{core}", StringComparison.Ordinal),
+                !console.Arguments.Contains("{core}", StringComparison.Ordinal)
+                    || (!string.IsNullOrWhiteSpace(console.CorePath) && File.Exists(console.CorePath)),
                 EmulatorNameFor(console),
                 games.Select(game =>
                 {

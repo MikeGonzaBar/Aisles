@@ -8,6 +8,8 @@ const webview = window.chrome?.webview;
 
 const elements = {
   badge: document.getElementById('bridge-badge'),
+  layout: document.querySelector('.layout'),
+  stageRow: document.querySelector('.stage-row'),
   consoleList: document.getElementById('console-list'),
   consoleFilter: document.getElementById('console-filter'),
   viewSwitch: document.getElementById('view-switch'),
@@ -16,15 +18,24 @@ const elements = {
   coverGrid: document.getElementById('cover-grid'),
   coversView: document.getElementById('covers-view'),
   listView: document.getElementById('list-view'),
-  gamesHeading: document.getElementById('games-heading'),
+  gamesHeading: document.querySelectorAll('.games-heading'),
   hero: document.getElementById('hero'),
   shelf: document.querySelector('.shelf'),
+  shelfCanvas: document.getElementById('shelf-canvas'),
   shelfSign: document.getElementById('shelf-sign'),
   shelfPager: document.getElementById('shelf-pager'),
   shelfLabel: document.getElementById('shelf-label'),
   shelfHint: document.getElementById('shelf-hint'),
+  stageLabels: document.getElementById('stage-labels'),
+  shelfListbox: document.getElementById('shelf-listbox'),
+  shelfLaunch: document.getElementById('shelf-launch'),
   status: document.getElementById('status'),
   totals: document.getElementById('totals'),
+  startupPanel: document.getElementById('startup-panel'),
+  startupMessage: document.getElementById('startup-message'),
+  startupActions: document.getElementById('startup-actions'),
+  startupRetry: document.getElementById('startup-retry'),
+  startupSettings: document.getElementById('startup-settings'),
   settingsTrigger: document.getElementById('settings-trigger'),
   settingsBackdrop: document.getElementById('settings-backdrop'),
   settingsDialog: document.getElementById('settings-dialog'),
@@ -58,6 +69,11 @@ const state = {
   // concrete console.
   consoleFilterId: null,
   viewMode: 'shelf',
+  // The shelf listbox's keyboard focus (separate from the selected game, which is
+  // what the 3D shelf and hero highlight).
+  shelfFocusedId: null,
+  shelfBay: 1,
+  shelfPerBay: 18,
 };
 
 // The shelf module owns its own WebGL context; when it cannot start, the other
@@ -67,6 +83,29 @@ let shelfAvailable = true;
 let spatialUiScheduled = false;
 let heroModulePromise = null;
 let startupArtworkScheduled = false;
+let startupScanTimer = 0;
+
+let shelfListboxBuiltFor = null; // console.id + page the listbox was last built for
+const BROWSE_PREFERENCE_KEY = 'aisles.browse-preference.v1';
+
+function loadBrowsePreference() {
+  try {
+    return JSON.parse(localStorage.getItem(BROWSE_PREFERENCE_KEY) || 'null');
+  } catch {
+    return null;
+  }
+}
+
+function saveBrowsePreference() {
+  try {
+    localStorage.setItem(BROWSE_PREFERENCE_KEY, JSON.stringify({
+      consoleId: state.selectedConsoleId,
+      viewMode: state.viewMode,
+    }));
+  } catch {
+    // Storage can be disabled by the WebView host; browsing remains fully usable.
+  }
+}
 
 function afterFirstPaint(callback, timeout = 1000) {
   requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -111,6 +150,9 @@ const settings = {
   savedAwaitingScan: false,
   request: 0,
   validationTimer: 0,
+  // A console id passed to openSettings() that must be selected when the
+  // settingsData payload arrives, overriding the previously selected console.
+  pendingConsoleId: null,
 };
 
 const consoleMenu = {
@@ -128,9 +170,88 @@ function setStatus(text, kind = '') {
   elements.status.className = kind;
 }
 
+function setBrowseStatus() {
+  const scope = state.consoleFilterId === null
+    ? 'All consoles'
+    : currentConsole()?.name ?? 'Library';
+  const view = state.viewMode === 'shelf' ? 'Shelf' : state.viewMode === 'covers' ? 'Covers' : 'List';
+  setStatus(`${view} · ${scope} · ${filteredGameEntries().length} games`);
+}
+
 function setBadge(text, stateName) {
   elements.badge.textContent = text;
   elements.badge.dataset.state = stateName;
+}
+
+function showBadge(show) {
+  elements.badge.hidden = !show;
+}
+
+/* ---------- startup state ----------
+
+   The page opens busy: the layout is inert and aria-busy, the startup panel is
+   visible, and the bridge badge stays hidden. The panel first reports honest
+   loading state ("Loading your library…", then "Scanning configured folders…"
+   after 1.5 s if the payload still has not arrived), and is removed on success.
+   On a payload or bridge failure it shows the actual error with Retry and Open
+   Settings. Retry re-sends the existing `ready` message. No invented percentages
+   or backend stages are shown. */
+
+function setLayoutBusy(busy) {
+  elements.layout.toggleAttribute('aria-busy', busy);
+  elements.layout.toggleAttribute('inert', busy);
+  elements.gameFilter.disabled = busy;
+  elements.settingsTrigger.disabled = busy;
+}
+
+function startup() {
+  clearTimeout(startupScanTimer);
+  startupScanTimer = 0;
+  elements.startupPanel.hidden = false;
+  elements.startupMessage.textContent = 'Loading your library…';
+  elements.status.textContent = 'Loading your library…';
+  elements.startupActions.hidden = true;
+  elements.status.className = '';
+  showBadge(false);
+  setLayoutBusy(true);
+  post('ready');
+  startupScanTimer = setTimeout(() => {
+    if (!state.library || state.library.error) {
+      elements.startupMessage.textContent = 'Scanning configured folders…';
+      elements.status.textContent = 'Scanning configured folders…';
+    }
+  }, 1500);
+}
+
+function resolveStartup() {
+  clearTimeout(startupScanTimer);
+  startupScanTimer = 0;
+  elements.startupPanel.hidden = true;
+  elements.startupActions.hidden = true;
+  setLayoutBusy(false);
+}
+
+function showStartupError(message, recoverable = true) {
+  clearTimeout(startupScanTimer);
+  startupScanTimer = 0;
+  elements.startupPanel.hidden = false;
+  elements.startupMessage.setAttribute('aria-live', 'assertive');
+  elements.startupMessage.textContent = message;
+  elements.startupActions.hidden = !recoverable;
+  elements.status.textContent = message;
+  elements.status.className = 'err';
+  setLayoutBusy(false);
+  showBadge(true);
+}
+
+function retryStartup() {
+  elements.startupMessage.setAttribute('aria-live', 'polite');
+  elements.startupMessage.textContent = 'Loading your library…';
+  elements.status.textContent = 'Loading your library…';
+  elements.status.className = '';
+  showBadge(false);
+  setLayoutBusy(true);
+  startup();
 }
 
 /* ---------- settings ---------- */
@@ -379,7 +500,8 @@ window.addEventListener('aisles:consoleContext', (event) => {
   if (consoleId) showConsoleMenu(consoleId, x, y);
 });
 
-function openSettings() {
+function openSettings(consoleId = null) {
+  settings.pendingConsoleId = consoleId;
   settings.open = true;
   settings.savedAwaitingScan = false;
   elements.settingsBackdrop.hidden = false;
@@ -754,6 +876,8 @@ function renderConsoles() {
       console.games.length,
       console.gamesPathExists,
       console.emulatorExists,
+      console.requiresCore,
+      console.coreReady,
     ].join(':'))
     .join('|');
 
@@ -923,6 +1047,8 @@ function renderBrowseView() {
       button.removeAttribute('title');
     }
   }
+
+  updateHeroLayout();
 }
 
 function setViewMode(viewMode) {
@@ -931,7 +1057,10 @@ function setViewMode(viewMode) {
   if (viewMode === 'shelf' && (state.consoleFilterId === null || !shelfAvailable)) return;
 
   state.viewMode = viewMode;
+  state.shelfFocusedId = null;
   renderGames();
+  setBrowseStatus();
+  saveBrowsePreference();
 }
 
 function setConsoleFilter(filterId) {
@@ -959,6 +1088,8 @@ function renderGames() {
   renderBrowseView();
   renderCoverGrid(entries);
   renderGameList(entries);
+  syncShelfListbox();
+  syncConsoleLabels();
 }
 
 function renderGamesHeading(entries) {
@@ -967,7 +1098,8 @@ function renderGamesHeading(entries) {
     ? 'All consoles'
     : state.library?.consoles.find((item) => item.id === state.consoleFilterId)?.name ?? 'Games';
   const base = filter ? `Games · ${scope} · matching “${filter}”` : `Games · ${scope}`;
-  elements.gamesHeading.textContent = entries.length ? `${base} · ${entries.length}` : base;
+  const text = entries.length ? `${base} · ${entries.length}` : base;
+  for (const heading of elements.gamesHeading) heading.textContent = text;
 }
 
 function emptyStateDetails(entries) {
@@ -984,7 +1116,7 @@ function emptyStateDetails(entries) {
       return {
         message: 'No games found in the configured libraries',
         actionLabel: 'Open Settings',
-        action: openSettings,
+        action: () => openSettings(),
       };
     }
     return searchMissDetails();
@@ -995,9 +1127,13 @@ function emptyStateDetails(entries) {
   if (state.gameFilter.trim()) return searchMissDetails();
   if (!item.gamesPathExists) {
     return {
+      kind: 'recovery',
+      console: item,
       message: `No games folder at ${item.gamesPath}.`,
-      actionLabel: 'Choose games folder',
-      action: openSettings,
+      primaryLabel: `Choose ${item.name} folder`,
+      primaryAction: () => openSettings(item.id),
+      secondaryLabel: 'Open Settings',
+      secondaryAction: () => openSettings(),
     };
   }
   if (item.games.length === 0) {
@@ -1034,6 +1170,30 @@ function requestLibraryRescan() {
 function emptyStateElement(details) {
   const element = document.createElement('li');
   element.className = 'empty';
+
+  if (details.kind === 'recovery') {
+    element.classList.add('empty--recovery');
+    const name = document.createElement('h3');
+    name.textContent = details.console.name;
+    const message = document.createElement('p');
+    message.textContent = details.message;
+    const actions = document.createElement('div');
+    actions.className = 'empty-actions';
+    const primary = document.createElement('button');
+    primary.type = 'button';
+    primary.className = 'empty-button empty-button--primary';
+    primary.textContent = details.primaryLabel;
+    primary.addEventListener('click', details.primaryAction);
+    const secondary = document.createElement('button');
+    secondary.type = 'button';
+    secondary.className = 'empty-button empty-button--secondary';
+    secondary.textContent = details.secondaryLabel;
+    secondary.addEventListener('click', details.secondaryAction);
+    actions.append(primary, secondary);
+    element.append(name, message, actions);
+    return element;
+  }
+
   const message = document.createElement('span');
   message.textContent = details.message;
   element.append(message);
@@ -1056,20 +1216,22 @@ function consoleBadge(item) {
 }
 
 function renderCoverGrid(entries) {
-  const grid = elements.coverGrid;
-  grid.replaceChildren();
+  renderListWithPreservation(elements.coverGrid, () => {
+    const grid = elements.coverGrid;
+    const empty = emptyStateDetails(entries);
+    grid.replaceChildren();
 
-  const empty = emptyStateDetails(entries);
-  if (empty) {
-    grid.append(emptyStateElement(empty));
-    return;
-  }
+    if (empty) {
+      grid.append(emptyStateElement(empty));
+      return;
+    }
 
-  // A specific console's rows all carry it already; the badge is for mixing.
-  const showBadges = state.consoleFilterId === null;
-  for (const entry of entries) {
-    grid.append(coverCard(entry, showBadges));
-  }
+    // A specific console's rows all carry it already; the badge is for mixing.
+    const showBadges = state.consoleFilterId === null;
+    for (const entry of entries) {
+      grid.append(coverCard(entry, showBadges));
+    }
+  });
 }
 
 function coverCard(entry, showBadge) {
@@ -1105,98 +1267,98 @@ function coverCard(entry, showBadge) {
   return item;
 }
 
+// Renders into a scrollable list while preserving its scroll position and the
+// focused row (re-focused by game id after the rebuild). This keeps the list
+// steady when the hero column expands or collapses around a selection.
+function renderListWithPreservation(list, render) {
+  const scrollTop = list.scrollTop;
+  const active = document.activeElement;
+  const focusId = (active instanceof HTMLElement && list.contains(active))
+    ? active.closest('[data-game-id]')?.dataset.gameId ?? null
+    : null;
+  render();
+  list.scrollTop = scrollTop;
+  if (focusId) {
+    const target = list.querySelector('[data-game-id="' + focusId + '"]');
+    if (target) target.focus({ preventScroll: true });
+  }
+}
+
 function renderGameList(entries) {
-  const list = elements.gameList;
-  list.replaceChildren();
+  renderListWithPreservation(elements.gameList, () => {
+    const list = elements.gameList;
+    const empty = emptyStateDetails(entries);
+    list.replaceChildren();
 
-  const empty = emptyStateDetails(entries);
-  if (empty) {
-    list.append(emptyStateElement(empty));
-    return;
-  }
-
-  const showBadges = state.consoleFilterId === null;
-
-  for (const entry of entries) {
-    const game = entry.game;
-    const item = document.createElement('li');
-    item.className = 'game';
-    item.dataset.gameId = game.id;
-    item.setAttribute('role', 'option');
-    item.setAttribute('aria-selected', String(game.id === state.selectedGameId));
-    item.tabIndex = 0;
-
-    const text = document.createElement('span');
-    text.className = 'text';
-
-    const title = document.createElement('span');
-    title.className = 'title';
-    title.textContent = game.title;
-
-    const meta = document.createElement('span');
-    meta.className = 'meta';
-
-    if (showBadges) meta.append(consoleBadge(entry.console));
-
-    if (game.serial) {
-      const serial = document.createElement('span');
-      serial.className = 'serial';
-      serial.textContent = game.serial;
-      meta.append(serial);
+    if (empty) {
+      list.append(emptyStateElement(empty));
+      return;
     }
 
-    if (game.titleSource) {
-      const source = document.createElement('span');
-      source.className = 'source';
-      source.textContent = game.titleSource;
-      source.title = `title resolved from ${game.titleSource}`;
-      meta.append(source);
-    }
+    const showBadges = state.consoleFilterId === null;
 
-    if (game.frontCoverUrl) {
-      const cover = document.createElement('span');
-      cover.className = 'cover';
-      cover.textContent =
-        game.frontCoverMatch === 'serial' || game.frontCoverMatch === 'title'
-          ? 'cover'
-          : `cover: ${game.frontCoverMatch}`;
-      cover.title = `${game.frontCoverSource}, matched by ${game.frontCoverMatch}`;
-      meta.append(cover);
-    }
+    for (const entry of entries) {
+      const game = entry.game;
+      const item = document.createElement('li');
+      item.className = 'game';
+      item.dataset.gameId = game.id;
+      item.setAttribute('role', 'option');
+      item.setAttribute('aria-selected', String(game.id === state.selectedGameId));
+      item.tabIndex = 0;
 
-    const path = document.createElement('span');
-    path.className = 'path';
-    path.textContent = game.launchTarget;
-    path.title = game.launchTarget;
-    meta.append(path);
+      // Non-visible diagnostic data: useful for debugging, never shown in normal
+      // browsing. Title source, cover provenance and launch path stay here.
+      if (game.titleSource) item.dataset.titleSource = game.titleSource;
+      if (game.frontCoverSource) item.dataset.frontCoverSource = game.frontCoverSource;
+      if (game.launchTarget) item.dataset.launchTarget = game.launchTarget;
 
-    text.append(title, meta);
+      const text = document.createElement('span');
+      text.className = 'text';
 
-    const launch = document.createElement('button');
-    launch.className = 'launch';
-    launch.type = 'button';
-    launch.textContent = 'LAUNCH';
-    launch.addEventListener('click', (event) => {
-      event.stopPropagation();
-      launchEntry(entry);
-    });
+      const title = document.createElement('span');
+      title.className = 'title';
+      title.textContent = game.title;
 
-    item.append(artwork(game), text, launch);
-    item.addEventListener('click', () => {
-      // Click and focus travel together, so Space acts on the pick instead of
-      // scrolling the list from wherever focus was left behind.
-      item.focus({ preventScroll: true });
-      selectEntry(entry);
-    });
-    item.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        selectEntry(entry);
+      const meta = document.createElement('span');
+      meta.className = 'meta';
+
+      if (showBadges) meta.append(consoleBadge(entry.console));
+
+      if (game.serial) {
+        const serial = document.createElement('span');
+        serial.className = 'serial';
+        serial.textContent = game.serial;
+        meta.append(serial);
       }
-    });
-    item.addEventListener('dblclick', () => launchEntry(entry));
-    list.append(item);
-  }
+
+      text.append(title, meta);
+
+      const launch = document.createElement('button');
+      launch.className = 'launch';
+      launch.type = 'button';
+      launch.textContent = 'LAUNCH';
+      launch.addEventListener('click', (event) => {
+        event.stopPropagation();
+        launchEntry(entry);
+      });
+
+      item.append(artwork(game), text, launch);
+      item.addEventListener('click', () => {
+        // Click and focus travel together, so Space acts on the pick instead of
+        // scrolling the list from wherever focus was left behind.
+        item.focus({ preventScroll: true });
+        selectEntry(entry);
+      });
+      item.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          selectEntry(entry);
+        }
+      });
+      item.addEventListener('dblclick', () => launchEntry(entry));
+      list.append(item);
+    }
+  });
 }
 
 function onShelf3dFailed() {
@@ -1280,10 +1442,14 @@ function selectConsole(consoleId) {
   // way the user goes: lineup, fallback list, right-click menu or toolbar chip.
   state.consoleFilterId = consoleId;
   state.selectedGameId = null;
+  state.shelfFocusedId = null;
+  state.shelfBay = 1;
   renderConsoles();
   renderGames();
   renderHero();
   publishSnapshot();
+  setBrowseStatus();
+  saveBrowsePreference();
   post('selectConsole', { consoleId });
 }
 
@@ -1340,6 +1506,7 @@ function selectGame(gameId) {
   markSelectedRows();
   renderHero();
   publishSnapshot();
+  syncShelfListbox();
 }
 
 function clearGameSelection() {
@@ -1351,6 +1518,8 @@ function clearGameSelection() {
   markSelectedRows();
   renderHero();
   publishSnapshot();
+  syncShelfListbox();
+  setBrowseStatus();
 }
 
 /**
@@ -1722,6 +1891,14 @@ function launchReadiness(console) {
     };
   }
 
+  if (console.requiresCore && !console.coreReady) {
+    return {
+      state: 'needs-core',
+      label: 'CORE REQUIRED',
+      detail: 'Choose a working RetroArch core in Settings',
+    };
+  }
+
   return {
     state: 'ready',
     label: 'READY TO BOOT',
@@ -1764,7 +1941,23 @@ function launchDeck(console, game, launch) {
 
   launch.classList.add('launch-deck-boot');
   launch.textContent = state.launchingGameId === game.id ? 'STARTING…' : 'INSERT & BOOT';
-  launch.setAttribute('aria-label', `Insert ${game.title} and boot with ${console?.emulatorName ?? 'the configured emulator'}`);
+  launch.setAttribute(
+    'aria-label',
+    readiness.state === 'ready'
+      ? `Insert ${game.title} and boot with ${console?.emulatorName ?? 'the configured emulator'}`
+      : `${readiness.label}. ${readiness.detail}`,
+  );
+  launch.disabled = state.launchingGameId === game.id || readiness.state !== 'ready';
+
+  if (readiness.state !== 'ready' && console) {
+    const fix = document.createElement('button');
+    fix.type = 'button';
+    fix.className = 'launch-deck-fix';
+    fix.textContent = 'OPEN SETTINGS';
+    fix.addEventListener('click', () => openSettings(console.id));
+    deck.append(header, detailsRail(console, game), status, fix, launch);
+    return deck;
+  }
 
   deck.append(header, detailsRail(console, game), status, launch);
   return deck;
@@ -1781,8 +1974,29 @@ function heroHead(title, meta, launch) {
   return head;
 }
 
+function isHeroCollapsed() {
+  // In Covers and List with nothing selected the hero column collapses so the
+  // browse view takes the full row; the hero returns (with a grid transition)
+  // once a game is selected. Shelf always keeps its hero.
+  return (state.viewMode === 'covers' || state.viewMode === 'list') && !state.selectedGameId;
+}
+
+function updateHeroLayout() {
+  elements.stageRow.toggleAttribute('data-hero-collapsed', isHeroCollapsed());
+}
+
 function renderHero() {
   if (!elements.hero) {
+    return;
+  }
+
+  updateHeroLayout();
+
+  const collapsed = isHeroCollapsed();
+  elements.hero.toggleAttribute('aria-hidden', collapsed);
+  if (collapsed) {
+    window.aislesHero3d?.clear();
+    elements.hero.replaceChildren();
     return;
   }
 
@@ -1797,9 +2011,7 @@ function renderHero() {
     stage.className = 'hero-stage hero-stage-empty';
     stage.textContent = !console
       ? 'Pick a console'
-      : console.games.length === 0
-        ? 'Drop games here'
-        : 'Pick a case';
+      : 'Pick a case';
 
     const title = document.createElement('div');
     title.className = 'hero-title';
@@ -1860,7 +2072,214 @@ function renderHero() {
   }
 }
 
+/* ---------- shelf keyboard (semantic listbox) ----------
+
+   The 3D shelf keeps pointer and drag behavior unchanged. A sighted keyboard
+   user focuses the shelf canvas (visible outline) and pages its cases with the
+   arrow keys; a semantic mirror listbox keeps the selection exposed to the
+   accessibility tree and in sync whenever the selection, console, filter or
+   page changes. */
+
+function shelfOptionId(gameId) {
+  return `shelf-option-${encodeURIComponent(String(gameId))}`;
+}
+
+function syncShelfListbox() {
+  const console = currentConsole();
+  const first = (state.shelfBay - 1) * state.shelfPerBay;
+  const query = state.gameFilter.trim().toLocaleLowerCase();
+  const games = (console?.games ?? [])
+    .slice(first, first + state.shelfPerBay)
+    .filter((game) => !query || game.title.toLocaleLowerCase().includes(query));
+  if (!games.some((game) => game.id === state.shelfFocusedId)) {
+    state.shelfFocusedId = games.find((game) => game.id === state.selectedGameId)?.id ?? games[0]?.id ?? null;
+  }
+  const signature = console
+    ? `${console.id}|${state.shelfBay}|${games.map((g) => g.id).join(',')}|${state.selectedGameId ?? ''}|${state.shelfFocusedId ?? ''}`
+    : null;
+
+  if (shelfListboxBuiltFor === signature) {
+    for (const option of elements.shelfListbox.querySelectorAll('[role="option"]')) {
+      option.setAttribute('aria-selected', String(option.dataset.gameId === state.selectedGameId));
+    }
+    const activeId = state.shelfFocusedId ? shelfOptionId(state.shelfFocusedId) : '';
+    if (activeId) elements.shelfCanvas.setAttribute('aria-activedescendant', activeId);
+    else elements.shelfCanvas.removeAttribute('aria-activedescendant');
+    elements.shelfLaunch.disabled = !state.selectedGameId;
+    elements.shelfLaunch.hidden = !state.selectedGameId;
+    return;
+  }
+
+  shelfListboxBuiltFor = signature;
+  elements.shelfListbox.replaceChildren();
+  elements.shelfLaunch.disabled = true;
+  elements.shelfLaunch.hidden = true;
+
+  if (!console || games.length === 0) {
+    elements.shelfCanvas.removeAttribute('aria-activedescendant');
+    elements.shelfCanvas.removeAttribute('aria-owns');
+    return;
+  }
+
+  const optionIds = [];
+  for (const game of games) {
+    const option = document.createElement('div');
+    option.setAttribute('role', 'option');
+    option.tabIndex = -1;
+    option.dataset.gameId = game.id;
+    option.id = shelfOptionId(game.id);
+    optionIds.push(option.id);
+    option.textContent = game.title;
+    option.setAttribute('aria-selected', String(game.id === state.selectedGameId));
+    elements.shelfListbox.append(option);
+  }
+
+  elements.shelfCanvas.setAttribute('aria-owns', optionIds.join(' '));
+  elements.shelfCanvas.setAttribute('aria-activedescendant', shelfOptionId(state.shelfFocusedId));
+  elements.shelfLaunch.disabled = !state.selectedGameId;
+  elements.shelfLaunch.hidden = !state.selectedGameId;
+}
+
+function initShelfKeyboard() {
+  elements.shelfCanvas.addEventListener('keydown', (event) => {
+    const console = currentConsole();
+    const first = (state.shelfBay - 1) * state.shelfPerBay;
+    const query = state.gameFilter.trim().toLocaleLowerCase();
+    const games = (console?.games ?? [])
+      .slice(first, first + state.shelfPerBay)
+      .filter((game) => !query || game.title.toLocaleLowerCase().includes(query));
+    if (!games.length) return;
+
+    let index = games.findIndex((g) => g.id === state.shelfFocusedId);
+    if (index < 0) index = games.findIndex((g) => g.id === state.selectedGameId);
+    if (index < 0) index = 0;
+
+    let next = index;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowRight') next = Math.min(index + 1, games.length - 1);
+    else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') next = Math.max(index - 1, 0);
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = games.length - 1;
+    else if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      window.aislesSelectGame(games[index].id);
+      return;
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      window.aislesClearGameSelection();
+      return;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    if (next !== index) {
+      state.shelfFocusedId = games[next].id;
+      syncShelfListbox();
+      setStatus(`Shelf: ${games[next].title}`);
+    }
+  });
+
+  elements.shelfLaunch.addEventListener('click', () => {
+    if (state.selectedGameId) window.aislesLaunchGame(state.selectedGameId);
+  });
+}
+
 window.addEventListener('aisles:hero3d', renderHero);
+
+/* ---------- console labels over the 3D lineup ----------
+
+   The 3D stage renders .stage-labels .slot spans positioned over the lineup.
+   Upgrade them in place to real buttons (the 3D module keeps positioning them):
+   accessible name (console + count), aria-selected state, click activation, and
+   roving Arrow/Home/End keyboard navigation, all routed through selectConsole. */
+
+function syncConsoleLabels() {
+  if (!state.library || !elements.stageLabels) return;
+  const labels = [...elements.stageLabels.querySelectorAll('.slot')];
+  const consoles = state.library.consoles;
+  let selectedIndex = -1;
+
+  labels.forEach((label, index) => {
+    const console = consoles[index];
+    if (!console) return;
+    const selected = console.id === state.selectedConsoleId;
+    const needsFolder = !console.gamesPathExists;
+    if (selected) selectedIndex = index;
+    label.role = 'button';
+    label.setAttribute(
+      'aria-label',
+      `${console.name}, ${console.games.length} game${console.games.length === 1 ? '' : 's'}${needsFolder ? ', games folder not set' : ''}${selected ? ', selected' : ''}`,
+    );
+    if (needsFolder) {
+      label.setAttribute('aria-description', 'Activate to open Settings and choose a games folder.');
+    } else {
+      label.removeAttribute('aria-description');
+    }
+    label.setAttribute('aria-pressed', String(selected));
+    label.dataset.consoleId = console.id;
+    label.dataset.setup = String(needsFolder);
+    label.tabIndex = selected ? 0 : -1;
+    label.style.pointerEvents = 'auto';
+    label.style.cursor = 'pointer';
+  });
+
+  // Roving tabindex: keep exactly one tabbable label (the selected one, or the
+  // first when nothing is selected).
+  if (selectedIndex < 0 && labels.length) labels[0].tabIndex = 0;
+}
+
+function activateConsoleLabel(label) {
+  const console = state.library?.consoles.find((item) => item.id === label.dataset.consoleId);
+  if (!console) return;
+  if (!console.gamesPathExists) {
+    openSettings(console.id);
+    return;
+  }
+  selectConsole(console.id);
+}
+
+function setupConsoleLabelButtons() {
+  if (!elements.stageLabels) return;
+
+  elements.stageLabels.addEventListener('click', (event) => {
+    const button = event.target instanceof Element ? event.target.closest('.slot') : null;
+    if (!button || !button.dataset.consoleId) return;
+    activateConsoleLabel(button);
+  });
+
+  elements.stageLabels.addEventListener('keydown', (event) => {
+    const button = event.target instanceof Element ? event.target.closest('.slot') : null;
+    if (!button) return;
+    const labels = [...elements.stageLabels.querySelectorAll('.slot')];
+    const index = labels.indexOf(button);
+    if (index < 0) return;
+
+    let next = index;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = Math.min(index + 1, labels.length - 1);
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = Math.max(index - 1, 0);
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = labels.length - 1;
+    else if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      activateConsoleLabel(button);
+      return;
+    } else {
+      return;
+    }
+
+    if (next !== index) {
+      event.preventDefault();
+      labels.forEach((label, i) => {
+        label.tabIndex = i === next ? 0 : -1;
+      });
+      labels[next].focus({ preventScroll: true });
+    }
+  });
+
+  // stage3d (re)builds the .slot spans asynchronously; upgrade each one as it
+  // appears and keep their state in sync.
+  new MutationObserver(syncConsoleLabels).observe(elements.stageLabels, { childList: true });
+}
 
 /* ---------- pager ---------- */
 
@@ -1873,6 +2292,8 @@ function renderPager(detail) {
   const bay = detail?.bay ?? 1;
   const games = detail?.games ?? 0;
   const perBay = detail?.perBay ?? 18;
+  state.shelfBay = bay;
+  state.shelfPerBay = perBay;
 
   elements.shelfLabel.textContent =
     shelves > 1 ? `Shelf ${bay} of ${shelves} · ${games} games` : `Shelf 1 of 1 · ${games} games`;
@@ -1895,7 +2316,10 @@ function renderPager(detail) {
   }
 }
 
-window.addEventListener('aisles:shelf', (event) => renderPager(event.detail));
+window.addEventListener('aisles:shelf', (event) => {
+  renderPager(event.detail);
+  syncShelfListbox();
+});
 window.addEventListener('aisles:shelf3d-failed', onShelf3dFailed);
 
 /* ---------- window mode ----------
@@ -1933,17 +2357,21 @@ window.addEventListener('keydown', (event) => {
 /* ---------- host messages ---------- */
 
 function onLibrary(payload) {
+  clearTimeout(startupScanTimer);
+  startupScanTimer = 0;
   const firstLibrary = !state.library || Boolean(state.library.error);
   const updateLibraryStatus = firstLibrary || elements.status.textContent.startsWith('Library loaded');
   state.library = payload;
 
   const consoles = payload.consoles ?? [];
+  const preference = firstLibrary ? loadBrowsePreference() : null;
 
   if (payload.error) {
+    showStartupError(payload.error);
     setBadge('bridge: catalog error', 'error');
-    setStatus(payload.error, 'err');
   } else {
-    setBadge('bridge OK', 'ok');
+    resolveStartup();
+    showBadge(false);
 
     // Artwork resolution and rescans both refresh this payload. The normal library
     // count may update, but it must not erase a result the user just asked for.
@@ -1958,8 +2386,15 @@ function onLibrary(payload) {
   }
 
 
-  // Keep the current console if it still exists, otherwise start on the first
-  // console that actually has games.
+  // Restore the last concrete console and view when possible; a removed console
+  // falls back to the same first-populated choice as a fresh install.
+  if (preference?.consoleId && consoles.some((console) => console.id === preference.consoleId)) {
+    state.selectedConsoleId = preference.consoleId;
+  }
+  if (preference && ['shelf', 'covers', 'list'].includes(preference.viewMode)) {
+    state.viewMode = preference.viewMode;
+  }
+
   const stillValid = consoles.some((console) => console.id === state.selectedConsoleId);
   if (!stillValid) {
     const firstPopulated = consoles.find((console) => console.games.length > 0) ?? consoles[0];
@@ -2045,6 +2480,9 @@ function onLaunchResult(payload) {
   setStatus(payload.message, payload.started ? 'ok' : 'err');
 }
 
+elements.startupRetry.addEventListener('click', retryStartup);
+elements.startupSettings.addEventListener('click', () => openSettings());
+
 if (webview) {
   webview.addEventListener('message', (event) => {
     const message = event.data;
@@ -2087,14 +2525,25 @@ if (webview) {
         settings.retroStatusEl = null;
         settings.retroTestId = null;
         settings.original = settingsSnapshot();
-        settings.selectedId = payload.consoles.some(c => c.id === state.selectedConsoleId)
-          ? state.selectedConsoleId
-          : payload.consoles[0]?.id;
+        // A console requested via openSettings(consoleId) wins over the previously
+        // selected one; fall back to the current selection, then the first console.
+        const requested = settings.pendingConsoleId;
+        settings.pendingConsoleId = null;
+        const requestedExists = requested && payload.consoles.some((c) => c.id === requested);
+        settings.selectedId = requestedExists
+          ? requested
+          : payload.consoles.some((c) => c.id === state.selectedConsoleId)
+            ? state.selectedConsoleId
+            : payload.consoles[0]?.id;
         renderSettingsNavigation();
         renderSettingsEditor();
         setSettingsBusy(false);
         if (payload.error) setSettingsError(payload.error);
-        elements.settingsClose.focus();
+        if (requestedExists) {
+          document.getElementById(`settings-${requested}-gamesPath`)?.focus();
+        } else {
+          elements.settingsClose.focus();
+        }
         break;
       }
       case 'settingsValidation':
@@ -2172,11 +2621,13 @@ if (webview) {
         break;
     }
   });
+  setupConsoleLabelButtons();
+  initShelfKeyboard();
+
+  startup();
 } else {
   // Opened in a plain browser instead of the Aisles host: say so rather than
   // silently rendering an empty shell.
+  showStartupError('This page is designed to run inside Aisles (WebView2).', false);
   setBadge('bridge: not connected', 'error');
-  setStatus('This page is designed to run inside Aisles (WebView2).', 'err');
 }
-
-post('ready');

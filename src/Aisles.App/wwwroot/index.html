@@ -24,8 +24,18 @@
       <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M19.14 12.94a7.5 7.5 0 0 0 .05-.94 7.5 7.5 0 0 0-.05-.94l2.03-1.58-1.92-3.32-2.39.96a7.3 7.3 0 0 0-1.62-.94L14.88 3h-3.84l-.36 3.18a7.3 7.3 0 0 0-1.62.94l-2.39-.96-1.92 3.32 2.03 1.58a7.5 7.5 0 0 0-.05.94c0 .32.02.63.05.94l-2.03 1.58 1.92 3.32 2.39-.96c.5.39 1.04.7 1.62.94l.36 3.18h3.84l.36-3.18a7.3 7.3 0 0 0 1.62-.94l2.39.96 1.92-3.32-2.03-1.58ZM12.96 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z"/></svg>
       Settings
     </button>
-    <span class="badge" id="bridge-badge" data-state="waiting">bridge: waiting</span>
+    <span class="badge" id="bridge-badge" hidden></span>
   </header>
+
+  <!-- Startup state: shown until the first library payload arrives. Re-used for
+       connection/payload errors, which carry the error plus Retry and Open Settings. -->
+  <div id="startup-panel" class="startup-panel" role="region" aria-labelledby="startup-message">
+    <p id="startup-message" class="startup-message" aria-live="polite">Loading your library&hellip;</p>
+    <div id="startup-actions" class="startup-actions" hidden>
+      <button id="startup-retry" class="primary-button" type="button">Retry</button>
+      <button id="startup-settings" class="secondary-button" type="button">Open Settings</button>
+    </div>
+  </div>
 
   <div class="settings-backdrop" id="settings-backdrop" hidden>
     <section class="settings-dialog" id="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title">
@@ -58,7 +68,7 @@
     </section>
   </div>
 
-  <main class="layout">
+  <main class="layout" aria-busy="true">
     <section class="lineup" aria-label="Console lineup">
       <canvas id="stage-canvas"></canvas>
       <div class="stage-labels" id="stage-labels"></div>
@@ -80,10 +90,8 @@
 
     <section class="stage-row">
       <div class="browse" id="browse">
-        <h2 id="games-heading" class="visually-hidden">Games</h2>
-
         <section class="shelf" aria-label="Shelf">
-          <canvas id="shelf-canvas"></canvas>
+          <canvas id="shelf-canvas" tabindex="0" role="listbox" aria-label="Shelf games" aria-describedby="shelf-hint"></canvas>
           <img class="shelf-sign" id="shelf-sign" alt="" hidden />
           <div class="shelf-pager" id="shelf-pager">
             <button type="button" data-page="-1" aria-label="Previous shelf">&lsaquo;</button>
@@ -93,14 +101,18 @@
           <p class="shelf-hint" id="shelf-hint">
             A 19th game opens Shelf 2. The bay slides and the consoles stay put.
           </p>
+          <div id="shelf-listbox" class="shelf-listbox"></div>
+          <button type="button" id="shelf-launch" class="shelf-launch" disabled>Launch selected game</button>
         </section>
 
-        <section class="browse-view covers-view" id="covers-view" hidden aria-label="Covers">
+        <section class="browse-view covers-view" id="covers-view" hidden aria-label="Games by cover">
+          <h2 class="games-heading" id="games-heading-covers" aria-live="polite"></h2>
           <ul id="cover-grid" class="cover-grid" role="listbox" aria-label="Games by cover"></ul>
         </section>
 
-        <section class="browse-view list-view" id="list-view" hidden aria-label="List">
-          <ul id="game-list" class="list" role="listbox" aria-labelledby="games-heading"></ul>
+        <section class="browse-view list-view" id="list-view" hidden aria-label="Games list">
+          <h2 class="games-heading" id="games-heading-list" aria-live="polite"></h2>
+          <ul id="game-list" class="list" role="listbox" aria-labelledby="games-heading-list"></ul>
         </section>
       </div>
 
@@ -125,7 +137,7 @@
   </div>
 
   <footer class="statusbar">
-    <span id="status">Starting&hellip;</span>
+    <span id="status" role="status" aria-live="polite">Loading your library&hellip;</span>
     <span id="totals"></span>
   </footer>
 
