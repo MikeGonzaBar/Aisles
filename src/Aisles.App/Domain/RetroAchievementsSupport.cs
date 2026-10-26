@@ -1,14 +1,8 @@
 namespace Aisles.App.Domain;
 
 /// <summary>
-/// RetroAchievements coverage, as confirmed in PLAN.md section 3.4. The rail ships
-/// three states: supported but not linked, not supported on this platform, and linked
-/// with progress. Phase 6 supplies the link; the platform map below is the only place
-/// the app turns an Aisles console into a RetroAchievements system.
-///
-/// Nintendo DS is conditional on the emulator: standalone DeSmuME has no
-/// RetroAchievements support, while RetroArch can expose DS achievements through its
-/// melonDS DS or DeSmuME cores.
+/// RetroAchievements coverage (PLAN.md section 3.4): not linked, unsupported, or linked
+/// with progress. DS works through RetroArch's cores but not standalone DeSmuME.
 /// </summary>
 public static class RetroAchievementsSupport
 {

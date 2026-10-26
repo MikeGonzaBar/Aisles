@@ -1,8 +1,5 @@
-// Aisles - Phase 0 stage.
-//
-// Deliberately a plain 2D surface: it exists to prove the host <-> web bridge and
-// to give Phase 2 a launcher that works before any 3D is involved. The 3D shelf
-// and console lineup replace this view in Phases 3-4.
+// Page shell, state, and browse views: host bridge, library state, toolbar, Covers,
+// List and details rail. The 3D shelf and lineup are separate modules.
 
 const webview = window.chrome?.webview;
 
@@ -64,9 +61,8 @@ const state = {
   launchTimer: 0,
   launchSettleTimer: 0,
   gameFilter: '',
-  // The toolbar filter the user is browsing by: null means All. The shelf, the
-  // hero and the host bridge keep using selectedConsoleId, which is always a
-  // concrete console.
+  // Toolbar filter: null means All. The shelf, hero and host bridge use
+  // selectedConsoleId, which is always a concrete console.
   consoleFilterId: null,
   viewMode: 'shelf',
   // The shelf listbox's keyboard focus (separate from the selected game, which is
@@ -187,15 +183,8 @@ function showBadge(show) {
   elements.badge.hidden = !show;
 }
 
-/* ---------- startup state ----------
-
-   The page opens busy: the layout is inert and aria-busy, the startup panel is
-   visible, and the bridge badge stays hidden. The panel first reports honest
-   loading state ("Loading your library…", then "Scanning configured folders…"
-   after 1.5 s if the payload still has not arrived), and is removed on success.
-   On a payload or bridge failure it shows the actual error with Retry and Open
-   Settings. Retry re-sends the existing `ready` message. No invented percentages
-   or backend stages are shown. */
+/* Startup state: the page opens busy and inert with the startup panel visible. The
+   panel shows real loading text, then the actual error with Retry and Open Settings. */
 
 function setLayoutBusy(busy) {
   elements.layout.toggleAttribute('aria-busy', busy);
@@ -254,12 +243,13 @@ function retryStartup() {
   startup();
 }
 
-/* ---------- settings ---------- */
+/* Settings */
 
 const SETTINGS_FIELDS = [
   { key: 'gamesPath', label: 'Games folder', browse: 'Browse folder' },
   { key: 'emulatorPath', label: 'Emulator executable', browse: 'Browse file' },
   { key: 'corePath', label: 'RetroArch core (optional)', browse: 'Browse DLL' },
+  { key: 'installedGamesPath', label: 'Installed games folder (optional)', browse: 'Browse folder' },
   { key: 'artworkPath', label: 'Artwork folder (optional)', browse: 'Browse folder' },
 ];
 
@@ -300,7 +290,7 @@ function setSettingsBusy(busy, text = '') {
   }
 }
 
-/* ---------- console context menu ---------- */
+/* Console context menu */
 
 function menuButton(action) {
   return elements.consoleMenu.querySelector(`button[data-console-action="${action}"]`);
@@ -779,7 +769,7 @@ function testRetroAchievements() {
 
 function applyFieldStatus(element, validation) {
   const stateName = validation?.state ?? 'notConfigured';
-  const labels = { found: 'Found', notFound: 'Not found — you can still save this path', notConfigured: 'Not configured', invalid: validation?.error ?? 'Invalid path' };
+  const labels = { found: 'Found', notFound: 'Not found: you can still save this path', notConfigured: 'Not configured', invalid: validation?.error ?? 'Invalid path' };
   element.dataset.state = stateName;
   element.textContent = labels[stateName];
 }
@@ -862,7 +852,7 @@ elements.settingsDialog.addEventListener('keydown', event => {
   else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
 });
 
-/* ---------- rendering ---------- */
+/* Rendering */
 
 let renderedConsoleSignature = '';
 
@@ -958,16 +948,12 @@ function renderShelfSign() {
   elements.shelf?.setAttribute('aria-label', console ? `${console.name} shelf` : 'Shelf');
 }
 
-/* ---------- library toolbar and browse views ----------
- * The bottom game list is gone: one main browsing area holds the shelf, the cover
- * grid and the compact list, and a toolbar sits above it with the console filters,
- * the search field and the view switch. `consoleFilterId: null` means All.
- */
+/* Browse views. One browsing area holds the shelf, cover grid and list; the toolbar
+   above it holds console filters, search and the view switch. */
 
 function filteredGameEntries() {
-  // One filter shape shared by the Covers grid and the List: All combines every
-  // console in library order, a concrete console keeps only that one, and the
-  // search always runs inside the active filter.
+  // One filter shape for Covers and List: All combines consoles in library order, a
+  // concrete console keeps only that one, and search runs inside the active filter.
   const filter = state.gameFilter.trim().toLocaleLowerCase();
   const entries = [];
 
@@ -1028,7 +1014,7 @@ function renderLibraryToolbar() {
 
 function renderBrowseView() {
   // Only visibility flips here. The shelf canvas is never recreated, so switching
-  // views does not reset the WebGL bay or the lineup lineup state behind it.
+  // views does not reset the WebGL bay behind it.
   elements.shelf.hidden = state.viewMode !== 'shelf' || !shelfAvailable;
   elements.coversView.hidden = state.viewMode !== 'covers';
   elements.listView.hidden = state.viewMode !== 'list';
@@ -1267,9 +1253,8 @@ function coverCard(entry, showBadge) {
   return item;
 }
 
-// Renders into a scrollable list while preserving its scroll position and the
-// focused row (re-focused by game id after the rebuild). This keeps the list
-// steady when the hero column expands or collapses around a selection.
+// Renders the list while preserving scroll position and the focused row (re-focused
+// by game id after the rebuild).
 function renderListWithPreservation(list, render) {
   const scrollTop = list.scrollTop;
   const active = document.activeElement;
@@ -1400,7 +1385,7 @@ function initialsFor(title) {
     .join('');
 }
 
-/* ---------- state ---------- */
+/* State */
 
 function publishSnapshot() {
   // The 3D layer is a module, so it cannot read this file's top-level bindings.
@@ -1457,10 +1442,8 @@ function selectConsole(consoleId) {
 window.aislesSelectConsole = selectConsole;
 
 /**
- * Selecting a result that surfaced under All: the game keeps its owning console.
- * This is deliberately not selectConsole() — which would also overwrite the All
- * filter and clear the selection. It only re-homes the selected console, tells the
- * host (so hero artwork and readiness follow), and keeps the visible filter as All.
+ * Selects a result found under All without overwriting the All filter: re-homes the
+ * console, tells the host, and keeps the visible filter as All.
  */
 function adoptConsoleForGame(consoleId) {
   state.selectedConsoleId = consoleId;
@@ -1523,9 +1506,8 @@ function clearGameSelection() {
 }
 
 /**
- * Selection is marked on the live rows: rebuilding a collection between the user's
- * click and the repaint would strand focus on the page, so the next Space would
- * scroll that view instead of acting on the pick.
+ * Selection is marked on live rows; rebuilding between click and repaint would strand
+ * focus and make Space scroll instead of acting on the pick.
  */
 function markSelectedRows() {
   for (const scope of [elements.coverGrid, elements.gameList]) {
@@ -1566,14 +1548,8 @@ window.aislesSelectGame = selectGame;
 window.aislesClearGameSelection = clearGameSelection;
 window.aislesLaunchGame = launchGame;
 
-/* ---------- hero ---------- */
-
-/* ---------- the hero ----------
- * The case and the medium are the workshop's real objects, drawn by hero3d.js from the
- * same millimetre table the shelf uses. This file keeps only the copy and the launch
- * button; the objects are handed over whole, so the hero cannot drift away from the
- * shelf's packaging or invent a second set of proportions.
- */
+/* The hero. The case and medium are hero3d.js objects built from the same millimetre
+   table as the shelf; this file keeps only the copy and the launch button. */
 
 const SHELF_GAMES = 18;
 
@@ -1975,9 +1951,8 @@ function heroHead(title, meta, launch) {
 }
 
 function isHeroCollapsed() {
-  // In Covers and List with nothing selected the hero column collapses so the
-  // browse view takes the full row; the hero returns (with a grid transition)
-  // once a game is selected. Shelf always keeps its hero.
+  // In Covers and List with nothing selected the hero column collapses so the browse
+  // view takes the full row; selecting a game brings it back.
   return (state.viewMode === 'covers' || state.viewMode === 'list') && !state.selectedGameId;
 }
 
@@ -2072,13 +2047,8 @@ function renderHero() {
   }
 }
 
-/* ---------- shelf keyboard (semantic listbox) ----------
-
-   The 3D shelf keeps pointer and drag behavior unchanged. A sighted keyboard
-   user focuses the shelf canvas (visible outline) and pages its cases with the
-   arrow keys; a semantic mirror listbox keeps the selection exposed to the
-   accessibility tree and in sync whenever the selection, console, filter or
-   page changes. */
+/* Shelf keyboard: a semantic listbox mirroring the 3D shelf's selection, page and
+   filter, so arrow keys and the accessibility tree stay in sync. */
 
 function shelfOptionId(gameId) {
   return `shelf-option-${encodeURIComponent(String(gameId))}`;
@@ -2186,12 +2156,8 @@ function initShelfKeyboard() {
 
 window.addEventListener('aisles:hero3d', renderHero);
 
-/* ---------- console labels over the 3D lineup ----------
-
-   The 3D stage renders .stage-labels .slot spans positioned over the lineup.
-   Upgrade them in place to real buttons (the 3D module keeps positioning them):
-   accessible name (console + count), aria-selected state, click activation, and
-   roving Arrow/Home/End keyboard navigation, all routed through selectConsole. */
+/* Console labels over the 3D lineup. The 3D module positions .stage-labels .slot
+   spans; this upgrades them in place to accessible buttons routed through selectConsole. */
 
 function syncConsoleLabels() {
   if (!state.library || !elements.stageLabels) return;
@@ -2281,7 +2247,7 @@ function setupConsoleLabelButtons() {
   new MutationObserver(syncConsoleLabels).observe(elements.stageLabels, { childList: true });
 }
 
-/* ---------- pager ---------- */
+/* Pager */
 
 function renderPager(detail) {
   if (!elements.shelfLabel || !elements.shelfPager) {
@@ -2322,10 +2288,8 @@ window.addEventListener('aisles:shelf', (event) => {
 });
 window.addEventListener('aisles:shelf3d-failed', onShelf3dFailed);
 
-/* ---------- window mode ----------
- * The stage opens maximized with its standard title bar. F11 can still opt into full
- * screen, and Escape returns from full screen to the maximized window.
- */
+/* Window mode. The stage opens maximized; F11 toggles full screen and Escape
+   returns to the maximized window. */
 
 let fullScreen = false;
 
@@ -2354,7 +2318,7 @@ window.addEventListener('keydown', (event) => {
   }
 });
 
-/* ---------- host messages ---------- */
+/* Host messages */
 
 function onLibrary(payload) {
   clearTimeout(startupScanTimer);
@@ -2401,9 +2365,8 @@ function onLibrary(payload) {
     state.selectedConsoleId = firstPopulated?.id ?? null;
   }
 
-  // The very first populated library lands on the concrete console the shelf will
-  // show, so the default Shelf view is usable; later refreshes keep the user's
-  // filter while it still names an existing console.
+  // The first populated library lands on the console the shelf will show; later
+  // refreshes keep the user's filter while it names an existing console.
   if (firstLibrary) {
     state.consoleFilterId = state.selectedConsoleId;
   }
@@ -2513,6 +2476,7 @@ if (webview) {
           gamesPath: console.gamesPath,
           emulatorPath: console.emulatorPath,
           corePath: console.corePath,
+          installedGamesPath: console.installedGamesPath,
           artworkPath: console.artworkPath,
         }]));
         settings.mode = 'console';

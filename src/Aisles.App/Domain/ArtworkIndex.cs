@@ -4,16 +4,8 @@ using System.Text.Json.Serialization;
 namespace Aisles.App.Domain;
 
 /// <summary>
-/// The artwork cache's index, in the same shape the workshop wrote it
-/// (<c>tools/artwork-workshop.cjs</c>). Keeping the shape means an existing
-/// <c>.cache/artwork</c> can be copied into the app without a migration, and the
-/// workshop remains usable as a review tool.
-///
-/// One entry per game, keyed by a hash of platform and resolved launch target, so a
-/// rescanned library finds its candidates again even when the display title changes.
-/// The extra <see cref="ArtworkIndexEntry.SearchTitle"/> and
-/// <see cref="ArtworkIndexEntry.SearchRegion"/> fields are Aisles' addition: if the
-/// user renames a folder, the next pass knows the old search no longer describes it.
+/// The workshop's cache index shape, so an existing .cache/artwork needs no migration.
+/// Keyed by platform plus launch target; SearchTitle/SearchRegion record the old search.
 /// </summary>
 public sealed class ArtworkIndex
 {
@@ -76,8 +68,8 @@ public sealed class ArtworkIndexEntry
     public string? SearchRegion { get; set; }
 
     /// <summary>
-    /// The disc serial or ROM game code used for exact-ID providers. PS1 and Wii need
-    /// disk reads or a DolphinTool call to discover theirs, so the answer is kept.
+    /// The disc serial or ROM game code for exact-ID providers. PS1 and Wii need disk
+    /// reads or a DolphinTool call, so the answer is kept.
     /// </summary>
     public string? IdentityId { get; set; }
 

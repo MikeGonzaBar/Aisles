@@ -4,9 +4,8 @@ using Aisles.App.Domain;
 namespace Aisles.App.Action;
 
 /// <summary>
-/// Console-level actions that do not need a game. They deliberately open the emulator,
-/// its configuration folder, or a release page rather than driving the emulator's own
-/// menus: those menus are GUI state, not a CLI contract.
+/// Console-level actions that need no game: open the emulator, its config folder, or a
+/// release page. The emulator's own menus are GUI state, not a CLI contract.
 /// </summary>
 public sealed class EmulatorTools
 {

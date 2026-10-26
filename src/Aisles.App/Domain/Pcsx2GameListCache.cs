@@ -1,16 +1,8 @@
 namespace Aisles.App.Domain;
 
 /// <summary>
-/// Reads PCSX2's <c>cache/gamelist.cache</c>, which carries each disc's serial and its
-/// real title ("SLUS-20946", "Grand Theft Auto - San Andreas") — far better than the
-/// file name <c>SAN_ANDREAS.ISO</c>.
-///
-/// Treated as evidence, never as a contract. The file is version-specific binary, so
-/// rather than assume a fixed record layout this walks the file looking for
-/// length-prefixed string triples: a game path, a serial, a title. Whatever binary
-/// fields follow a record are skipped naturally, because scanning resumes after the
-/// title. If a future PCSX2 changes the format the worst case is that the cache stops
-/// contributing, not that the app breaks.
+/// Reads PCSX2's <c>cache/gamelist.cache</c> for each disc's serial and real title. The
+/// binary layout is version-specific, so it scans length-prefixed triples and degrades to no data.
 /// </summary>
 public sealed class Pcsx2GameListCache
 {

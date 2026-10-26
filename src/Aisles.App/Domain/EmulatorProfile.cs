@@ -14,9 +14,8 @@ public enum EmulatorKind
 }
 
 /// <summary>
-/// The emulator-specific facts Aisles needs for its console actions. Executable names
-/// identify the emulator because <c>consoles.json</c> only stores a path; the entries
-/// are deliberately small and can be extended without touching the catalog schema.
+/// Emulator-specific facts for console actions. Executable names identify the emulator
+/// because <c>consoles.json</c> only stores a path; entries stay small and extensible.
 /// </summary>
 public sealed record EmulatorProfile(
     EmulatorKind Kind,

@@ -45,7 +45,7 @@ function firstUsableArtwork(game, kind, entry) {
 function resolveKind(game, kind, entry) {
   const selected=entry.selections[kind];
   if (selected === 'generated') return {source:'generated', match:'manual generated fallback', url:null};
-  const manual=entry.candidates.find(c=>c.id===selected && c.kind===kind && hasFile(c));
+  const manual=entry.candidates.find(c=>c.id===selected && c.kind===kind && firstUsableArtwork(game,kind,{...entry,candidates:[c]}));
   if (manual) return summary(manual,'manual selection');
   if (kind==='frontCover' && game.coverUrl && game.artKind !== 'menu icon') return {source:'emulator',match:'existing local artwork',url:game.coverUrl};
   if (kind==='frontCover' || kind==='discLabel') {
@@ -56,7 +56,7 @@ function resolveKind(game, kind, entry) {
   const exact=candidates.filter(c=>c.exactId && normalize(c.exactId)===normalize(game.id));
   if (exact.length===1) return summary(exact[0],'exact game ID');
   if (!exact.length && candidates.length===1) return summary(candidates[0],'title + platform + region');
-  return {source:'generated',url:null,match:(exact.length>1 || candidates.length>1)?'multiple matches — choose artwork':'no safe match — generated artwork'};
+  return {source:'generated',url:null,match:(exact.length>1 || candidates.length>1)?'multiple matches: choose artwork':'no safe match: generated artwork'};
 }
 function describe(game) {
   const entry=entryFor(game);
@@ -98,7 +98,7 @@ async function cacheImage(candidate) {
   if (!meta.width || !meta.height || !['png','jpeg','webp'].includes(meta.format)) throw new Error('Unsupported artwork image');
   const output=await image.png().toBuffer(),file=crypto.createHash('sha256').update(candidate.sourceUrl).digest('hex')+'.png';
   fs.mkdirSync(cacheRoot,{recursive:true});fs.writeFileSync(path.join(cacheRoot,file),output);
-  return {...candidate,file,width:meta.width,height:meta.height,qualityNote:Math.min(meta.width,meta.height)<384?'Low resolution — review before use':null};
+  return {...candidate,file,width:meta.width,height:meta.height,qualityNote:Math.min(meta.width,meta.height)<384?'Low resolution: review before use':null};
 }
 // These findings came from visual inspection, not merely the site's region tag.
 function reviewed(candidate, game) {
@@ -116,7 +116,7 @@ async function search(game, {kinds=null}={}) {
   const task=(async()=>{
     const entry=entryFor(game);entry.errors=[];
     try {
-      // Exact-ID provider first. Do not probe unknown title IDs or fabricate regions.
+      // Exact-ID provider first. Do not probe unknown title IDs or guess regions.
       const wanted=kindsFor(game).filter(kind=>(!kinds || kinds.includes(kind)) && resolveKind(game,kind,entry).source==='generated');
       if (['ps3','wii'].includes(game.platform) && /^[A-Z0-9]{6,9}$/.test(game.id||'') && regionFor(game)) {
         const locale={ 'North America':'US',Europe:'EN',Japan:'JA'}[regionFor(game)];

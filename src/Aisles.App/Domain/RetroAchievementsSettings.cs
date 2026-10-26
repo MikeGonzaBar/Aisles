@@ -1,9 +1,8 @@
 namespace Aisles.App.Domain;
 
 /// <summary>
-/// The RetroAchievements account Aisles reads progress for. The web API key is a
-/// secret; it is stored only in the user's application-data folder and is never
-/// written into the repository or sent back to the web layer.
+/// The RetroAchievements account Aisles reads progress for. The web API key is a secret,
+/// stored only in application data and never sent back to the web layer.
 /// </summary>
 public sealed record RetroAchievementsSettings(string Username, string ApiKey)
 {

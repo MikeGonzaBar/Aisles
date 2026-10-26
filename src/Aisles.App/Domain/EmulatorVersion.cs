@@ -3,9 +3,8 @@ using System.Text.RegularExpressions;
 namespace Aisles.App.Domain;
 
 /// <summary>
-/// Small, deliberately boring version parsers. Every emulator names its releases
-/// differently, so the comparison rules live here rather than in the updater service
-/// where they would be hard to test.
+/// Version parsers for emulators that name releases inconsistently. The comparison
+/// rules live here rather than in the updater service, where they would be hard to test.
 /// </summary>
 public static partial class EmulatorVersion
 {
@@ -108,8 +107,7 @@ public static partial class EmulatorVersion
 
     /// <summary>
     /// RetroArch prints either <c>RetroArch: Frontend for libretro, v1.22.2</c> or a
-    /// <c>Version: 1.22.2 (Git …)</c> line depending on the build. The first version
-    /// after either label is the frontend version.
+    /// <c>Version: 1.22.2 (Git ...)</c> line; the first version after either label wins.
     /// </summary>
     public static string? ParseRetroArch(string? output)
     {

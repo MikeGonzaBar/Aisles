@@ -1,8 +1,5 @@
-// Copies the Three.js build and the two addons the stage needs out of node_modules
-// into the app's web root, so the app runs fully offline with no CDN and no bare
-// specifiers (PLAN.md section 5.3).
-//
-// The output is committed: the app must run from a clean build without npm install.
+// Copies the Three.js build and two addons from node_modules into the web root, so the
+// app runs offline with no CDN. The output is committed so a clean build needs no npm install.
 
 const fs = require('fs');
 const path = require('path');

@@ -9,10 +9,8 @@ namespace Aisles.App.Domain;
 public sealed record GameIdentity(string? Id, string? Region);
 
 /// <summary>
-/// Recovers the identity that some platforms only store on disk: PS1's serial is in the
-/// data track, Wii's game ID and region are in the disc header. Both are needed for
-/// exact-ID artwork (LaunchBox's region rule, GameTDB's ID route), and neither is part
-/// of the normal scan because both cost I/O or a process start.
+/// Recovers identities some platforms only store on disk: PS1's serial in the data track,
+/// Wii's game ID and region in the disc header. Both run outside the scan because both cost I/O.
 /// </summary>
 public static class GameIdentityReader
 {
@@ -104,9 +102,8 @@ public static class GameIdentityReader
     }
 
     /// <summary>
-    /// Reads the first megabytes of a PS1 data track and finds its serial. The cue names
-    /// the track, but some rips keep several bins, so the cue's FILE line wins and the
-    /// folder's first bin is the fallback.
+    /// Reads the first megabytes of a PS1 data track for its serial. The cue's FILE line
+    /// wins when rips keep several bins; the folder's first bin is the fallback.
     /// </summary>
     public static string? Ps1Serial(string cuePath)
     {
@@ -161,9 +158,8 @@ public static class GameIdentityReader
     }
 
     /// <summary>
-    /// Asks DolphinTool for an RVZ/WIA header. It ships beside Dolphin.exe, so the
-    /// configured emulator path is the only place worth looking. A missing tool is not
-    /// an error: the game simply keeps its generated artwork.
+    /// Asks DolphinTool for an RVZ/WIA header; it ships beside Dolphin.exe, so the configured
+    /// emulator path is the only place worth looking. A missing tool leaves generated artwork.
     /// </summary>
     public static async Task<GameIdentity?> DolphinHeaderAsync(
         ConsoleDescriptor console,

@@ -30,7 +30,7 @@ body {
   color: var(--cream);
   font-family: "Segoe UI", system-ui, sans-serif;
   font-size: 14px;
-  /* Phase 0 is a plain app surface, not the 3D stage; keep it non-selectable
+  /* The base view is a plain app surface, not the 3D stage; keep it non-selectable
      so it can't be mistaken for a document. */
   user-select: none;
 }
@@ -41,7 +41,7 @@ body {
   display: none !important;
 }
 
-/* ---------- top bar ---------- */
+/* Top bar */
 
 .topbar {
   display: flex;
@@ -98,7 +98,7 @@ body {
   color: var(--muted);
 }
 
-/* ---------- startup ---------- */
+/* Startup */
 
 .startup-panel {
   position: fixed;
@@ -125,7 +125,7 @@ body {
   gap: 10px;
 }
 
-/* ---------- settings ---------- */
+/* Settings */
 
 .settings-backdrop {
   position: fixed;
@@ -203,7 +203,7 @@ button:disabled { opacity: .55; cursor: wait; }
   .settings-console-badge { width: 62px; height: 62px; flex-basis: 62px; }
 }
 
-/* ---------- console context menu ---------- */
+/* Console context menu */
 
 .console-menu {
   position: fixed;
@@ -302,23 +302,21 @@ button:disabled { opacity: .55; cursor: wait; }
   color: #ff9a9a;
 }
 
-/* ---------- layout ---------- */
+/* Layout */
 
 .layout {
   display: grid;
-  /* The 3D scenery forms the spine: the console wall, then the browse row, and only
-     the quiet filter dock sits between the content and the statusbar. The dock stays
-     first in the DOM, so keyboard focus still reaches the filters before the grid. */
+  /* Console wall, browse row, then the filter dock above the statusbar. The dock stays
+     first in the DOM so keyboard focus reaches the filters before the grid. */
   grid-template-rows: auto minmax(0, 1fr) auto;
   flex: 1;
   min-height: 0;
 }
 
-/* ---------- the filter dock ---------- */
+/* Filter dock */
 
-/* A deliberately quiet rail: the console names ARE the labels, so the dock uses no
-   boxed pills or visible headings that would compete with the 3D lineup above. It
-   renders at the bottom of the main layout, directly above the statusbar. */
+/* A quiet rail: the console names are the labels, so no boxed pills or visible
+   headings compete with the 3D lineup above. */
 .library-toolbar {
   order: 3;
   display: flex;
@@ -344,8 +342,8 @@ button:disabled { opacity: .55; cursor: wait; }
 .console-filter::-webkit-scrollbar { height: 6px; }
 .console-filter::-webkit-scrollbar-thumb { background: #243154; border-radius: 3px; }
 
-/* Chips are plain text tabs — uppercase micro-caps with a thin count — and the
-   active one is marked by the cream text and a yellow underline, never by a box. */
+/* Chips are plain text tabs: uppercase micro-caps with a thin count. The active one
+   is marked by the cream text and a yellow underline, never by a box. */
 .filter-chip {
   flex: 0 0 auto;
   display: inline-flex;
@@ -481,7 +479,7 @@ button:disabled { opacity: .55; cursor: wait; }
   cursor: not-allowed;
 }
 
-/* ---------- the shelf and the hero ---------- */
+/* Shelf and hero */
 
 .stage-row {
   display: grid;
@@ -646,7 +644,7 @@ button:disabled { opacity: .55; cursor: wait; }
   color: var(--dim);
 }
 
-/* ---------- hero ---------- */
+/* Hero */
 
 .hero {
   display: flex;
@@ -665,9 +663,8 @@ button:disabled { opacity: .55; cursor: wait; }
   width: 100%;
 }
 
-/* The hero is one 3D surface. The case and the medium are placed by their real sizes
-   rather than by two boxes pretending to be them, so the disc is 12 cm beside a 19 cm
-   case and the composition is the blockout's, not an approximation of it. */
+/* The hero is one 3D surface: case and medium at real sizes, so the disc is 12 cm beside
+   a 19 cm case and the composition matches the blockout. */
 .hero-stage {
   position: relative;
   height: 100%;
@@ -785,7 +782,7 @@ button:disabled { opacity: .55; cursor: wait; }
   cursor: default;
 }
 
-/* ---------- hero details rail ---------- */
+/* Hero details rail */
 
 .launch-deck {
   display: flex;
@@ -1165,7 +1162,7 @@ button:disabled { opacity: .55; cursor: wait; }
   background: linear-gradient(180deg, #344f82, #172644);
 }
 
-/* ---------- console lineup (3D) ---------- */
+/* Console lineup (3D) */
 
 .lineup {
   position: relative;
@@ -1376,13 +1373,13 @@ body.stage3d-failed #stage-labels {
   display: none;
 }
 
-/* The whole browse row used to disappear when the shelf failed; now only the shelf
-   does, and its view switch steps aside so Covers and List stay reachable. */
+/* When the shelf fails, only the shelf is hidden. Its view switch steps aside so
+   Covers and List stay reachable. */
 body.shelf3d-failed .shelf {
   display: none !important;
 }
 
-/* ---------- covers and list ---------- */
+/* Covers and list */
 
 .games-heading {
   flex: 0 0 auto;
@@ -1504,7 +1501,7 @@ body.shelf3d-failed .shelf {
   list-style: none;
 }
 
-/* ---------- console rows ---------- */
+/* Console rows */
 
 .console {
   display: grid;
@@ -1555,7 +1552,7 @@ body.shelf3d-failed .shelf {
   color: var(--warn);
 }
 
-/* ---------- game rows ---------- */
+/* Game rows */
 
 .game {
   display: grid;
@@ -1585,7 +1582,7 @@ body.shelf3d-failed .shelf {
   min-width: 0;
 }
 
-/* ---------- box art ---------- */
+/* Box art */
 
 .art {
   position: relative;
@@ -1684,7 +1681,7 @@ body.shelf3d-failed .shelf {
   filter: brightness(1.08);
 }
 
-/* ---------- empty state ---------- */
+/* Empty state */
 
 .empty {
   display: flex;
@@ -1750,7 +1747,7 @@ body.shelf3d-failed .shelf {
   font-size: 12px;
 }
 
-/* ---------- status bar ---------- */
+/* Status bar */
 
 .statusbar {
   display: flex;

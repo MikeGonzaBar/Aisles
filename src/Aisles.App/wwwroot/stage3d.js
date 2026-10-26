@@ -1,24 +1,13 @@
-// Aisles - Phase 3: the 3D console lineup.
-//
-// This band is the platform switcher (PLAN.md section 6): every console in
-// consoles.json stands on one floor line with its short name beneath, and the
-// selected one lifts, grows and takes the spotlight. The camera is fixed with a
-// gentle idle drift; there is no free orbit or zoom in v1.
-//
-// It loads as a module so it can import Three.js, which also means it cannot see
-// the top-level bindings in stage.js. The contract between the two files is
-// window.aislesSnapshot plus the "aisles:update" event going in, and
-// window.aislesSelectConsole coming back out.
+// The 3D console lineup. Loads as a module, so it talks to stage.js through
+// window.aislesSnapshot, the "aisles:update" event, and window.aislesSelectConsole.
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 /**
- * Every model is scaled so the larger of its width and height is this. The camera is
- * nearly head-on, so width and height are what decide how big a console looks; scaling
- * by the longest axis instead let depth or height dominate and left the Wii and the
- * Xbox 360 at a fifth of the PlayStation's presence.
+ * Every model is scaled so the larger of width and height is this; scaling by the
+ * longest axis let depth dominate and shrank the Wii and Xbox 360.
  */
 const TARGET_SIZE = 0.8;
 
@@ -30,19 +19,15 @@ const VISUAL_SCALE = {
   xbox360: 0.92,
 };
 
-/**
- * Depth gets its own cap. A flat console scaled up by width would otherwise stretch a
- * metre toward the camera and off its plinth.
- */
+/** Depth gets its own cap, or a wide flat console stretches toward the camera and off its plinth. */
 const MAX_DEPTH = 1;
 
 /** Clear space between neighbouring consoles, measured between their bounding boxes. */
 const GAP = 0.58;
 
 /**
- * Label bookkeeping for the clamp in updateLabels: .stage-labels .slot sits 7 px below
- * its projected point (stage.css) and needs a few pixels of air under the count line,
- * so the block can never be sliced by .lineup's overflow.
+ * The label clamp in updateLabels: .stage-labels .slot sits 7 px below its projected
+ * point and needs air under the count line so .lineup's overflow never clips it.
  */
 const LABEL_MARGIN = 7;
 const LABEL_PAD = 4;
@@ -60,10 +45,8 @@ const FOV = 27;
 const LOOK_AT = new THREE.Vector3(0, 0.44, 0);
 
 /**
- * The plinth top and the floor must never share a plane, and neither may a console's
- * underside share a plane with its plinth: coincident faces z-fight, and with the camera
- * drifting the fight crawls across the model as a flicker. These offsets are sub-pixel
- * at lineup size but keep every surface strictly ordered in depth.
+ * Coincident faces z-fight; these sub-pixel offsets keep plinth, floor and console
+ * undersides strictly ordered in depth.
  */
 const PLINTH_TOP = 0.005;
 const MODEL_BASE = 0.0065;
@@ -106,9 +89,8 @@ function start(canvas, labelsRoot) {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-  // The light never moves and nothing in the scene animates in the light's space, so the
-  // shadow map is baked and refreshed only when the selection changes. Recomputing it
-  // every frame made self-shadowing crawl over the consoles while the camera drifted.
+  // Nothing moves in the light's space, so the shadow map is baked and refreshed only
+  // on selection; per-frame updates made self-shadowing crawl.
   renderer.shadowMap.autoUpdate = false;
   renderer.shadowMap.needsUpdate = true;
 
@@ -154,10 +136,8 @@ function start(canvas, labelsRoot) {
   scene.add(spot, spot.target);
   let spotTargetX = 0;
 
-  // There is deliberately no opaque ground plane. The band's slatwall shows through the
-  // transparent canvas; an opaque floor would cut it with a hard horizon.
-  // A ShadowMaterial plane receives the contact shadows and paints nothing else, so each
-  // console appears to stand on its own patch of stage.
+  // No opaque ground plane: the slatwall shows through the transparent canvas. A
+  // ShadowMaterial plane receives contact shadows and paints nothing else.
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(90, 44),
     new THREE.ShadowMaterial({ opacity: 0.42 }),
@@ -169,7 +149,7 @@ function start(canvas, labelsRoot) {
   // One soft pool per console, built from a shared texture and tinted per slot.
   const poolTexture = radialPoolTexture();
 
-  /* ---------- slots ---------- */
+  /* Slots */
 
   const slots = new Map();
   const loader = new GLTFLoader();
@@ -209,8 +189,7 @@ function start(canvas, labelsRoot) {
     platform3d.receiveShadow = true;
     root.add(platform3d);
 
-    // Each console gets its own pool of light, so the row never reads as one continuous
-    // band of stage shared by everything on it.
+    // Each console gets its own pool of light so it does not merge into a single band.
     const pool = new THREE.Mesh(
       new THREE.PlaneGeometry(1, 1),
       new THREE.MeshBasicMaterial({
@@ -267,15 +246,14 @@ function start(canvas, labelsRoot) {
     return slot;
   }
 
-  /** Matches the plinth and the pool to the thing standing on them. */
+  /** Matches the plinth and light pool to the console's footprint. */
   function sizePlatform(slot, width, depth) {
     const radiusX = Math.max(width, 0.24) / 2 + 0.07;
     const radiusZ = Math.max(depth, 0.24) / 2 + 0.07;
     slot.platform.scale.set(radiusX / 0.5, 1, radiusZ / 0.5);
 
     // The pool plane is a unit square rotated flat, so its local X/Y are world X/Z. It
-    // stops short of half the gap to the next console so neighbouring pools never merge
-    // into one band.
+    // stops short of half the gap so neighbouring pools never merge.
     slot.pool.scale.set(width + 0.42, depth + 0.7, 1);
   }
 
@@ -301,7 +279,7 @@ function start(canvas, labelsRoot) {
     slot.label.append(count);
   }
 
-  /* ---------- models ---------- */
+  /* Models */
 
   async function loadModels() {
     if (modelledIds === null) {
@@ -370,9 +348,8 @@ function start(canvas, labelsRoot) {
     model.rotation.y = THREE.MathUtils.degToRad(YAW[slot.console.id] ?? 0);
     model.updateMatrixWorld(true);
 
-    // Then scale on the screen-facing silhouette, not the longest axis. Width and height
-    // are what the camera sees; depth is capped separately so a flat console does not
-    // stretch toward the viewer just because it is wide.
+    // Then scale on the screen-facing width and height; depth is capped separately so
+    // a flat console does not stretch toward the viewer just because it is wide.
     const size = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
     let scale = TARGET_SIZE / Math.max(size.x, size.y, 1e-6);
     scale *= VISUAL_SCALE[slot.console.id] ?? 1;
@@ -421,16 +398,15 @@ function start(canvas, labelsRoot) {
     );
     edges.computeLineDistances();
     edges.position.copy(ghost.position);
-    // Lines are decorative. THREE.Raycaster gives a line a 1 world-unit threshold, which
-    // makes a dashed outline pickable from a whole console away and swallows clicks meant
-    // for a neighbour, so an outline must never take part in a pick.
+    // Lines are decorative: Raycaster gives them a 1 world-unit threshold, so an outline
+    // would swallow clicks meant for a neighbour.
     edges.raycast = () => {};
     group.add(edges);
 
     return group;
   }
 
-  /* ---------- layout, selection, labels ---------- */
+  /* Layout, selection, labels */
 
   function layout() {
     const count = state.consoles.length;
@@ -438,9 +414,8 @@ function start(canvas, labelsRoot) {
       return;
     }
 
-    // Consoles are packed left to right with a fixed gap between their bounding boxes,
-    // so the space a person sees is the same everywhere. Even centre spacing would make
-    // the gaps look wrong as soon as two consoles are different widths.
+    // Consoles are packed left to right with a fixed gap between bounding boxes; even
+    // centre spacing makes gaps look wrong once widths differ.
     const widths = state.consoles.map((platform) => slots.get(platform.id)?.width ?? TARGET_SIZE);
     const total = widths.reduce((sum, width) => sum + width, 0) + GAP * Math.max(0, count - 1);
     rowWidth = total;
@@ -493,11 +468,8 @@ function start(canvas, labelsRoot) {
     for (const slot of slots.values()) {
       labelPoint.set(slot.x, 0, 0).project(camera);
 
-      // The label hangs from the plinth it names. On a short lineup the plinth can
-      // project close enough to the bottom edge that the second line ("12 games",
-      // "Folder not set") runs past .lineup's overflow and is clipped, which happens
-      // at 1280 wide and never at 2560. Lift the block just enough to keep it whole;
-      // at heights where it already fits, this changes nothing.
+      // The label hangs below its plinth; at 1280 wide the second line can run past
+      // .lineup's overflow, so lift the block just enough to keep it whole.
       slot.labelHeight ||= slot.label.offsetHeight;
       const reserve = LABEL_MARGIN + slot.labelHeight + LABEL_PAD;
       const top = Math.max(
@@ -520,9 +492,8 @@ function start(canvas, labelsRoot) {
     const halfHeight = 0.72;
     const tan = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
 
-    // The row is framed at the look-at plane, but the console bodies sit in front of it.
-    // At a wide aspect the camera is close enough that perspective would push the end
-    // consoles past the edge; pull back by half the deepest model plus a little margin.
+    // The row is framed at the look-at plane but bodies sit in front, so at a wide
+    // aspect pull back by half the deepest model plus a margin.
     const nearHalfDepth = MAX_DEPTH / 2 + 0.08;
     const distance = Math.max(
       halfWidth / (tan * aspect) + nearHalfDepth,
@@ -535,12 +506,11 @@ function start(canvas, labelsRoot) {
     camera.lookAt(LOOK_AT);
   }
 
-  /* ---------- interaction ---------- */
+  /* Interaction */
 
   /**
-   * What a click may hit: the plinth and whichever body the slot is showing. Hidden
-   * placeholders stay in the scene — and three raycasts them whether visible or not — so
-   * they are excluded rather than left to win a pick against the model standing on top.
+   * Pick targets: the plinth and the visible body. Hidden placeholders stay in the scene
+   * and Raycaster hits them anyway, so exclude them explicitly.
    */
   function pickTargets() {
     const targets = [];
@@ -613,7 +583,7 @@ function start(canvas, labelsRoot) {
     }));
   });
 
-  /* ---------- data flow ---------- */
+  /* Data flow */
 
   function update() {
     const snapshot = window.aislesSnapshot;
@@ -651,12 +621,11 @@ function start(canvas, labelsRoot) {
     loadModels().catch((error) => console.warn('Aisles: lineup load failed', error));
   }
 
-  /* ---------- frame loop ---------- */
+  /* Frame loop */
 
   function tick(now) {
-    // The camera stays where frameCamera put it. It used to drift on a slow sine, which
-    // moved every console together and made the row read as one sliding object; a stage
-    // that holds still lets each console sit on its own.
+    // The camera stays where frameCamera put it. A drifting camera moved every console
+    // together and made the row read as one sliding object.
     resize();
 
     spot.position.x += (spotTargetX - spot.position.x) * 0.12;
@@ -682,9 +651,8 @@ function start(canvas, labelsRoot) {
   }
 
   /**
-   * Sized from the canvas's own box, checked each frame. A ResizeObserver alone was not
-   * enough: when the first measurement lands mid-layout the drawing buffer keeps the wrong
-   * size, the picture is stretched against its hit testing, and nothing forces a recheck.
+   * Sized from the canvas box each frame: a ResizeObserver alone missed a first
+   * measurement taken mid-layout, leaving a stretched buffer and wrong hit testing.
    */
   function resize() {
     const width = canvas.clientWidth;
@@ -718,7 +686,7 @@ function start(canvas, labelsRoot) {
   window.aislesStage3d = { THREE, scene, camera, renderer, slots, state };
 }
 
-/* ---------- helpers ---------- */
+/* Helpers */
 
 function radialPoolTexture() {
   const size = 256;

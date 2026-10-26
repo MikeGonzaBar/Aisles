@@ -44,7 +44,7 @@ public sealed record GamePayload(
 
 /// <summary>
 /// The PLAYED row. A null <see cref="Seconds"/> means no value is available, and
-/// <see cref="Reason"/> is the sentence the rail shows in place of a fabricated zero.
+/// <see cref="Reason"/> is the text shown instead.
 /// </summary>
 public sealed record PlayedPayload(long? Seconds, string? LastPlayed, string? Source, string? Reason);
 
@@ -61,13 +61,8 @@ public sealed record AchievementBadgePayload(
     string? EarnedOn);
 
 /// <summary>
-/// The ACHIEVEMENTS row. <see cref="State"/> is <c>notLinked</c>, <c>notSupported</c>,
-/// <c>linked</c>, <c>local</c> or <c>noTrophies</c>; <c>linked</c> and <c>local</c>
-/// carry earned/total when progress is available, and leave them null while the rail
-/// is still resolving. <see cref="Source"/> names the provider (<c>retroachievements</c>
-/// or <c>rpcs3</c>) and <see cref="Unit"/> names what is counted, because PS3 trophies
-/// are not RetroAchievements achievements or points. <see cref="Recent"/> and
-/// <see cref="Pending"/> hold a short, honest sample of per-achievement badges.
+/// The ACHIEVEMENTS row. <see cref="State"/> is notLinked, notSupported, linked, local or
+/// noTrophies; Source and Unit distinguish RetroAchievements from PS3 trophies; Recent/Pending sample badges.
 /// </summary>
 public sealed record AchievementsPayload(
     string State,

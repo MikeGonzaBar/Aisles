@@ -4,25 +4,14 @@ using System.Text.Json;
 namespace Aisles.App.Domain;
 
 /// <summary>
-/// What the details rail can honestly say about one game's play time. A null
-/// <see cref="Seconds"/> means the emulator does not expose a value; <see cref="Reason"/>
-/// carries the sentence the rail shows instead of inventing a zero.
+/// Play time for the details rail. A null <see cref="Seconds"/> means the emulator
+/// exposes no value; <see cref="Reason"/> is the text shown instead.
 /// </summary>
 public sealed record PlayStats(long? Seconds, string? LastPlayed, string? Source, string? Reason);
 
 /// <summary>
-/// Reads the emulator-owned play-time caches that exist on this machine
-/// (PLAN.md section 3.5): PCSX2's and DuckStation's fixed-width <c>playtime.dat</c>,
-/// Dolphin's <c>Config\TimePlayed.ini</c>, RPCS3's
-/// <c>GuiConfigs\persistent_settings.dat</c> and RetroArch's per-content
-/// <c>.lrtl</c> runtime logs. All are read once per payload and never written.
-///
-/// The formats are deliberately parsed from text rather than treated as our storage
-/// contract. PCSX2 and DuckStation both store seconds and a Unix timestamp; Dolphin
-/// stores milliseconds in hex and no timestamp; RPCS3 stores milliseconds and a local
-/// ISO 8601 date, both keyed by title ID. RetroArch stores a duration and a local
-/// timestamp in one JSON file per content name. Every other configured emulator stores
-/// nothing, and the caller gets the sentence that explains why.
+/// Reads the emulator-owned play-time caches (PLAN.md section 3.5): PCSX2 and DuckStation
+/// playtime.dat, Dolphin TimePlayed.ini, RPCS3 persistent_settings.dat, RetroArch .lrtl.
 /// </summary>
 public sealed class PlayStatsReader
 {
@@ -60,9 +49,8 @@ public sealed class PlayStatsReader
     }
 
     /// <summary>
-    /// PCSX2 writes one fixed-width record per line:
-    /// <c>SLUS-21151    32387    1765476533</c>. The serial is the key; the second
-    /// column is seconds and the third is the last-played Unix timestamp.
+    /// PCSX2 writes one fixed-width record per line, e.g.
+    /// <c>SLUS-21151    32387    1765476533</c>: serial, seconds, last-played Unix time.
     /// </summary>
     public static PlayStats ParsePcsx2(string text, string? gameId) =>
         ParsePlayedTimeFile(
@@ -74,10 +62,8 @@ public sealed class PlayStatsReader
             "PCSX2 has no playtime record for this game.");
 
     /// <summary>
-    /// DuckStation writes the same fixed-width shape as PCSX2
-    /// (<c>SLUS-00650    1058    1755836210</c>): serial, seconds played and the
-    /// last-played Unix timestamp, one record per line in
-    /// <c>Documents\DuckStation\playtime.dat</c>.
+    /// DuckStation uses the same fixed-width shape in
+    /// <c>Documents\DuckStation\playtime.dat</c>: serial, seconds, last-played Unix time.
     /// </summary>
     public static PlayStats ParseDuckStation(string text, string? gameId) =>
         ParsePlayedTimeFile(
@@ -133,8 +119,8 @@ public sealed class PlayStatsReader
     }
 
     /// <summary>
-    /// Dolphin writes a single <c>[TimePlayed]</c> section whose values are milliseconds
-    /// in hex (<c>RMCE01 = 0x00000000004bfafc</c>). It does not store a last-played time.
+    /// Dolphin writes a <c>[TimePlayed]</c> section of milliseconds in hex
+    /// (<c>RMCE01 = 0x00000000004bfafc</c>) and no last-played time.
     /// </summary>
     public static PlayStats ParseDolphin(string text, string? gameId)
     {
@@ -193,9 +179,8 @@ public sealed class PlayStatsReader
     }
 
     /// <summary>
-    /// RPCS3 writes two sections in <c>persistent_settings.dat</c>:
-    /// <c>[Playtime]</c> maps a TITLE_ID to milliseconds and <c>[LastPlayed]</c> maps it
-    /// to a local ISO 8601 date. The game list shows both, so the rail does too.
+    /// RPCS3's <c>persistent_settings.dat</c> maps a TITLE_ID to milliseconds in
+    /// <c>[Playtime]</c> and to a local ISO 8601 date in <c>[LastPlayed]</c>.
     /// </summary>
     public static PlayStats ParseRpcs3(string text, string? gameId)
     {
@@ -219,9 +204,8 @@ public sealed class PlayStatsReader
     }
 
     /// <summary>
-    /// RetroArch writes one JSON file per content name:
-    /// <c>{"runtime":"0:00:27","last_played":"2026-10-21 15:00:16",...}</c>.
-    /// The runtime is hours:minutes:seconds; the timestamp is local time.
+    /// RetroArch writes one JSON file per content name, with <c>runtime</c> as
+    /// hours:minutes:seconds and <c>last_played</c> as local time.
     /// </summary>
     public static PlayStats ParseRetroArch(string text)
     {
@@ -410,9 +394,8 @@ public sealed class PlayStatsReader
     }
 
     /// <summary>
-    /// DuckStation keeps its user data, including <c>playtime.dat</c>, in
-    /// <c>Documents\DuckStation</c>. Portable builds keep it beside the executable, and
-    /// some launchers nest that in a <c>portable</c> folder.
+    /// DuckStation keeps <c>playtime.dat</c> in <c>Documents\DuckStation</c>; portable
+    /// builds keep it beside the executable, sometimes nested in a portable folder.
     /// </summary>
     private static string? DuckStationFile(ConsoleDescriptor console)
     {
@@ -441,8 +424,8 @@ public sealed class PlayStatsReader
     }
 
     /// <summary>
-    /// RPCS3 keeps this beside the executable in a portable install, and its folder has
-    /// been spelled both <c>GuiConfigs</c> and <c>gui_configs</c> across releases.
+    /// RPCS3 keeps this beside the executable in a portable install; the folder is spelled
+    /// <c>GuiConfigs</c> or <c>gui_configs</c> across releases.
     /// </summary>
     private static string? Rpcs3File(ConsoleDescriptor console)
     {
@@ -456,9 +439,8 @@ public sealed class PlayStatsReader
     }
 
     /// <summary>
-    /// Portable RetroArch keeps playlists and logs under its own folder. Installed
-    /// builds may use <c>%APPDATA%\RetroArch</c> instead; both layouts are checked before
-    /// reporting that the logs are missing.
+    /// Portable RetroArch keeps playlists and logs under its own folder; installed builds
+    /// may use %APPDATA%\RetroArch, so both layouts are checked.
     /// </summary>
     private static string? RetroArchLogsDirectory(ConsoleDescriptor console)
     {

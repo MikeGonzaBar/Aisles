@@ -1,15 +1,8 @@
 namespace Aisles.App.Domain;
 
 /// <summary>
-/// Walks a console's games folder using the strategy named in <c>consoles.json</c>, then
-/// enriches each find with the best title and serial available on disk.
-///
-/// The guiding rule is that the name a person gave a folder beats anything stored inside
-/// the file. This machine's evidence is blunt about why: the PS1 folder "A bugs life" holds
-/// "A_BUGS_LIFE.CUE", the DS folder "2269 - Iron Man (E)(SQUiRE)" holds a ROM titled
-/// "IRON MAN DS", and PS3 <c>PARAM.SFO</c> reports "LittleBigPlanetT". Emulator metadata is
-/// therefore used to *replace* a derived name only where it is genuinely authoritative
-/// (the PCSX2 cache), and to supply the serial wherever one exists.
+/// Walks a console's games folder, then enriches each find with the best on-disk title
+/// and serial. The folder name beats file metadata except where the PCSX2 cache is authoritative.
 /// </summary>
 public sealed class LibraryScanner
 {
@@ -24,9 +17,8 @@ public sealed class LibraryScanner
         var artwork = ArtworkLookup.For(console);
         var entries = new List<GameEntry>();
 
-        // Serial is the join key between a disc dump and its installed update or an
-        // installed copy of the same game, so it is collected while the disc roots are
-        // walked and used to keep the installed pass from listing a game twice.
+        // Serial joins a disc dump to its installed update or copy, so it is collected
+        // while disc roots are walked and prevents the installed pass from listing it twice.
         var knownSerials = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         if (console.GamesPathExists)
@@ -58,8 +50,7 @@ public sealed class LibraryScanner
 
     private static IEnumerable<Discovered> Discover(ConsoleDescriptor console) => console.Scan switch
     {
-        "DiscFolders" => FindDiscRoots(console)
-            .Select(folder => new Discovered(folder, Path.GetFileName(folder))),
+        "DiscFolders" => FindDiscRoots(console),
 
         "FlatFiles" => FindByExtension(console, searchSubdirectories: false)
             .Select(file => new Discovered(file, Path.GetFileNameWithoutExtension(file))),
@@ -71,9 +62,8 @@ public sealed class LibraryScanner
     };
 
     /// <summary>
-    /// In these shapes each game sits in its own folder, and that folder is the human
-    /// name. A file loose in the games folder itself has no such name, so it falls back
-    /// to its own.
+    /// Each game sits in its own folder, and that folder is the human name; a loose file
+    /// falls back to its own name.
     /// </summary>
     private static string HintFromContainingFolder(ConsoleDescriptor console, string file)
     {
@@ -94,23 +84,27 @@ public sealed class LibraryScanner
             StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// The launch target is the folder holding the marker, not the marker itself. For PS3
-    /// that folder is the disc root RPCS3 expects, and anchoring on the marker is what
-    /// keeps the decoy <c>PARAM.SFO</c> files out (PLAN.md section 3.1).
+    /// The disc folder supplies the display name. Most disc-folder emulators launch that
+    /// folder (PS3), while Xenia launches the <c>default.xex</c> marker itself.
     /// </summary>
-    private static IEnumerable<string> FindDiscRoots(ConsoleDescriptor console)
+    private static IEnumerable<Discovered> FindDiscRoots(ConsoleDescriptor console)
     {
         if (string.IsNullOrWhiteSpace(console.ScanMarker))
         {
-            return Array.Empty<string>();
+            return Array.Empty<Discovered>();
         }
 
         return Directory
             .EnumerateFiles(console.GamesPath, console.ScanMarker, SearchOption.AllDirectories)
-            .Select(Path.GetDirectoryName)
-            .Where(folder => !string.IsNullOrEmpty(folder))
-            .Select(folder => folder!)
-            .Distinct(StringComparer.OrdinalIgnoreCase);
+            .Select(marker => new { Marker = marker, Folder = Path.GetDirectoryName(marker) })
+            .Where(found => !string.IsNullOrEmpty(found.Folder))
+            .GroupBy(found => found.Folder!, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .Select(found => new Discovered(
+                Path.GetExtension(found.Marker).Equals(".xex", StringComparison.OrdinalIgnoreCase)
+                    ? found.Marker
+                    : found.Folder!,
+                Path.GetFileName(found.Folder!)));
     }
 
     private static IEnumerable<string> FindByExtension(ConsoleDescriptor console, bool searchSubdirectories)
@@ -159,11 +153,8 @@ public sealed class LibraryScanner
     }
 
     /// <summary>
-    /// Installed HDD/PSN games live beside the disc registrations, in RPCS3's
-    /// <c>dev_hdd0\game</c>. Only bootable <c>HG</c> entries are games; the folder also
-    /// holds disc updates (<c>GD</c>), per-profile data such as
-    /// <c>BCUS98148_USER1</c>, and empty test folders. A title ID already claimed by a
-    /// disc is skipped, so an installed update does not become a second shelf entry.
+    /// Installed HDD/PSN games live in RPCS3's <c>dev_hdd0\game</c>. Only bootable <c>HG</c>
+    /// entries are games; a title ID already claimed by a disc is skipped.
     /// </summary>
     private static IEnumerable<InstalledGame> DiscoverInstalled(
         ConsoleDescriptor console,
@@ -211,9 +202,8 @@ public sealed class LibraryScanner
         InstalledGame found,
         ArtworkLookup artwork)
     {
-        // Installed titles are the one place PARAM.SFO is more trustworthy than the
-        // folder name: RPCS3 shows this TITLE, and there is no human folder name to
-        // preserve. The trademark mark is typography, not part of the name.
+        // Installed titles are where PARAM.SFO beats the folder name: RPCS3 shows this
+        // TITLE, and there is no human folder name. The trademark mark is typography.
         var title = TitleNormalizer.Normalize(CleanTitle(found.Sfo.Title));
         if (title.Length == 0)
         {
@@ -234,9 +224,8 @@ public sealed class LibraryScanner
     }
 
     /// <summary>
-    /// A disc dump reports the version burned into it (LBP: 01.01), while RPCS3 shows the
-    /// installed patch level from <c>dev_hdd0\game\&lt;TITLE_ID&gt;</c> (01.30). Reading
-    /// the installed copy when one exists keeps the rail in step with the emulator.
+    /// A disc dump reports its burned version, while RPCS3 shows the installed patch level;
+    /// reading the installed copy when it exists keeps the rail in step with the emulator.
     /// </summary>
     private static string? InstalledVersion(ConsoleDescriptor console, string? serial)
     {
@@ -269,10 +258,8 @@ public sealed class LibraryScanner
     }
 
     /// <summary>
-    /// PS3 disc roots keep their metadata in <c>PS3_GAME\PARAM.SFO</c>. The preferred
-    /// location is tried first; the scan of immediate subfolders exists only so a disc
-    /// laid out slightly differently still yields its serial, and it rejects any
-    /// <c>PARAM.SFO</c> that has no <c>TITLE_ID</c> — which is what the decoy files are.
+    /// PS3 disc metadata lives in <c>PS3_GAME\PARAM.SFO</c>. The preferred path is tried
+    /// first; subfolders are a fallback, and a file without TITLE_ID is a decoy.
     /// </summary>
     private static (string? Serial, string? Version) ReadDiscMetadataFromSfo(string discRoot)
     {

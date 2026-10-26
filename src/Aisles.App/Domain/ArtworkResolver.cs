@@ -14,24 +14,8 @@ public sealed record ResolvedArtwork(string? Url, string? Match, string? Source,
 public sealed record ArtworkResolution(ResolvedArtwork FrontCover, ResolvedArtwork Medium);
 
 /// <summary>
-/// The host-side port of <c>tools/artwork-workshop.cjs</c> (PLAN.md section 3.3.1).
-///
-/// The precedence is the workshop's and is deliberately not re-invented:
-///
-/// 1. a manual selection;
-/// 2. a file the emulator or the user already has;
-/// 3. the first usable provider image for the slot;
-/// 4. an exact platform/ID match;
-/// 5. a unique normalized title + platform + region match;
-/// 6. the generated artwork.
-///
-/// The two rules that matter most are that a near match is never presented as exact,
-/// and that a box cover is never used as a disc or cartridge label. The latter is why
-/// the medium resolves from <c>discLabel</c>/<c>cartridgeLabel</c> only.
-///
-/// Provider images are cached as the bytes the provider served (PNG, JPEG or WebP), with
-/// the original extension, so the app needs no image encoder. The host serves the cache
-/// folder at <c>artwork.aisles.local</c>.
+/// Host-side port of <c>tools/artwork-workshop.cjs</c> (PLAN.md section 3.3.1). A near
+/// match is never presented as exact, and a cover never becomes a disc or cartridge label.
 /// </summary>
 public sealed class ArtworkResolver
 {
@@ -96,8 +80,8 @@ public sealed class ArtworkResolver
             AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli,
         };
 
-        // The per-request token enforces the timeout, because the body is streamed
-        // through our own size cap rather than buffered by HttpClient.
+        // The per-request token enforces the timeout, because the body is streamed through
+        // the app's size cap rather than buffered by HttpClient.
         _http = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
         _http.DefaultRequestHeaders.UserAgent.ParseAdd("Aisles/0.1");
     }
@@ -122,9 +106,8 @@ public sealed class ArtworkResolver
     }
 
     /// <summary>
-    /// The identity used for artwork lookup, exposed so the details rail can show the
-    /// same game ID and region. This is the resolver's cached value; a Wii header that
-    /// has not been read yet simply returns a null ID until the console search runs.
+    /// The identity used for artwork lookup, exposed so the rail can show the same game ID
+    /// and region. A Wii header not read yet returns a null ID until the console search runs.
     /// </summary>
     public GameIdentity Identity(GameEntry game)
     {
@@ -135,10 +118,8 @@ public sealed class ArtworkResolver
     }
 
     /// <summary>
-    /// Discovers identities and searches providers for the games of one console. Games
-    /// whose slots are already resolved (local art, a cached provider match, or a
-    /// generated fallback the user chose) are left alone; a legacy index entry that has
-    /// been searched before is not re-fetched, so copying an existing cache is cheap.
+    /// Discovers identities and searches providers for one console. Slots already resolved
+    /// (local art, cached match, chosen fallback) are left alone, so copying a cache is cheap.
     /// </summary>
     public async Task<int> SearchConsoleAsync(
         ConsoleDescriptor console,
@@ -212,7 +193,7 @@ public sealed class ArtworkResolver
         }
     }
 
-    /* ---------- resolution ---------- */
+    /* Resolution */
 
     private sealed record GameContext(string? Platform, string Title, string? Id, string? Region);
 
@@ -240,7 +221,7 @@ public sealed class ArtworkResolver
             }
 
             var manual = entry.Candidates.FirstOrDefault(candidate =>
-                candidate.Id == selected && candidate.Kind == kind && HasFile(candidate));
+                candidate.Id == selected && candidate.Kind == kind && FirstUsable(context, candidate));
 
             if (manual is not null)
             {
@@ -286,8 +267,8 @@ public sealed class ArtworkResolver
         return new ResolvedArtwork(
             null,
             exact.Count > 1 || candidates.Count > 1
-                ? "multiple matches — choose artwork"
-                : "no safe match — generated artwork",
+                ? "multiple matches: choose artwork"
+                : "no safe match: generated artwork",
             "generated",
             null);
     }
@@ -330,9 +311,8 @@ public sealed class ArtworkResolver
     }
 
     /// <summary>
-    /// The workshop's "first usable" rule is intentionally looser than eligibility: it
-    /// asks whether the image is of this game on this platform, not whether it is the
-    /// single safe match. It still rejects anything flagged or needing preparation.
+    /// The workshop's "first usable" rule is looser than eligibility: the image must be of
+    /// this game on this platform, not the single safe match, but flagged items are rejected.
     /// </summary>
     private bool FirstUsable(GameContext context, ArtworkCandidate candidate)
     {
@@ -356,7 +336,7 @@ public sealed class ArtworkResolver
         && FilePattern.IsMatch(candidate.File)
         && File.Exists(Path.Combine(CacheRoot, candidate.File));
 
-    /* ---------- game context ---------- */
+    /* Game context */
 
     private ArtworkIndexEntry EntryFor(GameEntry game)
     {
@@ -405,8 +385,8 @@ public sealed class ArtworkResolver
     }
 
     /// <summary>
-    /// The cache key the workshop established: platform + resolved path, lowercased,
-    /// SHA-256. Declared public so a diagnostic can prove the two agree.
+    /// The workshop's cache key: platform + resolved path, lowercased, SHA-256. Public so a
+    /// diagnostic can prove the two agree.
     /// </summary>
     public static string KeyFor(GameEntry game)
     {
@@ -426,9 +406,8 @@ public sealed class ArtworkResolver
     };
 
     /// <summary>
-    /// Provider discovery wants the title without a marketing prefix, and for DS the ROM
-    /// file name rather than the header title. The rest of the app keeps the name the
-    /// person gave the folder; this is only the search key.
+    /// The provider search key: title without a marketing prefix, or the DS ROM file name.
+    /// The rest of the app keeps the folder's name.
     /// </summary>
     private static string TitleFor(GameEntry game)
     {
@@ -480,7 +459,7 @@ public sealed class ArtworkResolver
                 .Select(match => match.Value)
                 .OrderBy(value => value, StringComparer.Ordinal));
 
-    /* ---------- provider search ---------- */
+    /* Provider search */
 
     private bool WantsSearch(GameEntry game, GameContext context, string? localCover)
     {
@@ -531,7 +510,7 @@ public sealed class ArtworkResolver
         {
             var wanted = Wanted();
 
-            // Exact-ID provider first. Never probe an unknown ID or invent a region.
+            // Exact-ID provider first. Never probe an unknown ID or guess a region.
             if (game.ConsoleId is "ps3" or "wii"
                 && context.Id is not null
                 && Regex.IsMatch(context.Id, "^[A-Z0-9]{6,9}$")
@@ -684,9 +663,8 @@ public sealed class ArtworkResolver
 
         if (candidate.Id == "launchbox-1871902")
         {
-            // This is the same 517 x 564 real-scan family as the two reviewed cards
-            // above. The crop keeps the complete NTR-YIMP-EUR sticker and excludes the
-            // moulded card body.
+            // Same 517 x 564 real-scan family as the two reviewed cards above: the crop
+            // keeps the complete NTR-YIMP-EUR sticker and excludes the moulded card body.
             candidate.ExactId = "YIMP";
             candidate.LabelRect = [43, 20, 429, 474];
             candidate.PreparationRequired = false;
@@ -771,7 +749,7 @@ public sealed class ArtworkResolver
     private static string Plain(string value) =>
         Regex.Replace(WebUtility.HtmlDecode(Regex.Replace(value, "<[^>]*>", " ")), "\\s+", " ").Trim();
 
-    /* ---------- cache ---------- */
+    /* Cache */
 
     private async Task<ArtworkCandidate> CacheImageAsync(ArtworkCandidate candidate, CancellationToken cancellationToken)
     {
@@ -797,7 +775,7 @@ public sealed class ArtworkResolver
         cached.File = file;
         cached.Width = width;
         cached.Height = height;
-        cached.QualityNote = Math.Min(width, height) < ReviewFloor ? "Low resolution — review before use" : null;
+        cached.QualityNote = Math.Min(width, height) < ReviewFloor ? "Low resolution: review before use" : null;
         DsStickerExtractor.TryPrepare(cached);
         return cached;
     }

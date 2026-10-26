@@ -1,13 +1,5 @@
-// Aisles - the hero's case and medium, as the workshop's true-scale objects.
-//
-// One WebGL surface shows both: the closed case with its cover mapped at the real inlay
-// size, and the disc or game card beside it at its real size. They are built from the
-// same presets as the shelf (`media.js`), so a chain of proportions cannot drift between
-// the two views.
-//
-// The camera is fixed. The scene renders on selection, resize, and while the medium's slow
-// turntable is running; like the workshop's "Spin media", the disc turns in its own plane
-// and the cartridge turns on its vertical axis.
+// The hero's case and medium at true scale, built from media.js presets so proportions
+// cannot drift from the shelf. The camera is fixed; only the medium turns.
 
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
@@ -351,8 +343,8 @@ function show(console, game) {
   stage.add(plinth, cover.group, medium.group);
   stage.rotation.y = -0.1;
 
-  // The disc turns like a record and the card makes the workshop's full vertical-axis
-  // revolution. The case stays still.
+  // The disc spins in its own plane and the card rotates on its vertical axis. The
+  // case stays still.
   spin = {
     group: medium.group,
     axis: medium.group.userData.spinAxis ?? (preset.medium.kind === 'disc' ? 'z' : 'y'),

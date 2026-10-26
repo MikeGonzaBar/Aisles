@@ -8,10 +8,8 @@ using Aisles.App.Domain;
 namespace Aisles.App.RetroAchievements;
 
 /// <summary>
-/// Owns the linked account, the per-system game caches and the short-lived progress
-/// cache. The library payload is built without waiting on the network; selecting a
-/// game refreshes only that game's progress. A rejected key flips the rail back to
-/// "not linked" so it never claims progress from a different account.
+/// Owns the linked account, per-system game caches and short-lived progress cache. Payload
+/// building never waits on the network; selecting a game refreshes only its progress.
 /// </summary>
 public sealed class RetroAchievementsService : IDisposable
 {
@@ -76,9 +74,8 @@ public sealed class RetroAchievementsService : IDisposable
     }
 
     /// <summary>
-    /// Produces the achievements row for a library payload. It never starts a network
-    /// request: cached progress is used when available, otherwise the row says that
-    /// progress will load when the game is selected.
+    /// Produces the achievements row without starting a network request: cached progress when
+    /// available, otherwise a note that progress loads on selection.
     /// </summary>
     public AchievementsPayload ForLibrary(ConsoleDescriptor console, GameEntry game)
     {
@@ -243,10 +240,8 @@ public sealed class RetroAchievementsService : IDisposable
     }
 
     /// <summary>
-    /// The rail has room for a small sample, not the whole achievement list. Recent
-    /// unlocks are newest first; pending achievements follow the game's own display
-    /// order, which is the only ordering the API exposes without inventing a
-    /// "closest to earning" score.
+    /// The rail has room for a sample, not the whole list. Recent unlocks come newest first;
+    /// pending achievements follow the game's display order.
     /// </summary>
     private static IReadOnlyList<AchievementBadgePayload>? RecentBadges(
         IReadOnlyList<RetroAchievementsAchievement> achievements)
@@ -400,8 +395,8 @@ public sealed class RetroAchievementsService : IDisposable
         {
             if (!_gameListTasks.TryGetValue(systemId, out task) || task is null)
             {
-                // The shared task intentionally uses no caller token: one canceled
-                // selection must not cancel the list for every other game.
+                // The shared task uses no caller token: one canceled selection must
+                // not cancel the list for every other game.
                 task = client.GetGameListAsync(systemId, CancellationToken.None);
                 _gameListTasks[systemId] = task;
             }

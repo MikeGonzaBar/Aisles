@@ -1,9 +1,8 @@
 namespace Aisles.App.Domain;
 
 /// <summary>
-/// Recognizes LaunchBox's real Nintendo DS cartridge-scan family and turns the
-/// full-card image into a sticker crop. Stock 260 x 270 mockups are deliberately
-/// excluded because their label area contains resized box art.
+/// Recognizes LaunchBox's DS cartridge scans and crops the full card to its sticker.
+/// Stock 260 x 270 mockups are excluded because their label area holds resized box art.
 /// </summary>
 public static class DsStickerExtractor
 {

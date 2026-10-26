@@ -6,10 +6,8 @@ using Aisles.App.Domain;
 namespace Aisles.App.RetroAchievements;
 
 /// <summary>
-/// Small RetroAchievements Web API client. Requests are serialized and spaced out by
-/// <see cref="MinimumInterval"/>; static system game lists are cached on disk because
-/// the official API documentation explicitly asks callers to cache that endpoint.
-/// The API key is never written to logs or exception messages.
+/// Small RetroAchievements Web API client. Requests are serialized and spaced by
+/// <see cref="MinimumInterval"/>, game lists are cached on disk as the API asks, and the key is never logged.
 /// </summary>
 public sealed class RetroAchievementsClient
 {
@@ -372,9 +370,8 @@ public sealed class RetroAchievementsClient
     }
 
     /// <summary>
-    /// RetroAchievements returns a badge name rather than a URL. Locked achievements
-    /// have a separate greyscale asset, so the rail can show what is still ahead
-    /// without pretending it was earned.
+    /// RetroAchievements returns a badge name, not a URL. Locked achievements use a separate
+    /// greyscale asset, so the rail can show what is ahead without marking it earned.
     /// </summary>
     private static string? BadgeUrl(string? badgeName, bool earned)
     {

@@ -6,12 +6,8 @@ using Aisles.App.Domain;
 namespace Aisles.App.RetroAchievements;
 
 /// <summary>
-/// Resolves a local game to a RetroAchievements game by title or file name. This is
-/// deliberately conservative: a normalized exact match is accepted, while an
-/// ambiguous title is left unmatched rather than showing another game's progress.
-///
-/// Hashing is intentionally out of scope for the first pass (PLAN.md section 3.4).
-/// The game list's hashes are not requested because no local hashes are computed yet.
+/// Resolves a local game by title or file name: exact normalized matches only, so an
+/// ambiguous title stays unmatched. Hashing is not done (PLAN.md section 3.4).
 /// </summary>
 public static class RetroAchievementsGameMatcher
 {

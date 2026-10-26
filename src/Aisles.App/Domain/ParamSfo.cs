@@ -3,14 +3,8 @@ using System.Text;
 namespace Aisles.App.Domain;
 
 /// <summary>
-/// Minimal reader for a PlayStation <c>PARAM.SFO</c>.
-///
-/// The keys Aisles exposes are the identity ones (<c>TITLE_ID</c>, <c>TITLE</c>), the
-/// installed-version number (<c>APP_VER</c>) and the flags that separate a real game
-/// from the rest of <c>dev_hdd0\game</c> (<c>CATEGORY</c>, <c>BOOTABLE</c>).
-/// <c>TITLE_ID</c> is the exact, stable key ("BCUS98148"). <c>TITLE</c> is often an
-/// internal abbreviation — on this machine it reads "LittleBigPlanet™" — so it is
-/// treated as a last resort for a disc's display name and trusted for installed titles.
+/// Minimal <c>PARAM.SFO</c> reader for TITLE_ID, TITLE, APP_VER, CATEGORY and BOOTABLE.
+/// TITLE_ID is the stable key; TITLE is often an abbreviation, so it is a last resort.
 /// </summary>
 public sealed class ParamSfo
 {

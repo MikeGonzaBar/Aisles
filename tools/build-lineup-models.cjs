@@ -1,14 +1,5 @@
-// Builds the lineup LOD: the tier the console row actually renders (PLAN.md section 5.3).
-//
-// Geometry is left alone — the full models are already only 1k-160k triangles, which is
-// nothing next to their textures. The cost is texture memory: the PS2 runtime model alone
-// carries 22 images and an estimated 469 MiB decoded. A console standing in a lineup row
-// is roughly 100 px wide, so 256 px per texture is already generous.
-//
-// Images are re-encoded losslessly as PNG. Normal and occlusion maps are present on PS1
-// and PS2, and those do not survive lossy re-encoding, so the only saving applied is size.
-//
-// Everything that is not an image is copied through untouched and verified byte-for-byte.
+// Builds the 256 px lineup LOD (PLAN.md section 5.3). Geometry is untouched; textures are
+// re-encoded losslessly as PNG because normal and occlusion maps do not survive lossy encoding.
 
 const fs = require('fs');
 const path = require('path');

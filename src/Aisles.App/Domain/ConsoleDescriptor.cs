@@ -1,9 +1,8 @@
 namespace Aisles.App.Domain;
 
 /// <summary>
-/// One platform, as described by <c>consoles.json</c>. Every field here is
-/// user-editable and adding a platform must never require a recompile
-/// (PLAN.md section 5.1).
+/// One platform from <c>consoles.json</c>. Every field is user-editable, and adding a
+/// platform must never require a recompile (PLAN.md section 5.1).
 /// </summary>
 public sealed class ConsoleDescriptor
 {
@@ -20,25 +19,22 @@ public sealed class ConsoleDescriptor
     public string Scan { get; set; } = string.Empty;
 
     /// <summary>
-    /// Required by <c>DiscFolders</c> only: the file whose presence marks a disc
-    /// root. Anchoring on this is what keeps the PS3 decoy <c>PARAM.SFO</c> files
-    /// (PLAN.md section 3.1) from being counted as games.
+    /// Required by <c>DiscFolders</c>: the marker file whose presence marks a disc root.
+    /// Anchoring on it keeps PS3 decoy <c>PARAM.SFO</c> files from counting as games.
     /// </summary>
     public string? ScanMarker { get; set; }
 
     public string GamesPath { get; set; } = string.Empty;
 
     /// <summary>
-    /// Optional folder of installed (non-disc) games. RPCS3 keeps HDD/PSN titles and
-    /// disc updates under <c>dev_hdd0\game</c>; the scanner reads those separately from
-    /// <see cref="GamesPath"/> and drops any entry that duplicates a disc serial.
+    /// Optional folder of installed (non-disc) games. RPCS3 keeps HDD/PSN titles and disc
+    /// updates under <c>dev_hdd0\game</c>; entries duplicating a disc serial are dropped.
     /// </summary>
     public string? InstalledGamesPath { get; set; }
 
     /// <summary>
-    /// Optional folder of case fronts supplied by the emulator or the user. PS2
-    /// points at PCSX2's serial-named <c>covers</c> folder; PS1 points at
-    /// DuckStation's title-named one. Files are referenced in place.
+    /// Optional folder of emulator- or user-supplied case fronts, referenced in place.
+    /// PS2 points at PCSX2's serial-named covers folder; PS1 at DuckStation's title-named one.
     /// </summary>
     public string? ArtworkPath { get; set; }
 

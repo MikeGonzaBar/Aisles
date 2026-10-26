@@ -1,14 +1,5 @@
-// Builds Aisles.ico from two sources: the rich AI-generated mark for the large
-// sizes, and the flat vector mark for the small ones.
-//
-//   npm i sharp
-//   NODE_PATH=<somewhere>/node_modules node tools/build-icon.js
-//
-// Why two sources: the rich mark carries three objects on a shelf, which needs
-// pixels. Measured on a scanline through the cases, it holds to 64px and starts
-// blending at 48 and below, where its rental yellow and bright blue also drift
-// toward grey. The flat vector is drawn at the size it's displayed, so it stays
-// crisp all the way down to 16.
+// Builds Aisles.ico from the rich mark at large sizes and the flat vector at small ones;
+// the rich mark blends below 48 px. Run with sharp installed and NODE_PATH set.
 
 const fs = require('fs');
 const path = require('path');
@@ -23,9 +14,8 @@ const SOURCES = {
   flat: path.join(PROJ, 'prototype', 'icon-concept-a-small.svg'),
 };
 
-// prototype/icon-concept-a.svg (the wide "two spines" flat mark) is intentionally
-// unused here — the rich mark supersedes it at every size where it would apply.
-// It stays in the repo as a spare.
+// prototype/icon-concept-a.svg (the wide "two spines" flat mark) is unused: the rich
+// mark supersedes it at every size where it would apply. It stays in the repo as a spare.
 
 const OUT_DIR = path.join(PROJ, 'assets');
 const PNG_DIR = path.join(OUT_DIR, 'png');

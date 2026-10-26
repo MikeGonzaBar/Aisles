@@ -5,6 +5,7 @@
   "scripts": {
     "preview": "node tools/serve-model-audit.cjs",
     "test": "node --test tools/artwork-workshop.test.cjs",
+    "test:media": "node tools/media-aspect.test.cjs",
     "import:models": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/import-downloaded-models.ps1",
     "prepare:models": "node tools/prepare-models.cjs",
     "build:lineup": "node tools/build-lineup-models.cjs",

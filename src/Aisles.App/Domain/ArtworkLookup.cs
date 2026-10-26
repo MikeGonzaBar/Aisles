@@ -3,31 +3,16 @@ using System.Text;
 namespace Aisles.App.Domain;
 
 /// <summary>
-/// Finds artwork that is already on this machine, without a network service
-/// (PLAN.md section 3.3.1, precedence step 2).
-///
-/// Two shapes exist in the real libraries this was built against:
-///
-/// * A <b>cover folder</b> supplied by the emulator. PCSX2 keeps
-///   <c>covers\SLUS-20946.jpg</c> next to the emulator, keyed by serial; DuckStation
-///   keeps <c>Documents\DuckStation\covers\Ridge Racer (USA).jpg</c>, keyed by title.
-/// * A <b>sidecar</b> beside the game. The DS set uses
-///   <c>2269 - Cover.png</c> inside the game's own folder.
-///
-/// The folder is named in <c>consoles.json</c> rather than hard-coded, because the
-/// catalog is user-editable and adding a platform must not need a recompile.
-///
-/// This resolves case fronts only. Disc and cartridge labels are separate slots and
-/// are not inferred from a cover (PLAN.md section 3.3.1).
+/// Finds artwork already on this machine: an emulator cover folder keyed by serial or
+/// title, or a sidecar beside the game. Case fronts only (PLAN.md section 3.3.1).
 /// </summary>
 public sealed class ArtworkLookup
 {
     private static readonly string[] ImageExtensions = [".png", ".jpg", ".jpeg", ".webp"];
 
     /// <summary>
-    /// How close two normalized titles must be before a fuzzy match is accepted.
-    /// High enough that different editions of a game stay apart; the only case it
-    /// exists for in this library is "Sorcerer Stone" versus "Sorcerer's Stone".
+    /// Fuzzy match floor: high enough that editions stay apart, though it accepts
+    /// "Sorcerer Stone" versus "Sorcerer's Stone".
     /// </summary>
     private const double SimilarTitleFloor = 0.90;
 
@@ -42,8 +27,7 @@ public sealed class ArtworkLookup
     }
 
     /// <summary>
-    /// Indexes the console's cover folder once. The scanner builds one of these per
-    /// console scan, so every game in the console reuses the same file list.
+    /// Indexes the console's cover folder once, reused by every game in the scan.
     /// </summary>
     public static ArtworkLookup For(ConsoleDescriptor console)
     {
@@ -76,10 +60,8 @@ public sealed class ArtworkLookup
         FindSidecar(launchTarget) ?? FindInCoverFolder(title, serial);
 
     /// <summary>
-    /// A cover stored beside the game wins over a shared folder: it was put there
-    /// for this game. Names are accepted in two tiers, because a flat library shares
-    /// one folder between every game and a loose "*- Cover.png" there could belong to
-    /// a neighbour.
+    /// A cover beside the game wins over a shared folder; flat-library names are accepted
+    /// in two tiers so a loose "*- Cover.png" cannot belong to a neighbour.
     /// </summary>
     private ArtworkReference? FindSidecar(string launchTarget)
     {
@@ -116,8 +98,8 @@ public sealed class ArtworkLookup
     }
 
     /// <summary>
-    /// Serial first: it survives differently spelled titles. Title rules follow, from
-    /// strictest to loosest, and the loosest one is capped by <see cref="SimilarTitleFloor"/>.
+    /// Serial first because it survives title spelling; title rules follow from strictest
+    /// to loosest, with the loosest capped by <see cref="SimilarTitleFloor"/>.
     /// </summary>
     private ArtworkReference? FindInCoverFolder(string title, string? serial)
     {
@@ -216,10 +198,8 @@ public sealed class ArtworkLookup
             StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// The comparison key for a title or serial: bracketed groups, trademark marks and
-    /// everything that is not a-z or 0-9 removed. That turns
-    /// "Ridge Racer (USA)" and "SLUS-00540" into "ridgeracer" and "slus00540",
-    /// matching the workshop rules this was ported from.
+    /// Comparison key: bracketed groups, trademark marks and anything not a-z or 0-9
+    /// removed, so "Ridge Racer (USA)" and "SLUS-00540" become "ridgeracer" and "slus00540".
     /// </summary>
     private static string MatchKey(string? value)
     {
@@ -262,10 +242,8 @@ public sealed class ArtworkLookup
     }
 
     /// <summary>
-    /// Sørensen–Dice over character bigrams. Chosen over edit distance because it
-    /// tolerates the dropped apostrophe and doubled letter in
-    /// "Harry Potter and the Sorcerer[']s Stone" without treating unrelated titles as
-    /// close: short keys are excluded by the caller's floor.
+    /// Sørensen–Dice over character bigrams, which tolerates the dropped apostrophe in
+    /// "Sorcerer[']s Stone" without treating unrelated titles as close.
     /// </summary>
     private static double Similarity(string left, string right)
     {

@@ -25,7 +25,28 @@ try
     var merged = store.Apply(defaults);
     Equal(@"D:\Games", merged.Catalog.Consoles[0].GamesPath, "override merging");
     Equal(@"D:\Cores\core.dll", merged.Catalog.Consoles[0].CorePath, "core path override merging");
+    defaults.Consoles[0].InstalledGamesPath = @"C:\RPCS3\dev_hdd0\game";
+    store.Save(defaults, new Dictionary<string, ConsolePathDraft>
+    {
+        ["ps1"] = new(@"C:\Games", @"C:\Emu\emu.exe", @"C:\Covers", @"C:\Emu\cores\core.dll", @"D:\RPCS3\dev_hdd0\game")
+    });
+    merged = store.Apply(defaults);
+    Equal(@"D:\RPCS3\dev_hdd0\game", merged.Catalog.Consoles[0].InstalledGamesPath, "installed games path override merging");
     Equal(@"C:\Games", defaults.Consoles[0].GamesPath, "defaults remain unchanged");
+
+    var discRoot = Path.Combine(root, "disc-games");
+    var ps3Root = Path.Combine(discRoot, "PS3 Game");
+    var xboxRoot = Path.Combine(discRoot, "Xbox Game");
+    Directory.CreateDirectory(ps3Root);
+    Directory.CreateDirectory(xboxRoot);
+    File.WriteAllText(Path.Combine(ps3Root, "PS3_DISC.SFB"), "");
+    File.WriteAllText(Path.Combine(xboxRoot, "default.xex"), "");
+    var scanner = new LibraryScanner();
+    var ps3Game = scanner.Scan(new ConsoleDescriptor { Id = "ps3", Scan = "DiscFolders", ScanMarker = "PS3_DISC.SFB", GamesPath = discRoot }).Single();
+    var xboxGame = scanner.Scan(new ConsoleDescriptor { Id = "xbox360", Scan = "DiscFolders", ScanMarker = "default.xex", GamesPath = discRoot }).Single();
+    Equal(ps3Root, ps3Game.LaunchTarget, "PS3 disc launches its folder");
+    Equal("Xbox Game", xboxGame.Title, "Xbox 360 keeps the folder title");
+    Equal(Path.Combine(xboxRoot, "default.xex"), xboxGame.LaunchTarget, "Xbox 360 launches default.xex");
 
     store.Save(defaults, new Dictionary<string, ConsolePathDraft> { ["ps1"] = new("", "", "") });
     merged = store.Apply(defaults);

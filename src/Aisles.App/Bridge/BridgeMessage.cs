@@ -3,9 +3,8 @@ using System.Text.Json;
 namespace Aisles.App.Bridge;
 
 /// <summary>
-/// Envelope for every message crossing the host/web boundary (PLAN.md section 5.2).
-/// The payload is left as a <see cref="JsonElement"/> so each message type reads
-/// only the fields it expects.
+/// Envelope for every host/web message (PLAN.md section 5.2). The payload stays a
+/// <see cref="JsonElement"/> so each message reads only the fields it expects.
 /// </summary>
 public sealed record BridgeMessage(string Type, JsonElement? Payload)
 {

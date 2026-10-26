@@ -4,11 +4,7 @@ namespace Aisles.App.Domain;
 
 /// <summary>
 /// The first 16 bytes of a DS ROM: a 12-byte internal title and a 4-byte game code.
-///
-/// The internal title is a twelve-character abbreviation ("COOKINGMAMA3", "WOLVERINE"),
-/// so it is deliberately not used as the display title — the folder name reads far
-/// better. The game code is the valuable part: it is the stable identifier artwork
-/// lookups and RetroAchievements key off.
+/// The internal title is an abbreviation, so the folder name is shown; the code is the stable key.
 /// </summary>
 public static class NdsRomHeader
 {

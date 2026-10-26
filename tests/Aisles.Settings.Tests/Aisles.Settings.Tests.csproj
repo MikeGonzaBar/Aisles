@@ -13,6 +13,11 @@
     <Compile Include="..\..\src\Aisles.App\Domain\ArtworkReference.cs" Link="ArtworkReference.cs" />
     <Compile Include="..\..\src\Aisles.App\Domain\DsStickerExtractor.cs" Link="DsStickerExtractor.cs" />
     <Compile Include="..\..\src\Aisles.App\Domain\GameEntry.cs" Link="GameEntry.cs" />
+    <Compile Include="..\..\src\Aisles.App\Domain\LibraryScanner.cs" Link="LibraryScanner.cs" />
+    <Compile Include="..\..\src\Aisles.App\Domain\ArtworkLookup.cs" Link="ArtworkLookup.cs" />
+    <Compile Include="..\..\src\Aisles.App\Domain\Pcsx2GameListCache.cs" Link="Pcsx2GameListCache.cs" />
+    <Compile Include="..\..\src\Aisles.App\Domain\ParamSfo.cs" Link="ParamSfo.cs" />
+    <Compile Include="..\..\src\Aisles.App\Domain\NdsRomHeader.cs" Link="NdsRomHeader.cs" />
     <Compile Include="..\..\src\Aisles.App\Domain\PlayStatsReader.cs" Link="PlayStatsReader.cs" />
     <Compile Include="..\..\src\Aisles.App\Domain\RetroAchievementsSettings.cs" Link="RetroAchievementsSettings.cs" />
     <Compile Include="..\..\src\Aisles.App\Domain\RetroAchievementsSettingsStore.cs" Link="RetroAchievementsSettingsStore.cs" />

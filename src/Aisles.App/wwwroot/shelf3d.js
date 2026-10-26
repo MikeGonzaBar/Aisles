@@ -1,17 +1,5 @@
-// Aisles - Phase 4: the shelf.
-//
-// The selected platform's media as staged rows of a real bookcase: one bay is three
-// tiers of six, and a bay is complete furniture - cornice, side panels, boards, plinth,
-// back panel. The side panels are not decoration: without them a sideways slide is
-// indistinguishable from a scroll, and the whole point of paging is lost.
-//
-// Only the bays move. The console lineup and the game hero never do, and the camera is
-// fixed, so the parallax comes from the bay's own receding tiers and hit testing stays
-// simple (PLAN.md section 6).
-//
-// Like stage3d.js this is a module, so it cannot see stage.js's top-level bindings. The
-// contract is window.aislesSnapshot plus the "aisles:update" event going in, and
-// window.aislesSelectGame / window.aislesLaunchGame coming back out.
+// The shelf: the selected platform's media as a real bookcase, three tiers of six per
+// bay. Module bridge: window.aislesSnapshot plus "aisles:update" in, selection and launch out.
 
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
@@ -51,12 +39,8 @@ const CONSOLE_ENTER_MS = 230;
 const CONSOLE_DEPTH = 0.48;
 const CONSOLE_SWIPE_DISTANCE = 1.8;
 
-/**
- * The shelf stands at 0.0022 units per millimetre, so a DVD case is the 0.30 x 0.42 the
- * bay was originally tuned around. Everything else - jewel case, Blu-ray, DS and 3DS
- * case - follows from the one real table in media.js. Playable discs and cards appear
- * beside the selected case in the hero rather than loose on the retail shelf.
- */
+/** The shelf stands at 0.0022 units per millimetre; every packaging size comes from
+ * the one real table in media.js. */
 
 const canvas = document.getElementById('shelf-canvas');
 const pagerRoot = document.getElementById('shelf-pager');
@@ -92,10 +76,8 @@ function start(canvas) {
   scene.environmentIntensity = 0.25;
   pmrem.dispose();
 
-  // Warm shop lighting gives the shelving a lived-in rental-store character; the cool
-  // fill keeps printed covers accurate and prevents the dark bays from closing up. The
-  // levels sit below the workshop's studio setup so the wood reads as furniture and the
-  // covers stay the brightest thing in the room.
+  // Warm shop lighting makes the wood read as furniture; the cool fill keeps printed
+  // covers accurate and prevents dark bays from closing up.
   const key = new THREE.DirectionalLight(0xfff0dc, 2.0);
   key.position.set(-1.9, 3.4, 2.6);
   key.castShadow = true;
@@ -118,7 +100,7 @@ function start(canvas) {
   rim.position.set(0.4, 1.4, -3.2);
   scene.add(rim);
 
-  /* ---------- materials ---------- */
+  /* Materials */
 
   // Rebuilt with the furniture, never shared across a rebuild: disposing a bay has to be
   // able to free everything it owns without pulling a material out from under the next bay.
@@ -132,15 +114,15 @@ function start(canvas) {
     oak.colorSpace = THREE.SRGBColorSpace;
     oak.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
-    // The fixture is walnut-stained wood, kept darker than the cover art so the media is
-    // still the first thing someone sees when browsing a shelf.
+    // The fixture is walnut-stained wood, kept darker than the cover art so covers stay
+    // dominant.
     wood = new THREE.MeshStandardMaterial({ map: oak, color: 0x6f5847, roughness: 0.76, metalness: 0.01 });
     back = new THREE.MeshStandardMaterial({ color: 0x17110e, roughness: 0.94, metalness: 0 });
 
     outTexture = labelTexture('RETURN');
   }
 
-  /* ---------- scene graph ---------- */
+  /* Scene graph */
 
   const shelfRoot = new THREE.Group();
   scene.add(shelfRoot);
@@ -179,11 +161,11 @@ function start(canvas) {
 
   let baySize = { width: 1.9, height: 1.4 };
 
-  /* ---------- furniture ---------- */
+  /* Furniture */
 
   /**
-   * Bay dimensions follow from the platform's packaging, so a shelf built for jewel cases
-   * is not a DVD shelf with three empty bands in it. One bay is always three tiers of six.
+   * Bay dimensions follow from the platform's packaging, so a jewel-case shelf is not a
+   * DVD shelf with empty bands. One bay is always three tiers of six.
    */
   function measure() {
     const item = state.media;
@@ -288,7 +270,7 @@ function start(canvas) {
     return group;
   }
 
-  /* ---------- media ---------- */
+  /* Media */
 
   function pumpArtwork() {
     if (artworkLoading || shelfTransition || artworkQueue.length === 0) return;
@@ -306,9 +288,8 @@ function start(canvas) {
   }
 
   /**
-   * One shelf object: the closed retail case with its cover at the real inlay size.
-   * Printed faces are unlit, so cover art is read rather than lit; the shell keeps the
-   * room's light.
+   * One shelf object: the closed retail case, cover at real inlay size. Printed faces
+   * are unlit so cover art is read rather than lit.
    */
   function makeItem(game, generation) {
     const group = new THREE.Group();
@@ -392,10 +373,10 @@ function start(canvas) {
     return texture;
   }
 
-  /* ---------- building a bay's worth of games ---------- */
+  /* Building a bay */
 
   function slotPosition(index) {
-    // Fills left to right, top to bottom, the way a person fills a shelf.
+    // Fills left to right, top to bottom.
     const plan = measure();
     const column = index % COLUMNS;
     const tier = TIERS - 1 - Math.floor(index / COLUMNS);
@@ -503,12 +484,11 @@ function start(canvas) {
     buildFrame = requestAnimationFrame(addCases);
   }
 
-  /* ---------- selection ---------- */
+  /* Selection */
 
   /**
-   * Selecting a game empties its slot - the case is "in your hands" - and the slot keeps
-   * its dashed outline wherever it is, so paging away and back still shows which one is
-   * out (PLAN.md section 6).
+   * Selection hides the case and leaves a dashed return slot, so paging away and back
+   * still shows which game is out (PLAN.md section 6).
    */
   function applySelection() {
     for (const [gameId, slot] of cases) {
@@ -561,11 +541,10 @@ function start(canvas) {
     }
   }
 
-  /* ---------- camera and resizing ---------- */
+  /* Camera and resizing */
 
-  // A console can change while Covers or List has hidden this canvas. Keep the
-  // last visible dimensions separate from the WebGL buffer: the buffer can still
-  // be correct when the canvas returns, while the camera was framed at 1 x 1.
+  // A console can change while Covers or List has hidden this canvas, so keep the last
+  // visible size separate from the WebGL buffer.
   let lastVisibleWidth = 0;
   let lastVisibleHeight = 0;
 
@@ -618,7 +597,7 @@ function start(canvas) {
     frameCamera();
   }
 
-  /* ---------- paging ---------- */
+  /* Paging */
 
   let slideFrom = 0;
   let slideTarget = 0;
@@ -667,7 +646,7 @@ function start(canvas) {
     );
   }
 
-  /* ---------- interaction ---------- */
+  /* Interaction */
 
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
@@ -722,7 +701,7 @@ function start(canvas) {
 
     const next = gameId ? cases.get(gameId) : null;
     if (next && next.group.visible) {
-      // Pulled a little toward the viewer, the way a hand would tip a case out.
+      // Hover moves the case slightly toward the viewer.
       next.group.position.z = next.z + 0.045;
     }
   }
@@ -824,7 +803,7 @@ function start(canvas) {
     });
   }
 
-  /* ---------- data flow ---------- */
+  /* Data flow */
 
   function snapshotSignature(snapshot) {
     return [
@@ -993,7 +972,7 @@ function start(canvas) {
     transitionMetrics = null;
   }
 
-  /* ---------- frame loop ---------- */
+  /* Frame loop */
 
   let filterAnimationAt = performance.now();
 
@@ -1043,12 +1022,10 @@ function start(canvas) {
   };
 }
 
-/* ---------- helpers ---------- */
+/* Helpers */
 
-/**
- * The room behind the furniture: a warm-to-dark navy wash. Painted here rather than left
- * to the renderer's clear colour so the shelf canvas reads as part of the page.
- */
+/** The room behind the furniture: a warm-to-dark navy wash, painted here so the shelf
+ * canvas reads as part of the page. */
 function roomBackdrop() {
   const source = document.createElement('canvas');
   source.width = 512;

@@ -1,9 +1,8 @@
 namespace Aisles.App.Domain;
 
 /// <summary>
-/// Reads the pixel dimensions and format of an image from its header, without decoding
-/// the pixels. The resolver needs the size to apply the 384 px review floor and the
-/// 32 MP cap, and the host has no image library it wants to take a dependency on.
+/// Reads an image's dimensions and format from its header without decoding pixels. The
+/// resolver needs both for the 384 px review floor and the 32 MP cap.
 /// </summary>
 public static class ImageHeaders
 {

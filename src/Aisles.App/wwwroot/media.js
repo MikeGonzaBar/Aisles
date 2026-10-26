@@ -1,16 +1,5 @@
-// Aisles - the shelf's and the hero's physical media.
-//
-// One table of real packaging, in millimetres, drives both views. The workshop in
-// prototype/media-preview.js established these numbers; keeping them in one module means
-// a case cannot be one shape on the shelf and another in the hero.
-//
-// The shelf renders at 0.0022 scene units per millimetre (a DVD case is 0.30 x 0.42, the
-// size the bay was tuned around); the hero uses 0.01, the workshop's 1 unit = 100 mm.
-//
-// Two details are easy to get wrong and are encoded here rather than guessed per call:
-// a jewel case is landscape (142 x 125) with a square 120 mm booklet, DS/3DS retail
-// cases are landscape (135 x 122), and a DS game card is portrait (33 x 35) while a
-// 3DS card is landscape (35 x 33).
+// Real packaging in millimetres, shared by the shelf and the hero so a case cannot be
+// one shape in each view. The numbers come from prototype/media-preview.js.
 
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -90,7 +79,7 @@ export function shelfItemFor(preset, unit = SHELF_UNIT) {
   return { width: width * unit, height: height * unit, depth: depth * unit };
 }
 
-/* ---------- colour and type ---------- */
+/* Colour and type */
 
 const FONT = '"Segoe UI", sans-serif';
 const MONO = '"Cascadia Mono", Consolas, monospace';
@@ -169,11 +158,11 @@ function canvasTexture(width, height, draw) {
   return texture;
 }
 
-/* ---------- generated artwork ---------- */
+/* Generated artwork */
 
 /**
- * The generated rung of the artwork policy: a typographic case front in the platform's
- * accent, sized to the real inlay so the game still reads as a designed object.
+ * The generated rung: a typographic case front in the platform's accent, sized to the
+ * real inlay.
  */
 export function generatedCoverTexture(preset, console, game, width = 320) {
   const [inlayWidth, inlayHeight] = preset.inlay;
@@ -217,7 +206,7 @@ export function generatedCoverTexture(preset, console, game, width = 320) {
 
 /**
  * A disc is printed from the clamping ring out to the edge. The leader is always
- * generated: a cover is not a disc label (PLAN.md section 3.3).
+ * generated; a cover is not a disc label (PLAN.md section 3.3).
  */
 export function generatedDiscLabelTexture(preset, console, game, size = 1024) {
   const accent = console?.accentColor ?? '#0b4ea2';
@@ -240,7 +229,7 @@ export function generatedDiscLabelTexture(preset, console, game, size = 1024) {
     context.fillStyle = sheen;
     context.fillRect(0, 0, w, h);
 
-    // The clear clamping ring: no print on the hub, the way a real disc is made.
+    // The clear clamping ring: no print on the hub.
     const hub = context.createRadialGradient(w / 2, h / 2, radius * 0.06, w / 2, h / 2, radius * 0.36);
     hub.addColorStop(0, '#0b101a');
     hub.addColorStop(0.32, '#8b97a7');
@@ -342,7 +331,7 @@ export function stickerFromImage(image, rect, width = 512) {
   });
 }
 
-/* ---------- textures ---------- */
+/* Textures */
 
 export function loadImage(url) {
   return new Promise((resolve, reject) => {
@@ -373,11 +362,25 @@ export async function loadTexture(url, limit = 1024) {
   return textureFromImage(await loadImage(url), limit);
 }
 
+/** Returns the normalized rectangle that shows a cover in full without stretching. */
+export function containedBounds(imageAspect, planeAspect) {
+  if (!imageAspect || !planeAspect) {
+    return { x: 0, y: 0, width: 1, height: 1 };
+  }
+
+  if (imageAspect > planeAspect) {
+    const height = planeAspect / imageAspect;
+    return { x: 0, y: (1 - height) / 2, width: 1, height };
+  }
+
+  const width = imageAspect / planeAspect;
+  return { x: (1 - width) / 2, y: 0, width, height: 1 };
+}
+
 /**
- * Fits a photograph into a plane without stretching it. A provider box front is usually
- * a full wrap with a spine, so it is a little wider than the inlay; cropping the extra
- * sides is what a printed inlay does, and it keeps the art's own proportions. Anything
- * already drawn at the inlay's aspect is left alone.
+ * Places the complete cover inside the case's real inlay. Provider art varies in
+ * aspect ratio, so cropping would cut titles or ratings; the visible case remains the
+ * neutral border for any small letterbox area.
  */
 export function fitTexture(texture, planeAspect) {
   const image = texture?.image;
@@ -387,6 +390,21 @@ export function fitTexture(texture, planeAspect) {
   }
 
   const imageAspect = (image.width || 1) / (image.height || 1);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, image.width || 1);
+  canvas.height = Math.max(1, Math.round(canvas.width / planeAspect));
+  const bounds = containedBounds(imageAspect, planeAspect);
+  const context = canvas.getContext('2d');
+
+  context.drawImage(
+    image,
+    Math.round(bounds.x * canvas.width),
+    Math.round(bounds.y * canvas.height),
+    Math.round(bounds.width * canvas.width),
+    Math.round(bounds.height * canvas.height),
+  );
+
+  texture.image = canvas;
   texture.repeat.set(1, 1);
   texture.offset.set(0, 0);
 
@@ -423,7 +441,7 @@ export function disposeTree(root) {
   });
 }
 
-/* ---------- builders ---------- */
+/* Builders */
 
 function plastic(hex, options = {}) {
   return new THREE.MeshStandardMaterial({
@@ -435,9 +453,8 @@ function plastic(hex, options = {}) {
 }
 
 /**
- * A closed case. The shell carries the platform's plastic; the cover is a separate plane
- * at the real inlay size, so a square PS1 booklet is not stretched across a landscape
- * jewel case. `detail` adds the rounded shell and the PS1 tray/PS3 band the workshop shows.
+ * A closed case: shell in the platform's plastic, cover as a separate plane at real
+ * inlay size, so a square PS1 booklet is not stretched across a landscape jewel case.
  */
 export function buildCase(preset, unit, { body = '#2E2E34', cover = null, detail = false } = {}) {
   const [caseWidth, caseHeight, caseDepth] = preset.case.map((value) => value * unit);
@@ -475,33 +492,19 @@ export function buildCase(preset, unit, { body = '#2E2E34', cover = null, detail
   const coverMaterial = new THREE.MeshBasicMaterial({
     map: cover,
     color: 0xffffff,
+    transparent: true,
+    depthWrite: false,
   });
   const coverMesh = new THREE.Mesh(new THREE.PlaneGeometry(inlayWidth, inlayHeight), coverMaterial);
   coverMesh.position.z = caseDepth / 2 + 0.15 * unit;
   group.add(coverMesh);
 
-  if (detail && preset.mediumName === 'Blu-ray') {
-    // The translucent blue band across the top of a PS3 case.
-    const band = new THREE.Mesh(
-      new THREE.PlaneGeometry(caseWidth * 0.985, caseHeight * 0.075),
-      new THREE.MeshStandardMaterial({
-        color: 0x226bb3,
-        transparent: true,
-        opacity: 0.85,
-        roughness: 0.24,
-      }),
-    );
-    band.position.set(0, caseHeight * 0.455, caseDepth / 2 + 0.2 * unit);
-    group.add(band);
-  }
-
   return { group, coverMaterial, width: caseWidth, height: caseHeight, depth: caseDepth };
 }
 
 /**
- * A 12 cm (or 8 cm) optical disc: an extrusion with a real spindle hole and the label
- * mapped onto the pressed face. The UVs of the caps are remapped to the disc's diameter
- * so a square label image reads as a circle, centred on the hub.
+ * A 12 cm (or 8 cm) disc: an extrusion with a real spindle hole and the label on the
+ * pressed face. Cap UVs are remapped to the disc diameter so a square label reads round.
  */
 export function buildDisc(preset, unit, { label = null } = {}) {
   const [diameterMm, thicknessMm] = preset.medium.size;
@@ -549,8 +552,8 @@ export function buildDisc(preset, unit, { label = null } = {}) {
 }
 
 /**
- * A DS/3DS game card: the moulded outline with its clipped top corners, a bevel, and a
- * sticker plane. `face` is the sticker only; a card without one stays a blank body.
+ * A DS/3DS card: moulded outline with clipped corners, a bevel and a sticker plane.
+ * A card without a face stays a blank body.
  */
 export function buildCartridge(preset, unit, { body = '#20252c', face = null, detail = false, labelAspect = null } = {}) {
   const [widthMm, heightMm, depthMm] = preset.medium.size;
@@ -599,9 +602,8 @@ export function buildCartridge(preset, unit, { body = '#20252c', face = null, de
   let sticker = null;
 
   if (face !== undefined) {
-    // The printed label is its own rectangle, not the card's: it is inset, and a DS
-    // sticker is portrait while a 3DS one is landscape. When a labelled candidate comes
-    // with a source rectangle, its aspect wins so the crop is never stretched.
+    // The printed label is its own inset rectangle, and a DS sticker is portrait while a
+    // 3DS one is landscape; a source rectangle's aspect wins so the crop is never stretched.
     const aspect = labelAspect ?? width / height;
     const stickerWidth = width * 0.76;
     const stickerHeight = Math.min(stickerWidth / aspect, height * 0.72);

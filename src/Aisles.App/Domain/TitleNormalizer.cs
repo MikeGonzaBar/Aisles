@@ -3,12 +3,8 @@ using System.Text.RegularExpressions;
 namespace Aisles.App.Domain;
 
 /// <summary>
-/// Turns a raw file or folder name into something worth showing a person.
-///
-/// The rules come from what this library actually looks like. Folder names are
-/// usually written for humans ("A bugs life", "Sim City - 2000"), while scene file
-/// names carry entry numbers, region tags and release groups
-/// ("3703 - X-Men Origins - Wolverine (US)(M2)(XenoPhobia)").
+/// Turns a raw file or folder name into a readable title: folder names are written for
+/// humans, while scene names carry entry numbers, region tags and release groups.
 /// </summary>
 public static class TitleNormalizer
 {
@@ -72,9 +68,8 @@ public static class TitleNormalizer
     }
 
     /// <summary>
-    /// Peels trailing bracketed groups while they are tags, and stops at the first
-    /// that is not. "Disc 1" therefore survives, because collapsing a two-disc set
-    /// into one shelf entry would be worse than a little extra noise.
+    /// Peels trailing bracketed groups while they are tags. "Disc 1" survives, because
+    /// collapsing a two-disc set is worse than a little noise.
     /// </summary>
     private static string StripTrailingTags(string name, bool sceneStyle)
     {
@@ -121,9 +116,8 @@ public static class TitleNormalizer
             return true;
         }
 
-        // Scene releases trail dumpers and release groups: "(SQUiRE)", "(XenoPhobia)".
-        // A name that began with an entry number is scene naming, so any leftover group
-        // there is a group. In an ordinary name it might be part of the title.
+        // Scene releases trail dumpers and groups: "(SQUiRE)", "(XenoPhobia)". A name that
+        // began with an entry number is scene naming, so any leftover group there is a group.
         return sceneStyle;
     }
 

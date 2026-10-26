@@ -3,10 +3,8 @@ using System.Text.Json;
 namespace Aisles.App.Domain;
 
 /// <summary>
-/// Stores the RetroAchievements username and web API key beside the console settings,
-/// under <c>%LOCALAPPDATA%\Aisles</c>. Nothing here reads from or writes to the
-/// repository, and an empty account removes the file rather than leaving a stale key
-/// behind.
+/// Stores the username and web API key under <c>%LOCALAPPDATA%\Aisles</c>, never in the
+/// repository. An empty account removes the file instead of leaving a stale key.
 /// </summary>
 public sealed class RetroAchievementsSettingsStore
 {

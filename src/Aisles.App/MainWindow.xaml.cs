@@ -20,7 +20,7 @@ public sealed partial class MainWindow : Window
     private const string WebHostName = "aisles.local";
 
     private readonly Dictionary<string, ConsoleDescriptor> _consolesById = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, GameEntry> _gamesById = new(StringComparer.Ordinal);
+    private IReadOnlyDictionary<string, GameEntry> _gamesById = new Dictionary<string, GameEntry>(StringComparer.Ordinal);
     private readonly Dictionary<string, AssetHosts> _assetHosts = new(StringComparer.OrdinalIgnoreCase);
     private readonly WebBridge _bridge = new();
     private readonly EmulatorLauncher _launcher = new();
@@ -46,6 +46,7 @@ public sealed partial class MainWindow : Window
     private CancellationTokenSource? _detailsCts;
     private bool _catalogLoaded;
     private bool _fullScreen;
+    private long _libraryScanGeneration;
 
     public MainWindow()
     {
@@ -96,9 +97,8 @@ public sealed partial class MainWindow : Window
 
         Directory.CreateDirectory(userDataFolder);
 
-        // The WinUI WebView2 control builds its own default environment, so rather
-        // than constructing one (the projection's CreateAsync surface differs from
-        // the classic .NET library's) we redirect the default away from the exe.
+        // The WinUI WebView2 projection has a different CreateAsync surface, so redirect the
+        // default environment away from the exe instead of constructing one.
         Environment.SetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER", userDataFolder);
 
         await Stage.EnsureCoreWebView2Async();
@@ -154,9 +154,8 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Maps each console's games folder and artwork folder to its own virtual host.
-    /// The plan calls for one hostname per folder, which keeps the URL a plain
-    /// relative path: <c>https://art-ps2.aisles.local/SLUS-20946.jpg</c>.
+    /// Maps each console's games and artwork folders to its own virtual host, so URLs stay
+    /// plain relative paths such as <c>https://art-ps2.aisles.local/SLUS-20946.jpg</c>.
     /// </summary>
     private void RegisterAssetHosts(CoreWebView2 core)
     {
@@ -284,34 +283,33 @@ public sealed partial class MainWindow : Window
     private sealed record AssetHosts(string? GamesHost, string? GamesRoot, string? ArtHost, string? ArtRoot);
 
     /// <summary>
-    /// Achievement data comes from one of two providers: RetroAchievements for the
-    /// consoles it supports, and RPCS3's local trophy files for PS3. Keeping the
-    /// choice here means the payload and details paths cannot drift apart.
+    /// Achievement data comes from RetroAchievements or RPCS3's local trophy files. Choosing
+    /// here keeps the payload and details paths from drifting apart.
     /// </summary>
     private AchievementsPayload AchievementsFor(ConsoleDescriptor console, GameEntry game) =>
         console.Id.Equals("ps3", StringComparison.OrdinalIgnoreCase)
             ? _ps3Trophies.ForGame(console, game)
             : _retroAchievements.ForLibrary(console, game);
 
-    private LibraryPayload BuildLibraryPayload()
+    private LibrarySnapshot BuildLibrarySnapshot(ConsoleCatalog catalog)
     {
-        if (_catalog is null)
-        {
-            return new LibraryPayload(_catalogError, Array.Empty<ConsolePayload>());
-        }
-
-        var scanner = new LibraryScanner();
         var playStats = new PlayStatsReader();
-        var consoles = new List<ConsolePayload>(_catalog.Consoles.Count);
-        _gamesById.Clear();
+        var consoles = new List<ConsolePayload>(catalog.Consoles.Count);
+        var gamesById = new Dictionary<string, GameEntry>(StringComparer.Ordinal);
 
-        foreach (var console in _catalog.Consoles)
+        foreach (var scan in new LibraryScanCoordinator().Scan(catalog))
         {
-            var games = scanner.Scan(console);
+            var console = scan.Console;
+            var games = scan.Games;
 
             foreach (var game in games)
             {
-                _gamesById[game.Id] = game;
+                gamesById[game.Id] = game;
+            }
+
+            if (scan.Error is not null)
+            {
+                Debug.WriteLine($"Library scan for {console.Id} failed: {scan.Error}");
             }
 
             consoles.Add(new ConsolePayload(
@@ -360,15 +358,33 @@ public sealed partial class MainWindow : Window
                 }).ToList()));
         }
 
-        return new LibraryPayload(null, consoles);
+        return new LibrarySnapshot(new LibraryPayload(null, consoles), gamesById);
     }
 
+    private async Task<LibraryPayload?> ScanLibraryAsync()
+    {
+        var catalog = _catalog;
+        if (catalog is null)
+        {
+            return new LibraryPayload(_catalogError, Array.Empty<ConsolePayload>());
+        }
+
+        var generation = ++_libraryScanGeneration;
+        var snapshot = await Task.Run(() => BuildLibrarySnapshot(catalog));
+        if (generation != _libraryScanGeneration)
+        {
+            return null;
+        }
+
+        _gamesById = snapshot.GamesById;
+        return snapshot.Library;
+    }
+
+    private sealed record LibrarySnapshot(LibraryPayload Library, IReadOnlyDictionary<string, GameEntry> GamesById);
+
     /// <summary>
-    /// Refreshes the details rail when a game is selected. The payload already carries
-    /// these values; this message exists for two reasons: PCSX2 and Dolphin write their
-    /// caches while Aisles is running, and a Wii game's ID is only known after its disc
-    /// header is read. Both are cheap and both are applied only if the selection is
-    /// still current.
+    /// Refreshes the details rail on selection: PCSX2 and Dolphin write caches while Aisles
+    /// runs, and a Wii game's ID is only known after its header is read.
     /// </summary>
     private async Task SendGameDetailsAsync(string? gameId, CancellationToken cancellationToken = default)
     {
@@ -490,81 +506,96 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        switch (message.Type)
+        try
         {
-            case "ready":
-                _bridge.Send("library", await Task.Run(BuildLibraryPayload));
-                break;
+            switch (message.Type)
+            {
+                case "ready":
+                    if (await ScanLibraryAsync() is { } library)
+                    {
+                        _bridge.Send("library", library);
+                    }
+                    break;
 
-            case "getSettings":
-                SendSettings(message.ReadString("requestId"));
-                break;
+                case "getSettings":
+                    SendSettings(message.ReadString("requestId"));
+                    break;
 
-            case "validateSettings":
-                ValidateSettings(message);
-                break;
+                case "validateSettings":
+                    ValidateSettings(message);
+                    break;
 
-            case "browsePath":
-                await BrowsePathAsync(message);
-                break;
+                case "browsePath":
+                    await BrowsePathAsync(message);
+                    break;
 
-            case "saveSettings":
-                await SaveSettingsAsync(message);
-                break;
+                case "saveSettings":
+                    await SaveSettingsAsync(message);
+                    break;
 
-            case "rescan":
-                await RescanAsync(message.ReadString("requestId"));
-                break;
+                case "rescan":
+                    await RescanAsync(message.ReadString("requestId"));
+                    break;
 
-            case "launchGame":
-                LaunchGame(message.ReadString("gameId"));
-                break;
+                case "launchGame":
+                    LaunchGame(message.ReadString("gameId"));
+                    break;
 
-            case "revealGame":
-                RevealGame(message.ReadString("gameId"));
-                break;
+                case "revealGame":
+                    RevealGame(message.ReadString("gameId"));
+                    break;
 
-            // Full screen is borderless, so the page is the only thing that can offer a
-            // way back out: Escape and F11 come through here.
-            case "windowMode":
-                SetFullScreen(message.ReadBool("fullScreen"));
-                break;
+                // Full screen is borderless, so the page is the only thing that can offer a
+                // way back out: Escape and F11 come through here.
+                case "windowMode":
+                    SetFullScreen(message.ReadBool("fullScreen"));
+                    break;
 
-            case "selectConsole":
-                _ = SearchConsoleArtworkAsync(message.ReadString("consoleId"));
-                break;
+                case "selectConsole":
+                    _ = SearchConsoleArtworkAsync(message.ReadString("consoleId"));
+                    break;
 
-            case "selectGame":
-                _selectedGameId = message.ReadString("gameId");
-                RefreshSelectedGameDetails();
-                break;
+                case "selectGame":
+                    _selectedGameId = message.ReadString("gameId");
+                    RefreshSelectedGameDetails();
+                    break;
 
-            case "testRetroAchievements":
-                await TestRetroAchievementsAsync(message);
-                break;
+                case "testRetroAchievements":
+                    await TestRetroAchievementsAsync(message);
+                    break;
 
-            // Console actions come from the right-click menu. They never need a game
-            // selected, and each one reports its own result so the menu can stay open
-            // while an update check is in flight.
-            case "openEmulator":
-                RunConsoleAction(message, "openEmulator", _emulatorTools.Open);
-                break;
+                // Console actions come from the right-click menu and never need a game selected;
+                // each reports its own result so the menu can stay open while an update check runs.
+                case "openEmulator":
+                    RunConsoleAction(message, "openEmulator", _emulatorTools.Open);
+                    break;
 
-            case "openControllerConfig":
-                RunConsoleAction(message, "openControllerConfig", _emulatorTools.OpenConfigFolder);
-                break;
+                case "openControllerConfig":
+                    RunConsoleAction(message, "openControllerConfig", _emulatorTools.OpenConfigFolder);
+                    break;
 
-            case "openReleasePage":
-                RunConsoleAction(message, "openReleasePage", _emulatorTools.OpenReleasePage);
-                break;
+                case "openReleasePage":
+                    RunConsoleAction(message, "openReleasePage", _emulatorTools.OpenReleasePage);
+                    break;
 
-            case "openXeniaManager":
-                RunConsoleAction(message, "openXeniaManager", _emulatorTools.OpenXeniaManager);
-                break;
+                case "openXeniaManager":
+                    RunConsoleAction(message, "openXeniaManager", _emulatorTools.OpenXeniaManager);
+                    break;
 
-            case "checkForUpdates":
-                await CheckForUpdatesAsync(message);
-                break;
+                case "checkForUpdates":
+                    await CheckForUpdatesAsync(message);
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Bridge message {message.Type} failed: {ex}");
+            if (message.Type == "ready")
+            {
+                _bridge.Send("library", new LibraryPayload(
+                    "Could not load the library. Open Settings to check your game folders.",
+                    Array.Empty<ConsolePayload>()));
+            }
         }
     }
 
@@ -581,7 +612,8 @@ public sealed partial class MainWindow : Window
                 c.GamesPath,
                 c.EmulatorPath,
                 c.ArtworkPath ?? string.Empty,
-                c.CorePath ?? string.Empty),
+                c.CorePath ?? string.Empty,
+                c.InstalledGamesPath ?? string.Empty),
             StringComparer.OrdinalIgnoreCase);
         var validation = _settingsStore.Validate(_catalogDefaults, drafts);
         var retro = _retroAchievements.Settings;
@@ -596,6 +628,7 @@ public sealed partial class MainWindow : Window
                 emulatorPath = c.EmulatorPath,
                 artworkPath = c.ArtworkPath ?? string.Empty,
                 corePath = c.CorePath ?? string.Empty,
+                installedGamesPath = c.InstalledGamesPath ?? string.Empty,
                 validation = validation[c.Id],
             }).ToList(),
             retroAchievements = new
@@ -639,7 +672,7 @@ public sealed partial class MainWindow : Window
                 WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
                 selected = (await picker.PickSingleFileAsync())?.Path;
             }
-            else if (field is "gamesPath" or "artworkPath")
+            else if (field is "gamesPath" or "artworkPath" or "installedGamesPath")
             {
                 var picker = new FolderPicker { SuggestedStartLocation = PickerLocationId.ComputerFolder };
                 picker.FileTypeFilter.Add("*");
@@ -799,8 +832,10 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            var library = await Task.Run(BuildLibraryPayload);
-            _bridge.Send("library", library);
+            if (await ScanLibraryAsync() is { } library)
+            {
+                _bridge.Send("library", library);
+            }
             _bridge.Send("scanResult", new { requestId, succeeded = true });
 
             // The selected game may now have a different match or account context.
@@ -818,10 +853,8 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Searches the console the user is looking at. Called on the first load and whenever
-    /// a console is selected; each console is searched at most once per session, and the
-    /// resolver itself skips games whose slots are already resolved. Browsing never waits
-    /// on the network: the payload is sent before this starts.
+    /// Searches the console the user is looking at, at most once per session. Browsing never
+    /// waits on the network; the payload is sent before this starts.
     /// </summary>
     private async Task SearchArtworkAsync()
     {
@@ -863,8 +896,10 @@ public sealed partial class MainWindow : Window
                 game => game.FrontCover is { } cover ? UrlForArtwork(console.Id, cover) : null,
                 CancellationToken.None);
 
-            var library = await Task.Run(BuildLibraryPayload);
-            _bridge.Send("library", library);
+            if (await ScanLibraryAsync() is { } library)
+            {
+                _bridge.Send("library", library);
+            }
         }
         catch (Exception ex)
         {
@@ -888,7 +923,8 @@ public sealed partial class MainWindow : Window
                 Field(console.Value, "gamesPath"),
                 Field(console.Value, "emulatorPath"),
                 Field(console.Value, "artworkPath"),
-                Field(console.Value, "corePath"));
+                Field(console.Value, "corePath"),
+                Field(console.Value, "installedGamesPath"));
         }
         if (drafts.Count != known.Count) { error = "Settings must include every configured console."; return false; }
         return true;

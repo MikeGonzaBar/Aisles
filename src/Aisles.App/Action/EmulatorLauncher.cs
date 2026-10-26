@@ -6,9 +6,8 @@ namespace Aisles.App.Action;
 public sealed record LaunchResult(bool Started, string Message);
 
 /// <summary>
-/// Starts the configured emulator for a game. Arguments come from the console's
-/// own <c>{0}</c> template, with optional <c>{core}</c> substitution, so a changed CLI flag is a config edit, not a rebuild
-/// (PLAN.md section 8).
+/// Starts the configured emulator for a game using the console's <c>{0}</c> argument
+/// template with optional <c>{core}</c> substitution, so a changed CLI flag is a config edit.
 /// </summary>
 public sealed class EmulatorLauncher
 {

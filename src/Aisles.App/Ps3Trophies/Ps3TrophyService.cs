@@ -6,12 +6,8 @@ using System.Globalization;
 namespace Aisles.App.Ps3Trophies;
 
 /// <summary>
-/// Turns the trophy data RPCS3 keeps on disk into the same ACHIEVEMENTS row the
-/// RetroAchievements provider fills. A PS3 game needs no account and no network:
-/// the emulator installs <c>TROPCONF.SFM</c> and <c>TROPUSR.DAT</c> under
-/// <c>dev_hdd0\home\&lt;user&gt;\trophy\&lt;NPWR&gt;</c> when the game first registers
-/// its trophies. Disc games that have not been launched yet fall back to the
-/// <c>TROPHY.TRP</c> package beside the game for definitions, with zero progress.
+/// Turns RPCS3's on-disk trophy data into the ACHIEVEMENTS row. No account or network is
+/// needed; an unlaunched disc falls back to its <c>TROPHY.TRP</c> definitions with zero progress.
 /// </summary>
 public sealed class Ps3TrophyService
 {
@@ -65,9 +61,8 @@ public sealed class Ps3TrophyService
             return NoTrophies("RPCS3's dev_hdd0 folder was not found.");
         }
 
-        // RPCS3's installed copy is usually newer than the disc's TROPDIR (updates
-        // replace trophy sets), so prefer it for definitions. The user's trophy folder
-        // is even better and is preferred below when TROPCONF.SFM exists there.
+        // RPCS3's installed copy is usually newer than the disc's TROPDIR because updates
+        // replace trophy sets, so prefer it for definitions; the user's trophy folder wins below.
         var trophyDirectory = FindInstalledTrophyDirectory(console, game.Serial)
             ?? FindTrophyDirectory(game.LaunchTarget)
             ?? FindTrophyDirectory(Path.Combine(devHdd0, "game", game.Serial ?? string.Empty));
@@ -207,9 +202,8 @@ public sealed class Ps3TrophyService
         new("noTrophies", null, null, null, note, Source: "rpcs3", Unit: "trophies");
 
     /// <summary>
-    /// RPCS3 is portable on this machine: <c>dev_hdd0</c> sits beside the executable.
-    /// The standard install keeps it under <c>%APPDATA%\rpcs3</c>. Either layout is
-    /// accepted, and the configured installed-games path is a final hint.
+    /// RPCS3 is portable here, with <c>dev_hdd0</c> beside the executable; the standard install
+    /// uses <c>%APPDATA%\rpcs3</c>. The configured installed-games path is a final hint.
     /// </summary>
     private static string? FindDevHdd0(ConsoleDescriptor console)
     {
@@ -243,9 +237,8 @@ public sealed class Ps3TrophyService
     }
 
     /// <summary>
-    /// Installed games keep <c>TROPDIR\NPWR…</c> directly below the title folder.
-    /// Disc dumps often wrap PS3_GAME in one more folder, as this library's ISOs do,
-    /// so the search is deliberately shallow rather than recursive over a whole dump.
+    /// Installed games keep <c>TROPDIR\NPWR...</c> below the title folder; disc dumps often
+    /// add a wrapper, so the search stays shallow rather than recursive.
     /// </summary>
     private static string? FindTrophyDirectory(string? gamePath)
     {

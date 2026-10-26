@@ -23,9 +23,8 @@ public sealed record GameEntry
     public string? Version { get; init; }
 
     /// <summary>
-    /// Which rule produced <see cref="Title"/>. Titles are derived from names and
-    /// emulator caches rather than a catalogue, so keeping the provenance makes the
-    /// heuristics auditable instead of mysterious.
+    /// Which rule produced <see cref="Title"/>. Titles come from names and emulator caches,
+    /// so provenance keeps the heuristics auditable.
     /// </summary>
     public string? TitleSource { get; init; }
 

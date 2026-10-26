@@ -18,10 +18,8 @@ public sealed record Ps3TrophyDefinition(
 public sealed record Ps3TrophyProgress(int Id, bool Unlocked, DateTime? EarnedAt);
 
 /// <summary>
-/// Readers for the two files RPCS3 installs for a PS3 trophy set. Both formats are
-/// RPCS3's own: <c>TROPCONF.SFM</c> is plain XML despite the extension, and
-/// <c>TROPUSR.DAT</c> is a big-endian table container. Nothing here talks to PSN;
-/// it only reflects the local trophy state the emulator has already recorded.
+/// Readers for RPCS3's two trophy files: <c>TROPCONF.SFM</c> is XML despite the extension,
+/// and <c>TROPUSR.DAT</c> is a big-endian table container. Nothing here talks to PSN.
 /// </summary>
 public static class Ps3TrophyReader
 {
@@ -98,11 +96,8 @@ public static class Ps3TrophyReader
     }
 
     /// <summary>
-    /// Reads the trophy config from a <c>TROPHY.TRP</c> package. The package is a
-    /// fixed-size header followed by fixed-size entries. Its <c>TROPCONF.SFM</c> holds
-    /// only IDs, grades and hidden flags; names live in <c>TROP.SFM</c>, so both are
-    /// merged here. A package with no usable names still returns its definitions and
-    /// leaves the caller to show placeholder titles.
+    /// Reads definitions from a <c>TROPHY.TRP</c> package: <c>TROPCONF.SFM</c> holds IDs, grades
+    /// and hidden flags, <c>TROP.SFM</c> holds names; a package without names still returns definitions.
     /// </summary>
     public static IReadOnlyList<Ps3TrophyDefinition>? TryReadPackageConfiguration(string path)
     {
@@ -275,7 +270,7 @@ public static class Ps3TrophyReader
     }
 
     /// <summary>
-    /// Converts a CellRtc tick — microseconds elapsed since 0001-01-01 — to a date. RPCS3
+    /// Converts a CellRtc tick (microseconds elapsed since 0001-01-01) to a date. RPCS3
     /// stores the unlock timestamp in this format, not as Unix seconds.
     /// </summary>
     public static DateTime? CellRtcDate(ulong ticks)

@@ -6,7 +6,8 @@ public sealed record ConsolePathDraft(
     string GamesPath,
     string EmulatorPath,
     string ArtworkPath,
-    string CorePath = "");
+    string CorePath = "",
+    string InstalledGamesPath = "");
 
 public sealed record PathValidation(string State, string? Error = null);
 
@@ -40,6 +41,7 @@ public sealed class ConsoleSettingsStore
                 if (item.EmulatorPath is not null) console.EmulatorPath = item.EmulatorPath;
                 if (item.ArtworkPath is not null) console.ArtworkPath = item.ArtworkPath;
                 if (item.CorePath is not null) console.CorePath = item.CorePath;
+                if (item.InstalledGamesPath is not null) console.InstalledGamesPath = item.InstalledGamesPath;
             }
             return (catalog, null);
         }
@@ -64,6 +66,7 @@ public sealed class ConsoleSettingsStore
                 ["emulatorPath"] = ValidatePath(draft.EmulatorPath, true),
                 ["artworkPath"] = ValidatePath(draft.ArtworkPath, false),
                 ["corePath"] = ValidatePath(draft.CorePath, true),
+                ["installedGamesPath"] = ValidatePath(draft.InstalledGamesPath, false),
             };
         }
         return result;
@@ -90,9 +93,10 @@ public sealed class ConsoleSettingsStore
                 EmulatorPath = Different(draft.EmulatorPath, original.EmulatorPath),
                 ArtworkPath = Different(draft.ArtworkPath, original.ArtworkPath ?? string.Empty),
                 CorePath = Different(draft.CorePath, original.CorePath ?? string.Empty),
+                InstalledGamesPath = Different(draft.InstalledGamesPath, original.InstalledGamesPath ?? string.Empty),
             };
             if (item.GamesPath is not null || item.EmulatorPath is not null
-                || item.ArtworkPath is not null || item.CorePath is not null)
+                || item.ArtworkPath is not null || item.CorePath is not null || item.InstalledGamesPath is not null)
                 file.Consoles[original.Id] = item;
         }
 
@@ -144,5 +148,6 @@ public sealed class ConsoleSettingsStore
         public string? EmulatorPath { get; set; }
         public string? ArtworkPath { get; set; }
         public string? CorePath { get; set; }
+        public string? InstalledGamesPath { get; set; }
     }
 }

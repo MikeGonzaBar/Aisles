@@ -20,10 +20,8 @@ public sealed record EmulatorUpdateResult(
     string? Error);
 
 /// <summary>
-/// Best-effort update checks for the emulators Aisles can identify. This never installs
-/// anything: it answers "is a newer release published?" and the caller offers the
-/// emulator's own release page. Xenia is delegated to Xenia Manager because that is
-/// already the update owner for the Xbox stack.
+/// Best-effort update checks that never install anything, only report whether a newer
+/// release exists. Xenia is delegated to Xenia Manager, its existing update owner.
 /// </summary>
 public sealed class EmulatorUpdateService
 {

@@ -13,6 +13,11 @@ test('manual selection survives resolution and precedes emulator artwork',()=>{
  const e=entry([candidate]);e.selections.frontCover=candidate.id;
  assert.equal(a.resolveKind(game,'frontCover',e).match,'manual selection');
 });
+test('a flagged manual selection falls back instead of pairing the wrong edition',()=>{
+ const disc={...candidate,kind:'discLabel',conflict:'Special Edition does not match local game'};
+ const e=entry([disc]);e.selections.discLabel=disc.id;
+ assert.equal(a.resolveKind(game,'discLabel',e).source,'generated');
+});
 test('emulator cover precedes all online images while disc remains independent',()=>{
  const e=entry([{...candidate,exactId:game.id}]);
  assert.equal(a.resolveKind(game,'frontCover',e).source,'emulator');

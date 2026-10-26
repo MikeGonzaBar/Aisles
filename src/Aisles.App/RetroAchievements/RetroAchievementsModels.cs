@@ -28,9 +28,8 @@ public sealed record RetroAchievementsProgress(
     IReadOnlyList<RetroAchievementsAchievement> Achievements);
 
 /// <summary>
-/// A user-facing RetroAchievements failure. <see cref="IsAuthFailure"/> distinguishes
-/// bad credentials from transient network trouble so the rail can stop claiming the
-/// account is linked when the API rejects it.
+/// A user-facing RetroAchievements failure. <see cref="IsAuthFailure"/> separates bad
+/// credentials from transient trouble so the rail stops claiming a broken link.
 /// </summary>
 public sealed class RetroAchievementsException : Exception
 {
