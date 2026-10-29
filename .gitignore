@@ -27,6 +27,11 @@ retroachievements.json
 # Runtime copies live under src/Aisles.App/wwwroot/art/retail-wood-v1/.
 artifacts/retroshelf-backgrounds/
 
+# --- Build distribution directories (pipeline-generated) ---
+artifacts/installer/*
+artifacts/publish/*
+artifacts/publish-fixed/*
+
 # --- OS noise ---
 Thumbs.db
 desktop.ini

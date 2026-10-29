@@ -66,4 +66,17 @@
     </Content>
   </ItemGroup>
 
+  <!-- The .NET publish target drops the generated WinUI resources even though
+       they are present in TargetDir. An unpackaged build cannot load XAML
+       without these files. -->
+  <Target Name="CopyWinUiResourcesToPublish" AfterTargets="Publish">
+    <ItemGroup>
+      <_WinUiPublishResource Include="$(TargetDir)$(AssemblyName).pri" />
+      <_WinUiPublishResource Include="$(TargetDir)*.xbf" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_WinUiPublishResource)"
+          DestinationFolder="$(PublishDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
+
 </Project>

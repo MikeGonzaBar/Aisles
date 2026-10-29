@@ -7,67 +7,8 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 export const HERO_UNIT = 0.01;
 export const SHELF_UNIT = 0.0022;
 
-/** Real packaging in millimetres: [width, height, depth]. */
-export const PRESETS = {
-  jewel: {
-    case: [142, 125, 10],
-    inlay: [120, 120],
-    clear: true,
-    medium: { kind: 'disc', size: [120, 1.2] },
-    mediumName: 'CD-ROM',
-  },
-  dvd: {
-    case: [135, 190, 14],
-    inlay: [129, 183],
-    medium: { kind: 'disc', size: [120, 1.2] },
-    mediumName: 'DVD-ROM',
-  },
-  bluray: {
-    case: [135, 171.5, 13],
-    inlay: [129, 166],
-    medium: { kind: 'disc', size: [120, 1.2] },
-    mediumName: 'Blu-ray',
-  },
-  gamecube: {
-    case: [135, 190, 14],
-    inlay: [129, 183],
-    medium: { kind: 'disc', size: [80, 1.2] },
-    mediumName: 'miniDVD',
-  },
-  ds: {
-    case: [135, 122, 15],
-    inlay: [131, 118],
-    mediumBody: '#2b2b31',
-    medium: { kind: 'card', size: [33, 35, 3.8] },
-    mediumName: 'Game card',
-  },
-  '3ds': {
-    case: [135, 122, 14],
-    inlay: [131, 118],
-    mediumBody: '#2b2b31',
-    medium: { kind: 'card', size: [35, 33, 3.8] },
-    mediumName: 'Game card',
-  },
-  xbox360: {
-    case: [135, 190, 14],
-    inlay: [129, 183],
-    medium: { kind: 'disc', size: [120, 1.2] },
-    mediumName: 'DVD-ROM',
-  },
-};
-
-/** consoles.json still names the packaging, so a hand-added platform needs no code. */
-const BY_MEDIA = {
-  JewelCase: 'jewel',
-  DvdCase: 'dvd',
-  BluRayCase: 'bluray',
-  MiniDiscCase: 'gamecube',
-  CartridgeCase: 'ds',
-};
-
-export function presetFor(console) {
-  return PRESETS[console?.id] ?? PRESETS[BY_MEDIA[console?.media]] ?? PRESETS.dvd;
-}
+export { PRESETS, presetFor } from './media-presets.js';
+import { presetFor } from './media-presets.js';
 
 export function mediumNameFor(console) {
   return presetFor(console).mediumName;

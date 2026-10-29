@@ -1,5 +1,6 @@
 // Page shell, state, and browse views: host bridge, library state, toolbar, Covers,
 // List and details rail. The 3D shelf and lineup are separate modules.
+import { presetFor } from './media-presets.js';
 
 const webview = window.chrome?.webview;
 
@@ -25,7 +26,6 @@ const elements = {
   shelfHint: document.getElementById('shelf-hint'),
   stageLabels: document.getElementById('stage-labels'),
   shelfListbox: document.getElementById('shelf-listbox'),
-  shelfLaunch: document.getElementById('shelf-launch'),
   status: document.getElementById('status'),
   totals: document.getElementById('totals'),
   startupPanel: document.getElementById('startup-panel'),
@@ -77,7 +77,6 @@ const state = {
 let shelfAvailable = true;
 
 let spatialUiScheduled = false;
-let heroModulePromise = null;
 let startupArtworkScheduled = false;
 let startupScanTimer = 0;
 
@@ -117,8 +116,8 @@ function scheduleSpatialUi() {
   if (spatialUiScheduled) return;
   spatialUiScheduled = true;
   afterFirstPaint(() => {
-    Promise.all([import('./stage3d.js'), import('./shelf3d.js')])
-      .catch((error) => console.warn('Aisles: the 3D stage is unavailable', error));
+    import('./pixel-ui.js')
+      .catch((error) => console.warn('Aisles: the pixel stage is unavailable', error));
   });
 }
 
@@ -500,6 +499,7 @@ function openSettings(consoleId = null) {
   setSettingsError();
   post('getSettings', { requestId: requestId('load') });
 }
+window.aislesOpenSettings = openSettings;
 
 function closeSettings(force = false) {
   if (settings.busy) return;
@@ -1223,6 +1223,8 @@ function renderCoverGrid(entries) {
 function coverCard(entry, showBadge) {
   const item = document.createElement('li');
   item.className = 'cover-card';
+  const [caseWidth, caseHeight] = presetFor(entry.console).case;
+  item.style.setProperty('--case-aspect', `${caseWidth} / ${caseHeight}`);
   item.dataset.gameId = entry.game.id;
   item.setAttribute('role', 'option');
   item.setAttribute('aria-selected', String(entry.game.id === state.selectedGameId));
@@ -2029,22 +2031,30 @@ function renderHero() {
 
   elements.hero.append(row, launchDeck(console, game, launch));
 
-  const hero = window.aislesHero3d;
-  if (hero) {
-    stage.append(hero.canvas);
-    hero.show(console, game);
-    if (launching) {
-      hero.launch();
-    }
-  } else {
-    stage.textContent = 'Loading 3D view…';
-    heroModulePromise ??= import('./hero3d.js')
-      .catch((error) => {
-        heroModulePromise = null;
-        console.warn('Aisles: the 3D hero is unavailable', error);
-        if (stage.isConnected) stage.textContent = 'The 3D view is unavailable.';
-      });
+  const preset = presetFor(console);
+  const [caseWidth, caseHeight] = preset?.case ?? [135, 190];
+  const mediumWidth = preset?.medium.size[0] ?? 120;
+  const mediumHeight = preset?.medium.kind === 'card' ? preset.medium.size[1] : mediumWidth;
+  const gap = 20;
+  const layout = document.createElement('div');
+  layout.className = 'pixel-hero-layout';
+  layout.style.aspectRatio = `${caseWidth + gap + mediumWidth} / ${caseHeight}`;
+  layout.style.setProperty('--layout-ratio', (caseWidth + gap + mediumWidth) / caseHeight);
+  layout.style.setProperty('--case-width', `${caseWidth / (caseWidth + gap + mediumWidth) * 100}%`);
+  layout.style.setProperty('--medium-width', `${mediumWidth / (caseWidth + gap + mediumWidth) * 100}%`);
+  layout.style.setProperty('--medium-height', `${mediumHeight / caseHeight * 100}%`);
+  const cover = artwork(game, 'pixel-hero-cover');
+  const medium = document.createElement('div');
+  medium.className = `pixel-hero-medium${preset?.medium.kind === 'card' ? ' cartridge' : ''}${launching ? ' is-launching' : ''}`;
+  if (game.mediumLabelUrl) {
+    const image = document.createElement('img');
+    image.src = game.mediumLabelUrl;
+    image.alt = '';
+    image.addEventListener('error', () => image.remove(), { once: true });
+    medium.append(image);
   }
+  layout.append(cover, medium);
+  stage.append(layout);
 }
 
 /* Shelf keyboard: a semantic listbox mirroring the 3D shelf's selection, page and
@@ -2075,15 +2085,11 @@ function syncShelfListbox() {
     const activeId = state.shelfFocusedId ? shelfOptionId(state.shelfFocusedId) : '';
     if (activeId) elements.shelfCanvas.setAttribute('aria-activedescendant', activeId);
     else elements.shelfCanvas.removeAttribute('aria-activedescendant');
-    elements.shelfLaunch.disabled = !state.selectedGameId;
-    elements.shelfLaunch.hidden = !state.selectedGameId;
     return;
   }
 
   shelfListboxBuiltFor = signature;
   elements.shelfListbox.replaceChildren();
-  elements.shelfLaunch.disabled = true;
-  elements.shelfLaunch.hidden = true;
 
   if (!console || games.length === 0) {
     elements.shelfCanvas.removeAttribute('aria-activedescendant');
@@ -2106,8 +2112,6 @@ function syncShelfListbox() {
 
   elements.shelfCanvas.setAttribute('aria-owns', optionIds.join(' '));
   elements.shelfCanvas.setAttribute('aria-activedescendant', shelfOptionId(state.shelfFocusedId));
-  elements.shelfLaunch.disabled = !state.selectedGameId;
-  elements.shelfLaunch.hidden = !state.selectedGameId;
 }
 
 function initShelfKeyboard() {
@@ -2149,12 +2153,10 @@ function initShelfKeyboard() {
     }
   });
 
-  elements.shelfLaunch.addEventListener('click', () => {
-    if (state.selectedGameId) window.aislesLaunchGame(state.selectedGameId);
-  });
 }
 
 window.addEventListener('aisles:hero3d', renderHero);
+window.addEventListener('aisles:media-presets-ready', renderHero);
 
 /* Console labels over the 3D lineup. The 3D module positions .stage-labels .slot
    spans; this upgrades them in place to accessible buttons routed through selectConsole. */
@@ -2389,6 +2391,7 @@ function onLibrary(payload) {
   publishSnapshot();
   scheduleSpatialUi();
   scheduleStartupArtwork();
+  requestAnimationFrame(() => post('libraryRendered'));
 }
 
 function onGameDetails(payload) {
@@ -2427,6 +2430,7 @@ function onLaunchResult(payload) {
       state.launchSettleTimer = 0;
       state.launchingGameId = null;
       window.aislesHero3d?.settleLaunch();
+      elements.hero?.querySelector('.pixel-hero-medium')?.classList.remove('is-launching');
       const launch = elements.hero?.querySelector('.launch');
       if (launch) {
         launch.disabled = false;

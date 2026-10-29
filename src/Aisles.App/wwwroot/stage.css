@@ -69,11 +69,6 @@ body {
   flex-shrink: 0;
 }
 
-.phase {
-  font-size: 11px;
-  color: var(--dim);
-}
-
 .settings-trigger {
   display: inline-flex;
   align-items: center;
@@ -566,22 +561,6 @@ button:disabled { opacity: .55; cursor: wait; }
   clip: rect(0 0 0 0);
   clip-path: inset(50%);
   white-space: nowrap;
-}
-
-.shelf-launch {
-  position: absolute;
-  z-index: 3;
-  right: 10px;
-  bottom: 34px;
-  padding: 6px 10px;
-  border: 1px solid #d3ab00;
-  border-radius: 5px;
-  background: var(--yellow);
-  color: var(--navy);
-  font: inherit;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
 }
 
 .shelf-sign {
@@ -1208,10 +1187,6 @@ button:disabled { opacity: .55; cursor: wait; }
     font-size: 18px;
   }
 
-  .phase {
-    display: none;
-  }
-
   .library-toolbar {
     padding-inline: 12px;
     gap: 8px 12px;
@@ -1381,6 +1356,59 @@ body.shelf3d-failed .shelf {
 
 /* Covers and list */
 
+/* Pixel rental-store scene */
+@font-face { font-family: 'Aisles Pixel'; src: url('art/pixel-ui/PixelifySans.ttf') format('truetype'); font-weight: 400 700; font-display: swap; }
+.pixel-cabinet-sign, .pixel-console, .pixel-case.return, .wordmark, .launch-deck-title, .hero .launch-deck-boot, .shelf-pager { font-family: 'Aisles Pixel', sans-serif; }
+.layout { background: #10182f url('art/pixel-ui/store-background.png') center / cover no-repeat; }
+#stage-canvas, .shelf-sign { display: none; }
+.lineup { height: clamp(155px, 21vh, 225px); background: transparent; border-bottom: 0; }
+.stage-labels { display: flex; justify-content: center; align-items: stretch; gap: 4px; padding: 5px 12px 9px; overflow-x: auto; pointer-events: auto; }
+.stage-labels::before { content: ''; position: absolute; z-index: 0; inset: 0 max(8%, calc((100% - 1300px) / 2)); background: url('art/pixel-ui/console-shelf.png') center / 100% 250% no-repeat; image-rendering: pixelated; pointer-events: none; }
+.pixel-console { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; flex: 0 0 clamp(90px, 11%, 150px); min-width: 0; border: 2px solid transparent; background: transparent; color: #dce7ff; font-size: 11px; font-weight: 700; cursor: pointer; }
+.pixel-console > span:last-child { display: inline-flex; flex-direction: column; padding: 1px 7px; line-height: 1.05; background: #10264c; border: 1px solid #304a76; border-radius: 3px; }
+.pixel-console > span:last-child span:last-child { font-size: 9px; font-weight: 400; }
+.pixel-console[aria-pressed="true"] > span:last-child { color: #ffdc34; border-color: #ffd02b; box-shadow: 0 0 0 1px #ffd02b; }
+.pixel-console:focus-visible, .pixel-case:focus-visible { outline: 3px solid #ffe24b; }
+.pixel-console-sprite { display: block; flex: 0 0 min(140px, calc(100% - 34px)); width: 100%; background-image: url('art/pixel-ui/consoles-sheet.png'); background-repeat: no-repeat; image-rendering: pixelated; }
+.pixel-console-sprite.generic { display: grid; place-items: center; background: #303e5a; color: white; font-size: 20px; }
+.pixel-console[aria-pressed="true"] .pixel-console-sprite { animation: pixel-console-float 2.8s ease-in-out infinite; }
+@keyframes pixel-console-float { 0%, 100% { transform: translateY(-2px); } 50% { transform: translateY(-7px); } }
+#shelf-canvas { position: relative; overflow: hidden; background: transparent; border: 0; }
+.hero-stage-empty { background: transparent; border: 0; }
+.hero-stage-empty::before, .hero-stage-empty::after { display: none; }
+.browse-view { background: rgb(10 15 31 / 88%); border-radius: 4px; padding-inline: 10px; }
+.pixel-cabinet { position: absolute; inset: 3% 16% 5%; background: url('art/pixel-ui/shelf-v2.png') center / 100% 100% no-repeat; image-rendering: pixelated; filter: drop-shadow(0 12px 14px #0009); }
+.pixel-cabinet-sign { position: absolute; left: 22%; right: 22%; top: 1%; height: 8%; display: grid; place-items: center; text-align: center; color: #ffcf29; text-transform: uppercase; font-size: clamp(14px, 1.6vw, 28px); font-weight: 700; text-shadow: 2px 2px #382000; }
+.pixel-cases { position: absolute; inset: 12% 0 10%; display: grid; grid-template-rows: repeat(3, minmax(0, 1fr)); }
+/* Reuse the same bay and board from the cabinet art at every level. */
+.pixel-case-row { position: relative; min-height: 0; overflow: hidden; background: url('art/pixel-ui/shelf-v2.png') center 16.6% / 100% 348% no-repeat; image-rendering: pixelated; }
+.pixel-case-items { position: absolute; inset: 0 6%; display: grid; grid-template-columns: repeat(var(--case-columns, 6), minmax(0, 1fr)); gap: 4px; container-type: size; }
+.pixel-case-items[aria-hidden="true"] { pointer-events: none; }
+.pixel-case { position: relative; box-sizing: border-box; min-width: 0; min-height: 0; max-width: 100%; max-height: 74cqh; width: min(100%, calc(74cqh * var(--case-aspect))); height: auto; align-self: end; justify-self: center; margin-bottom: 21cqh; overflow: hidden; padding: 0; border: 3px solid #d9d7c8; background: #182d50; color: white; cursor: pointer; }
+.pixel-case span { position: absolute; inset: 8%; display: grid; place-items: center; overflow: hidden; font-size: 10px; }
+.pixel-case canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+.pixel-case.return { border: 3px dashed #f3c729; background: #0a1835; color: #b4d3ff; font-weight: bold; }
+.hero .launch-deck-boot { color: #ffdb2e; font-size: 20px; font-weight: 700; }
+.hero-row:has(.pixel-hero-layout) { flex-basis: clamp(300px, 43vh, 500px); min-height: 260px; }
+.hero-stage:not(.hero-stage-empty) { display: flex; align-items: center; justify-content: center; padding: 5% 6% 10%; border: 3px solid #ffd02b; border-radius: 3px; background: linear-gradient(145deg, #102759, #091733 75%); box-shadow: inset 0 0 0 3px #06132e, inset 0 0 0 5px #9b790f; container-type: size; }
+.hero-stage:not(.hero-stage-empty)::before { inset: 7px; z-index: 2; border: 0; border-radius: 0; filter: none; background: linear-gradient(#ffd02b, #ffd02b) left top / 10px 3px, linear-gradient(#ffd02b, #ffd02b) left top / 3px 10px, linear-gradient(#ffd02b, #ffd02b) right top / 10px 3px, linear-gradient(#ffd02b, #ffd02b) right top / 3px 10px, linear-gradient(#ffd02b, #ffd02b) left bottom / 10px 3px, linear-gradient(#ffd02b, #ffd02b) left bottom / 3px 10px, linear-gradient(#ffd02b, #ffd02b) right bottom / 10px 3px, linear-gradient(#ffd02b, #ffd02b) right bottom / 3px 10px; background-repeat: no-repeat; }
+.hero-stage:not(.hero-stage-empty)::after { left: 2%; right: 2%; bottom: 3%; height: 10%; border-radius: 0; filter: none; background: linear-gradient(175deg, #142e5d 0 42%, #24477b 43% 62%, #0a1935 63% 80%, #cf9d23 81% 87%, #07152e 88%); clip-path: polygon(0 12%, 100% 38%, 100% 100%, 0 83%); }
+.pixel-hero-layout { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; width: min(100%, calc(88cqh * var(--layout-ratio))); flex: none; }
+.pixel-hero-cover { position: relative; box-sizing: border-box; z-index: 1; width: var(--case-width); height: 100%; flex: none; background: #eee; border: 4px solid #e5e5dd; box-shadow: 8px 8px 0 #707889, 12px 16px 18px #0008; }
+.pixel-hero-cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; }
+.pixel-hero-cover .art-fallback { color: #27395a; }
+.pixel-hero-medium { position: relative; box-sizing: border-box; z-index: 1; flex: none; width: var(--medium-width); height: var(--medium-height); overflow: hidden; border: 3px solid #adb6bf; border-radius: 50%; background: radial-gradient(circle, #17213b 0 8%, #c5cad0 9% 13%, #e7e9ec 14%); box-shadow: 7px 9px 18px #0009; animation: pixel-disc-spin 20s linear infinite; }
+.pixel-hero-medium img { width: 100%; height: 100%; object-fit: cover; }
+.pixel-hero-medium::after { content: ''; position: absolute; inset: 43%; border-radius: 50%; background: #0b1c40; border: 3px solid #b5bfc5; }
+.pixel-hero-medium.cartridge { border-radius: 6%; animation: none; }
+.pixel-hero-medium.cartridge::after { display: none; }
+.pixel-hero-medium.is-launching { animation-duration: .7s; }
+@keyframes pixel-disc-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .pixel-hero-medium, .pixel-console[aria-pressed="true"] .pixel-console-sprite { animation: none; } }
+
+/* Use one locally bundled retro family across the application, including forms. */
+body, .path-row input, .game .serial, .empty code { font-family: 'Aisles Pixel', sans-serif; }
+
 .games-heading {
   flex: 0 0 auto;
   margin: 0;
@@ -1408,6 +1436,7 @@ body.shelf3d-failed .shelf {
 .cover-card {
   display: flex;
   flex-direction: column;
+  align-self: start;
   gap: 6px;
   min-width: 0;
   padding: 7px;
@@ -1440,12 +1469,16 @@ body.shelf3d-failed .shelf {
   padding: 24px 10px;
 }
 
-/* The cover keeps its source artwork's proportions inside every card width. */
+/* Each cover follows the real case proportions from media-presets.js. */
 .cover-card .art {
   width: 100%;
   height: auto;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: var(--case-aspect, 3 / 4);
   border-radius: 4px;
+}
+
+.cover-card .art img {
+  object-fit: fill;
 }
 
 .cover-card .art-fallback {

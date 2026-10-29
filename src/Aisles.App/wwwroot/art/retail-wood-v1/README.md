@@ -1,5 +1,9 @@
 # Aisles natural-wood rental-store assets
 
+> **Legacy asset pack.** The current runtime uses
+> `wwwroot/art/pixel-ui/` with `pixel-ui.js`. The notes below document the former
+> Three.js rental-store presentation and are retained for asset provenance.
+
 Direction: natural oak furniture with blue-and-yellow category signage, neutral slatwall and soft cool-white lighting. This supersedes the all-blue shelf in mock v2.
 
 ## Files

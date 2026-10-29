@@ -1,5 +1,11 @@
 # Phase 5: true-scale media, resolved artwork, and the shelf's look
 
+> **Historical UI record.** This document describes the former Three.js shelf
+> and hero. The active app now uses the pixel-art interface shown in the root
+> README. The physical dimensions, artwork provenance and emulator metadata
+> decisions documented here remain the basis of `wwwroot/media-presets.js` and
+> the current selected-game view.
+
 The shelf and the hero now draw from the same physical model. A 120 mm disc in the
 hero is the same 120 mm disc on the shelf, a DS card has its real 33 × 35 mm body, and a
 jewel case is landscape at 142 × 125 × 10 mm. Artwork is resolved once on the host,

@@ -1,38 +1,73 @@
 # Aisles
 
-A native Windows front end that presents your emulated console libraries as a
-physical collection — glossy 3D consoles on a stage beside a 3D shelf of their
-real media — and launches the correct emulator when you pick a game.
+A native Windows front end that presents emulated console libraries as a
+Blockbuster-era pixel-art collection and launches the correct emulator when a
+game is selected.
 
-**Tagline:** *Walk the aisles of your collection.*
+## Current interface
+
+The active UI is one continuous pixel-art rental-store scene. Console sprites
+sit on a floating shelf above a three-level game cabinet; selecting a case opens
+its full-resolution box and disc or cartridge beside the rental-receipt details
+panel.
+
+![Aisles pixel-art shelf with a selected PlayStation 2 game](docs/screenshots/current-shelf-wide.jpg)
+
+The layout also adapts to a smaller desktop window without switching to a
+different visual language:
+
+![Aisles compact pixel-art shelf and selected-game panel](docs/screenshots/current-shelf.jpg)
 
 ## Status
 
-**Phases 0–8 implemented.** `Aisles.exe` opens a WinUI 3 window hosting WebView2, loads `consoles.json`, finds all 49 games across eight platforms with real titles and serials (including installed PS3 HDD titles), launches the right emulator, and drives a live host↔web message bridge. The 3D console lineup, the paged shelf and the hero are built and now sit in the finished rental-store room: warm slatwall behind the consoles, an oak shelf against a shop aisle, and a per-platform plaque over the selected bay. The media pass draws true-scale cases, discs and cards from one preset table, resolves local and online artwork into a cache, and keeps selection across pages. The Launch Deck keeps that 3D hero visually separate from a rental-receipt game card containing identity, emulator-owned play time, achievements or trophies, readiness, and **Insert & Boot**. Phase 6 links one RetroAchievements account for PS1, PS2, GameCube, Wii and DS through RetroArch's melonDS DS core, matches local files to RetroAchievements titles, and fills the rail with earned/total progress. Phase 7 fills the same rail for PS3 from RPCS3's local trophy files, with no PSN account or network call; 3DS and Xbox 360 remain without achievements. Alongside the app, six console GLBs have prepared runtime copies, and a workshop generates the cases, discs and DS cartridge procedurally. See `docs/phase0-verification.md`, `docs/phase1-discovery.md`, `docs/phase3-stage.md`, `docs/model-preparation.md`, `docs/media-models.md`, `docs/phase5-media.md`, `docs/phase6-retroachievements.md`, `docs/phase7-ps3-trophies.md` and `docs/phase8-launch-deck.md`.
+**Ready for use.** Aisles is a complete local Windows game-library front end and
+emulator launcher. `Aisles.exe` opens its WinUI 3/WebView2 interface, loads the
+configured console catalog, scans the available libraries, resolves artwork and
+metadata, preserves play history and achievement data, and launches each game
+with its configured emulator. The current installation manages eight platforms
+and 49 games.
+
+The console shelf and cabinet are rendered with HTML/CSS and pixel-art assets;
+cover art is downsampled onto crisp canvases while the selected box and medium
+remain full resolution. Cases use the real dimensions in `media-presets.js`, so
+PS1 jewel cases, DVD/Blu-ray cases and compact DS/3DS cases keep their correct
+proportions. Console changes and shelf pages use interruptible slide/fade motion,
+the selected console gently floats, and reduced-motion preferences disable those
+effects. Covers and List remain available as alternate library views.
+
+The selected-game panel contains identity, emulator-owned play time,
+achievements or trophies, readiness, and the single **Launch** / **Insert & Boot**
+action. RetroAchievements supports PS1, PS2, GameCube, Wii and DS through the
+configured RetroArch core; PS3 progress comes from RPCS3's local trophy files,
+without a PSN account or network call. Earlier Three.js implementation records
+and model workshops remain as historical evidence, not unfinished product work.
 
 ## Repository layout
 
 | Path | What it is |
 |---|---|
-| `PLAN.md` | The plan: reference, locked decisions, verified facts, architecture, data contracts, visual design, phased roadmap, risks |
+| `PLAN.md` | Original design record: decisions, verified facts, architecture, data contracts and risks |
 | `Aisles.slnx` | Solution, in the .NET 10 XML format |
 | `src/Aisles.App/` | **The application.** WinUI 3 shell, WebView2 host, library scanner, emulator launcher, message bridge |
 | `src/Aisles.App/consoles.json` | The editable platform catalog — copied beside the exe on build |
 | `src/Aisles.App/wwwroot/` | The web layer, served to WebView2 over `https://aisles.local` |
-| `docs/ui/ui-blockout3.png` | The agreed UI blockout (SVG source alongside); `ui-blockout2.png` is the earlier infinite-scroll draft |
+| `src/Aisles.App/wwwroot/pixel-ui.js` | Current console shelf, game cabinet, paging, pixel-cover rendering and transition lifecycle |
+| `src/Aisles.App/wwwroot/art/pixel-ui/` | Current store background, console sprites, floating shelf, cabinet and bundled pixel font |
+| `docs/screenshots/` | Current rendered desktop captures used by this README |
+| `docs/ui/ui-blockout3.png` | Historical pre-pixel UI blockout; `ui-blockout2.png` is the earlier infinite-scroll draft |
 | `docs/phase0-verification.md`, `docs/phase1-discovery.md` | Acceptance evidence for the first two phases, with screenshots under `artifacts/` |
 | `prototype/model-preview.html` | Console workshop: original/prepared comparison, lighting, orbit controls, sample shelf and rendering counters |
 | `prototype/media-preview.html` | Media workshop: true-scale procedural cases, optical discs and DS cartridge, with comparison and GLB export |
 | `prototype/library-preview.html` | Collection workshop: emulator scan, per-asset online artwork fallback, saved choices and selectable 3D shelf |
-| `assets/models/` | Six prepared GLBs, placement catalog and attribution records |
+| `assets/models/` | Legacy Three.js workshop GLBs, placement catalog and attribution records; retained for provenance |
 | `3d models/` | Original downloads; kept unchanged |
 | `tools/prepare-models.cjs` | Reproducible texture resizing and GLB repacking |
 | `docs/model-preparation.md` | Setup, preparation results and remaining visual checks |
 | `docs/media-models.md` | Physical dimensions, procedural construction and artwork integration rules |
-| `docs/phase5-media.md` | True-scale shelf/hero media, artwork resolution, the idle turn, the finished room look, the details rail and the exposure pass |
+| `docs/phase5-media.md` | Historical Three.js shelf/hero implementation; its physical-media and artwork decisions still inform the pixel UI |
 | `docs/phase6-retroachievements.md` | Account linking, credential storage, title matching, API caching and the achievement rail states |
 | `docs/phase7-ps3-trophies.md` | RPCS3 trophy files, TROPCONF/TROPUSR parsing, local PS3 progress, icon host and rail states |
-| `docs/phase8-launch-deck.md` | Shared selected-game checkout card, readiness state and visual verification |
+| `docs/phase8-launch-deck.md` | Original selected-game checkout-card implementation and historical visual verification |
 | `docs/library-workshop.md` | Current local scanner adapter, artwork route and native-host handoff |
 | `tools/artwork-workshop.cjs` | Artwork resolver, bounded provider lookup, local cache and saved selections |
 | `docs/artwork-endpoints.md` | Workshop API contracts, provider URLs, region mappings, errors and request limits |
@@ -70,10 +105,10 @@ favicon uses the same `.ico`. The project links the branding assets into
 
 ## Quick facts
 
-- **Shell:** WinUI 3 — settled, it builds and runs unpackaged on .NET 10 against Windows App SDK 2.0.1, so the WPF fallback in `PLAN.md` §9 was not needed. **3D:** WebView2 + Three.js, **assets:** downloaded console GLBs plus procedural media
+- **Product state:** ready for daily local use as a library browser and emulator launcher
+- **Shell:** WinUI 3 on .NET 10 and Windows App SDK 2.0.1. **UI:** WebView2 with HTML/CSS, canvas cover downsampling and pixel-art assets. **Physical media:** one shared JavaScript preset table in millimetres
 - **Emulators** live in `C:\Emulation`, **games** in `D:\Emulation`
 - Console matrix, launch arguments and on-disk folder shapes: see `PLAN.md` §3
-- Roadmap: Phase 0 skeleton → 1 discovery → 2 launching → 3 3D consoles → 4 3D shelf → 5 polish → 6 RetroAchievements → 7 PS3 trophies → 8 Launch Deck
 
 ## Running the app
 
@@ -124,7 +159,7 @@ installer, and creates a GitHub Release with the installer plus an attached
 `changes.md` generated from commits since the previous release. The installer
 does not include games, emulator executables, or local settings.
 
-## Console preview
+## Legacy 3D workshop
 
 Run `npm install`, then `npm run import:models`, `npm run prepare:models`, and `npm run preview`. Open http://127.0.0.1:8766/prototype/model-preview.html . Use `npm run check:models` to check the prepared files. Setup and verification limits are in `docs/model-preparation.md`.
 

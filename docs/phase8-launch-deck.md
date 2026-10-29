@@ -1,5 +1,9 @@
 # Phase 8: Launch Deck
 
+> **Historical UI record.** The checkout-card behavior survives in the current
+> pixel-art selected-game panel, but the 3D screenshot below records the original
+> Phase 8 implementation. Current screenshots are in the root README.
+
 The selected game's 3D case and optical disc or cartridge remain in the fixed hero
 stage. A separate card immediately below it now presents the game as a rental-store
 checkout: identity, information, played history, achievements or trophies, emulator

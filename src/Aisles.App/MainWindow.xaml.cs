@@ -36,6 +36,7 @@ public sealed partial class MainWindow : Window
     private readonly ArtworkResolver _artwork = new(Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Aisles", "artwork"));
     private readonly ConcurrentDictionary<string, byte> _searchedConsoles = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Stopwatch _startupStopwatch = Stopwatch.StartNew();
 
     private ConsoleCatalog? _catalog;
     private ConsoleCatalog? _catalogDefaults;
@@ -47,6 +48,7 @@ public sealed partial class MainWindow : Window
     private bool _catalogLoaded;
     private bool _fullScreen;
     private long _libraryScanGeneration;
+    private bool _initialLibraryRendered;
 
     public MainWindow()
     {
@@ -124,6 +126,7 @@ public sealed partial class MainWindow : Window
         _bridge.Attach(core, OnMessageFromWeb);
         core.Navigate($"https://{WebHostName}/index.html");
         Debug.WriteLine($"Startup: WebView navigation began after {stopwatch.ElapsedMilliseconds} ms.");
+        LogPerformance("webViewNavigation");
     }
 
     private void LoadCatalog()
@@ -297,7 +300,8 @@ public sealed partial class MainWindow : Window
         var consoles = new List<ConsolePayload>(catalog.Consoles.Count);
         var gamesById = new Dictionary<string, GameEntry>(StringComparer.Ordinal);
 
-        foreach (var scan in new LibraryScanCoordinator().Scan(catalog))
+        var scans = new LibraryScanCoordinator().Scan(catalog);
+        foreach (var scan in scans)
         {
             var console = scan.Console;
             var games = scan.Games;
@@ -358,7 +362,7 @@ public sealed partial class MainWindow : Window
                 }).ToList()));
         }
 
-        return new LibrarySnapshot(new LibraryPayload(null, consoles), gamesById);
+        return new LibrarySnapshot(new LibraryPayload(null, consoles), gamesById, scans);
     }
 
     private async Task<LibraryPayload?> ScanLibraryAsync()
@@ -370,6 +374,7 @@ public sealed partial class MainWindow : Window
         }
 
         var generation = ++_libraryScanGeneration;
+        var stopwatch = Stopwatch.StartNew();
         var snapshot = await Task.Run(() => BuildLibrarySnapshot(catalog));
         if (generation != _libraryScanGeneration)
         {
@@ -377,10 +382,46 @@ public sealed partial class MainWindow : Window
         }
 
         _gamesById = snapshot.GamesById;
+        LogPerformance("librarySnapshot", new
+        {
+            generation,
+            games = snapshot.GamesById.Count,
+            elapsedMs = stopwatch.ElapsedMilliseconds,
+            consoles = snapshot.Scans.Select(scan => new
+            {
+                scan.Console.Id,
+                games = scan.Games.Count,
+                elapsedMs = scan.ElapsedMilliseconds,
+                failed = scan.Error is not null,
+            }),
+        });
         return snapshot.Library;
     }
 
-    private sealed record LibrarySnapshot(LibraryPayload Library, IReadOnlyDictionary<string, GameEntry> GamesById);
+    private sealed record LibrarySnapshot(
+        LibraryPayload Library,
+        IReadOnlyDictionary<string, GameEntry> GamesById,
+        IReadOnlyList<ConsoleScan> Scans);
+
+    private void LogPerformance(string stage, object? details = null)
+    {
+        var path = Environment.GetEnvironmentVariable("AISLES_PERF_LOG");
+        if (string.IsNullOrWhiteSpace(path)) return;
+
+        try
+        {
+            File.AppendAllText(path, JsonSerializer.Serialize(new
+            {
+                stage,
+                elapsedMs = _startupStopwatch.ElapsedMilliseconds,
+                details,
+            }) + Environment.NewLine);
+        }
+        catch (IOException)
+        {
+            // Timing must never block the application.
+        }
+    }
 
     /// <summary>
     /// Refreshes the details rail on selection: PCSX2 and Dolphin write caches while Aisles
@@ -511,9 +552,19 @@ public sealed partial class MainWindow : Window
             switch (message.Type)
             {
                 case "ready":
+                    LogPerformance("webReady");
                     if (await ScanLibraryAsync() is { } library)
                     {
                         _bridge.Send("library", library);
+                        LogPerformance("librarySent");
+                    }
+                    break;
+
+                case "libraryRendered":
+                    if (!_initialLibraryRendered)
+                    {
+                        _initialLibraryRendered = true;
+                        LogPerformance("libraryRendered");
                     }
                     break;
 
