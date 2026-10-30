@@ -1,4 +1,5 @@
 using System.Security;
+using System.Diagnostics;
 
 namespace Aisles.App.Domain;
 
@@ -12,13 +13,14 @@ public sealed class LibraryScanCoordinator
 
         foreach (var console in catalog.Consoles)
         {
+            var stopwatch = Stopwatch.StartNew();
             try
             {
-                scans.Add(new ConsoleScan(console, scanner.Scan(console), null));
+                scans.Add(new ConsoleScan(console, scanner.Scan(console), null, stopwatch.ElapsedMilliseconds));
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or SecurityException)
             {
-                scans.Add(new ConsoleScan(console, Array.Empty<GameEntry>(), ex.Message));
+                scans.Add(new ConsoleScan(console, Array.Empty<GameEntry>(), ex.Message, stopwatch.ElapsedMilliseconds));
             }
         }
 
@@ -26,4 +28,4 @@ public sealed class LibraryScanCoordinator
     }
 }
 
-public sealed record ConsoleScan(ConsoleDescriptor Console, IReadOnlyList<GameEntry> Games, string? Error);
+public sealed record ConsoleScan(ConsoleDescriptor Console, IReadOnlyList<GameEntry> Games, string? Error, long ElapsedMilliseconds);

@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace Aisles.App.Domain;
 
-/// <summary>The user-editable platform list that drives everything (PLAN.md section 5.1).</summary>
+/// <summary>The user-editable platform list that drives everything.</summary>
 public sealed class ConsoleCatalog
 {
     public List<ConsoleDescriptor> Consoles { get; set; } = new();

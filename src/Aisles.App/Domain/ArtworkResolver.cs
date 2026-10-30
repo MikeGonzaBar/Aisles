@@ -14,8 +14,8 @@ public sealed record ResolvedArtwork(string? Url, string? Match, string? Source,
 public sealed record ArtworkResolution(ResolvedArtwork FrontCover, ResolvedArtwork Medium);
 
 /// <summary>
-/// Host-side port of <c>tools/artwork-workshop.cjs</c> (PLAN.md section 3.3.1). A near
-/// match is never presented as exact, and a cover never becomes a disc or cartridge label.
+/// Resolves each artwork role independently. A near match is never presented as exact,
+/// and a cover never becomes a disc or cartridge label.
 /// </summary>
 public sealed class ArtworkResolver
 {

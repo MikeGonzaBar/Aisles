@@ -1,19 +1,12 @@
 {
-  "name": "aisles-model-preview",
+  "name": "aisles-tools",
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "preview": "node tools/serve-model-audit.cjs",
-    "test": "node --test tools/artwork-workshop.test.cjs",
-    "test:media": "node tools/media-aspect.test.cjs",
-    "import:models": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/import-downloaded-models.ps1",
-    "prepare:models": "node tools/prepare-models.cjs",
-    "build:lineup": "node tools/build-lineup-models.cjs",
-    "vendor:three": "node tools/vendor-three.cjs",
-    "check:models": "node tools/check-models.cjs"
+    "test": "node --test tools/browse-motion.test.cjs tools/pixel-ui.test.cjs && node tools/media-presets.test.cjs",
+    "build:icon": "node tools/build-icon.js"
   },
   "dependencies": {
-    "sharp": "0.35.5",
-    "three": "0.180.0"
+    "sharp": "0.35.5"
   }
 }

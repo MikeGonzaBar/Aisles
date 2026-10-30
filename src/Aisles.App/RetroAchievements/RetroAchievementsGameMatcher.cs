@@ -7,7 +7,7 @@ namespace Aisles.App.RetroAchievements;
 
 /// <summary>
 /// Resolves a local game by title or file name: exact normalized matches only, so an
-/// ambiguous title stays unmatched. Hashing is not done (PLAN.md section 3.4).
+/// ambiguous title stays unmatched. Hashing is not done.
 /// </summary>
 public static class RetroAchievementsGameMatcher
 {

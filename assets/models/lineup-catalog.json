@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "notes": "Lineup tier for the console row (PLAN.md 5.3). Textures capped; geometry identical to the runtime model.",
+  "notes": "Archived lineup tier from the retired 3D console row. Textures capped; geometry matches the archived runtime model.",
   "maxTextureSize": 256,
   "models": [
     {

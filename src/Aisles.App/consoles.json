@@ -1,5 +1,5 @@
 {
-  "$comment": "Aisles console catalog. User-editable; sits next to Aisles.exe. Adding a platform requires no recompile. Schema: PLAN.md section 5.1. Paths below are the verified reality on this machine (PLAN.md section 3.2), and differ from the earlier plan draft. artworkPath is optional: a folder of case fronts (serial- or title-named) supplied by the emulator or the user.",
+  "$comment": "Aisles console catalog. User-editable; sits next to Aisles.exe. Adding a platform requires no recompile. Paths below are local defaults and can be overridden in Settings. artworkPath is optional: a folder of case fronts (serial- or title-named) supplied by the emulator or the user.",
   "consoles": [
     {
       "id": "ps1",

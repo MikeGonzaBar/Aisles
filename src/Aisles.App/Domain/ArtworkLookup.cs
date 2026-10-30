@@ -4,7 +4,7 @@ namespace Aisles.App.Domain;
 
 /// <summary>
 /// Finds artwork already on this machine: an emulator cover folder keyed by serial or
-/// title, or a sidecar beside the game. Case fronts only (PLAN.md section 3.3.1).
+/// title, or a sidecar beside the game. Case fronts only.
 /// </summary>
 public sealed class ArtworkLookup
 {

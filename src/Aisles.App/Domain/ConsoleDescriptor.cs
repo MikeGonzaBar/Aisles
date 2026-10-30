@@ -2,7 +2,7 @@ namespace Aisles.App.Domain;
 
 /// <summary>
 /// One platform from <c>consoles.json</c>. Every field is user-editable, and adding a
-/// platform must never require a recompile (PLAN.md section 5.1).
+/// platform must never require a recompile.
 /// </summary>
 public sealed class ConsoleDescriptor
 {
