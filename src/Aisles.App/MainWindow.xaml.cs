@@ -113,7 +113,7 @@ public sealed partial class MainWindow : Window
         core.SetVirtualHostNameToFolderMapping(WebHostName, webRoot, CoreWebView2HostResourceAccessKind.Allow);
 
         // Artwork is referenced in place and served over its own hosts, so the page
-        // can use ordinary <img> tags instead of base64 (PLAN.md section 5.3).
+        // can use ordinary <img> tags instead of base64.
         RegisterAssetHosts(core);
 
         // Provider images are downloads, so they live in Aisles' own cache rather than

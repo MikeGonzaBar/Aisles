@@ -1,4 +1,4 @@
-# Phase 6: RetroAchievements account and progress
+# RetroAchievements integration
 
 Aisles now links one RetroAchievements account and fills the ACHIEVEMENTS row in the
 game details rail for the platforms whose emulators support it. The account is optional:
@@ -17,13 +17,13 @@ without a confident game match it says **Linked** without inventing `0 of 0`.
 | Wii | Dolphin | supported; system ID `19` |
 | DS | RetroArch + melonDS DS / DeSmuME core | supported; system ID `18` |
 | 3DS | Citra | not supported |
-| PS3 | RPCS3 | RA not supported; trophies read locally (Phase 7) |
+| PS3 | RPCS3 | RA not supported; trophies read locally |
 | Xbox 360 | Xenia | not supported |
 
-The support boundary is the same one recorded in `PLAN.md` §3.4. It is enforced in
+The support boundary is enforced in
 `Domain/RetroAchievementsSupport.cs`; no other table decides which platform can show
 RetroAchievements progress. PS3 does not change this boundary: it is routed to the
-separate local trophy provider described in `docs/phase7-ps3-trophies.md`.
+separate [local trophy provider](ps3-trophies.md).
 DS support is descriptor-aware: selecting standalone DeSmuME or an incompatible
 RetroArch core returns the rail to *not supported* instead of claiming support that
 the active launch configuration cannot provide.
@@ -112,7 +112,7 @@ describes the selected game.
 ## Rail behaviour
 
 The rail keeps its three RetroAchievements states and its stable height. PS3 adds the
-two local states documented in `docs/phase7-ps3-trophies.md`:
+two local states documented in [PS3 trophies](ps3-trophies.md):
 
 | State | What the row shows |
 |---|---|

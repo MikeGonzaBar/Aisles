@@ -1,4 +1,4 @@
-# Phase 7: PS3 trophies from RPCS3
+# Local PS3 trophies from RPCS3
 
 Aisles now fills the ACHIEVEMENTS row for PlayStation 3 games using the trophy data
 RPCS3 already keeps on disk. There is no PSN sign-in and no network request: the rail

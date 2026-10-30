@@ -46,43 +46,55 @@ body {
 .topbar {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 24px;
   height: 64px;
   flex-shrink: 0;
-  padding: 0 28px;
-  border-bottom: 1px solid var(--navy-line);
-  background: #0a0f1f;
+  padding: 0 32px;
+  border-bottom: 1px solid rgba(80, 110, 170, 0.25);
+  background: #090e1e;
 }
 
 .wordmark {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-size: 22px;
+  gap: 12px;
+  font-size: 26px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   color: var(--yellow);
+  text-shadow: 2px 2px 0 #1b1200;
 }
 
 .brand-icon {
   display: block;
   flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }
 
 .settings-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 7px 11px;
-  border: 1px solid var(--navy-line);
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid #2a3b63;
   border-radius: 6px;
-  background: var(--navy-raised);
-  color: var(--cream);
+  background: #131b36;
+  color: #fffdec;
   font: inherit;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 120ms ease;
 }
 
-.settings-trigger:hover, .settings-trigger:focus-visible { border-color: #46547d; background: #192243; }
+.settings-trigger:hover, .settings-trigger:focus-visible {
+  border-color: #f1c40f;
+  background: #1c274c;
+  color: #fff;
+  box-shadow: 0 0 8px rgba(241, 196, 15, 0.35);
+}
 .settings-trigger svg { width: 15px; height: 15px; fill: currentColor; }
 
 .badge {
@@ -318,9 +330,9 @@ button:disabled { opacity: .55; cursor: wait; }
   align-items: center;
   flex-wrap: wrap;
   gap: 8px 18px;
-  padding: 7px 18px 9px;
-  border-top: 1px solid var(--navy-line);
-  background: #0a0f1f;
+  padding: 8px 20px 10px;
+  border-top: 1px solid rgba(80, 110, 170, 0.25);
+  background: #090e1d;
 }
 
 /* A horizontally scrollable rail: All plus eight consoles fits on wide screens and
@@ -329,7 +341,7 @@ button:disabled { opacity: .55; cursor: wait; }
   display: flex;
   flex: 1 1 auto;
   align-items: center;
-  gap: 2px 14px;
+  gap: 4px 18px;
   min-width: 0;
   overflow-x: auto;
 }
@@ -343,22 +355,22 @@ button:disabled { opacity: .55; cursor: wait; }
   flex: 0 0 auto;
   display: inline-flex;
   align-items: baseline;
-  gap: 5px;
-  padding: 4px 1px 5px;
+  gap: 6px;
+  padding: 4px 2px 6px;
   border: 0;
   border-bottom: 2px solid transparent;
   background: none;
-  color: var(--dim);
+  color: #8fa0c2;
   font: inherit;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.09em;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
 }
 
 .filter-chip:hover:not(:disabled) {
-  color: var(--cream);
+  color: #fff9de;
 }
 
 .filter-chip:focus-visible {
@@ -369,7 +381,7 @@ button:disabled { opacity: .55; cursor: wait; }
 /* Selection is carried by aria-pressed (announced) plus the underline, so it does
    not rely on colour alone. */
 .filter-chip[aria-pressed="true"] {
-  color: var(--cream);
+  color: #fffdf5;
   border-bottom-color: var(--yellow);
 }
 
@@ -425,14 +437,20 @@ button:disabled { opacity: .55; cursor: wait; }
    competing with the console chooser beneath the shelf. Auto margins keep it in
    the visual gap between the Aisles identity and Settings. */
 .topbar-search {
-  flex: 0 1 440px;
-  width: min(440px, 32vw);
+  flex: 0 1 480px;
+  width: min(480px, 36vw);
   margin-inline: auto;
+  background: rgba(14, 22, 45, 0.7);
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(80, 110, 170, 0.3);
 }
 
 .topbar-search input {
   width: 100%;
   min-width: 0;
+  font-size: 13px;
+  border-bottom: 0;
 }
 
 .view-switch {
@@ -482,37 +500,32 @@ button:disabled { opacity: .55; cursor: wait; }
   gap: 14px;
   min-height: 0;
   padding: 10px 18px 10px;
-  transition: grid-template-columns 180ms ease;
-}
-
-.stage-row[data-hero-collapsed] {
-  grid-template-columns: minmax(0, 1fr) 0;
-}
-
-.stage-row[data-hero-collapsed] .hero {
-  overflow: hidden;
-  padding: 0;
-  opacity: 0;
-  pointer-events: none;
 }
 
 /* One browse column holds whichever of the three views is active. The shelf keeps
    its own flex column on top of it; covers and list each get a scrollable pane. */
 .browse {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
+  isolation: isolate;
 }
 
 .browse .shelf {
-  flex: 1 1 auto;
+  position: absolute;
+  z-index: 0;
+  inset: 0;
   min-height: 0;
 }
 
 .browse-view {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
   display: flex;
-  flex: 1 1 auto;
   flex-direction: column;
   min-height: 0;
 }
@@ -530,20 +543,6 @@ button:disabled { opacity: .55; cursor: wait; }
   flex: 1;
   width: 100%;
   min-height: 0;
-  border: 1px solid var(--navy-line);
-  border-radius: 4px;
-  /* The transparent renderer places the live cabinet inside a deeper rental-store aisle.
-     The grades keep distant cases quieter than the interactive foreground covers. */
-  background-color: #15131a;
-  background-image:
-    radial-gradient(ellipse at 50% 48%, rgb(211 145 52 / 12%) 0%, transparent 38%, rgb(5 8 17 / 28%) 76%, rgb(5 8 17 / 62%) 100%),
-    linear-gradient(180deg, rgb(11 14 25 / 12%) 0%, rgb(8 11 22 / 25%) 58%, rgb(8 11 22 / 46%) 100%),
-    url("art/retail-wood-v1/rental-store-perspective-v1.webp");
-  background-position: center, center, 50% 58%;
-  background-size: cover, cover, cover;
-  background-repeat: no-repeat;
-  /* The shelf owns drag-to-page; without this a pointer drag scrolls the page instead. */
-  touch-action: none;
 }
 
 #shelf-canvas:focus-visible {
@@ -561,22 +560,6 @@ button:disabled { opacity: .55; cursor: wait; }
   clip: rect(0 0 0 0);
   clip-path: inset(50%);
   white-space: nowrap;
-}
-
-.shelf-sign {
-  position: absolute;
-  z-index: 2;
-  top: clamp(13px, 1.8vh, 22px);
-  left: 50%;
-  width: clamp(170px, 17vw, 260px);
-  height: auto;
-  transform: translateX(-50%);
-  filter: drop-shadow(0 4px 7px rgb(0 0 0 / 55%));
-  pointer-events: none;
-}
-
-.shelf-sign[hidden] {
-  display: none;
 }
 
 .shelf-pager {
@@ -771,38 +754,39 @@ button:disabled { opacity: .55; cursor: wait; }
   min-width: 0;
   margin: 10px 12px 0;
   padding: 4px;
-  border: 2px solid #d9a900;
-  border-radius: 7px;
-  color: #15223f;
+  border: 2px solid #cfa338;
+  border-radius: 6px;
+  color: #1a2233;
   background:
-    radial-gradient(circle at 1px 1px, rgb(71 61 32 / 13%) 1px, transparent 1.5px) 0 0 / 13px 13px,
-    linear-gradient(135deg, #fffdf2, #e8dfc4);
-  box-shadow: 0 12px 30px rgb(0 0 0 / 42%), inset 0 0 0 1px rgb(255 255 255 / 72%), 0 0 24px rgb(217 169 0 / 12%);
+    radial-gradient(circle at 1px 1px, rgb(80 65 30 / 9%) 1px, transparent 1.5px) 0 0 / 12px 12px,
+    linear-gradient(180deg, #fbf7eb 0%, #ece4cb 100%);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 0 0 1px rgba(180, 140, 50, 0.25);
   z-index: 2;
 }
 
 .launch-deck-head {
   padding: 11px 12px 9px;
-  border-bottom: 1px solid rgb(42 58 95 / 25%);
+  border-bottom: 2px solid #dbcfb0;
 }
 
 .launch-deck-eyebrow,
 .launch-deck-meta {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   line-height: 1.3;
   text-transform: uppercase;
-  color: #45628d;
+  color: #3f5577;
 }
 
 .launch-deck-title {
   margin: 4px 0 8px;
-  color: #162647;
-  font-size: clamp(18px, 1.7vw, 25px);
+  color: #101a2c;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: clamp(17px, 1.5vw, 22px);
   font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1.1;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
   overflow-wrap: anywhere;
 }
 
@@ -824,22 +808,22 @@ button:disabled { opacity: .55; cursor: wait; }
 
 .detail-section + .detail-section {
   padding-top: 7px;
-  border-top: 1px solid rgb(42 58 95 / 18%);
+  border-top: 1px dashed rgba(60, 75, 110, 0.28);
 }
 
 .detail-section h2 {
   margin: 0;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #526989;
+  color: #3b5072;
 }
 
 .detail-grid {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
-  gap: 3px 8px;
+  gap: 4px 10px;
   max-width: 460px;
   margin: 0;
 }
@@ -848,12 +832,13 @@ button:disabled { opacity: .55; cursor: wait; }
    row groups in the markup while letting the four columns align across both lines. */
 .detail-row {
   display: contents;
-  font-size: 10px;
-  line-height: 1.3;
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .detail-row dt {
-  color: #59677f;
+  color: #4b5a74;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -864,11 +849,12 @@ button:disabled { opacity: .55; cursor: wait; }
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #182744;
+  color: #0c1626;
+  font-weight: 700;
 }
 
 .detail-muted {
-  color: #6d788a !important;
+  color: #556278 !important;
 }
 
 .detail-line {
@@ -876,15 +862,15 @@ button:disabled { opacity: .55; cursor: wait; }
   align-items: baseline;
   gap: 8px;
   min-width: 0;
-  font-size: 10.5px;
-  line-height: 1.3;
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .detail-value {
   flex: 0 0 auto;
-  font-weight: 650;
+  font-weight: 700;
   white-space: nowrap;
-  color: #172844;
+  color: #0d1a2d;
 }
 
 .detail-secondary {
@@ -892,8 +878,8 @@ button:disabled { opacity: .55; cursor: wait; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 9.5px;
-  color: #536883;
+  font-size: 10px;
+  color: #445876;
 }
 
 .detail-reason {
@@ -901,8 +887,8 @@ button:disabled { opacity: .55; cursor: wait; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 9.5px;
-  color: #66748a;
+  font-size: 10px;
+  color: #55657d;
 }
 
 .detail-source {
@@ -910,16 +896,16 @@ button:disabled { opacity: .55; cursor: wait; }
   margin-left: auto;
   text-align: right;
   white-space: nowrap;
-  font-size: 8.5px;
-  color: #536883;
+  font-size: 9.5px;
+  color: #445876;
 }
 
 .detail-progress {
-  height: 3px;
-  margin-top: 2px;
+  height: 4px;
+  margin-top: 3px;
   border-radius: 2px;
   overflow: hidden;
-  background: #c6bea2;
+  background: #cfc7ad;
 }
 
 .detail-progress span {
@@ -931,9 +917,9 @@ button:disabled { opacity: .55; cursor: wait; }
 .detail-achievements {
   margin: 0 -3px;
   padding: 8px 9px 9px !important;
-  border: 1px solid rgb(44 62 101 / 24%);
+  border: 1px solid rgba(44, 62, 101, 0.28);
   border-radius: 5px;
-  background: rgb(255 255 255 / 42%);
+  background: rgba(255, 255, 255, 0.65);
 }
 
 .detail-achievements h2::before {
@@ -1148,7 +1134,7 @@ button:disabled { opacity: .55; cursor: wait; }
   /* The consoles are a selector, not the page hero. */
   height: clamp(145px, 18vh, 195px);
   border-bottom: 1px solid var(--navy-line);
-  background: url("art/retail-wood-v1/console-slatwall-warm.svg") center / cover no-repeat;
+  background: transparent;
   overflow: hidden;
 }
 
@@ -1235,143 +1221,86 @@ button:disabled { opacity: .55; cursor: wait; }
   }
 }
 
-#stage-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
 .stage-labels {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
-.stage-labels .slot {
-  position: absolute;
-  top: 0;
-  left: 0;
-  margin-top: 7px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 52px;
-  min-height: 34px;
-  padding: 3px 6px;
-  border: 1px solid transparent;
-  border-radius: 5px;
-  background: rgb(9 13 29 / 32%);
-  gap: 1px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-  white-space: nowrap;
-  transition: color 180ms ease, border-color 180ms ease, background 180ms ease;
-}
-
-.stage-labels .slot:hover {
-  border-color: #35446e;
-  background: rgb(16 23 49 / 88%);
-}
-
-.stage-labels .slot:focus-visible {
-  outline: 2px solid var(--yellow);
-  outline-offset: 3px;
-  border-radius: 3px;
-}
-
-.stage-labels .slot[aria-pressed="true"] {
-  color: var(--yellow);
-  border-color: #8e7300;
-  background: rgb(94 72 0 / 42%);
-  box-shadow: 0 0 0 1px rgb(230 193 31 / 22%);
-}
-
-.stage-labels .slot[data-setup="true"] .pending {
-  display: none;
-}
-
-.stage-labels .slot[data-setup="true"]::after {
-  content: 'Set folder';
-  padding: 1px 5px;
-  border: 1px solid #566688;
-  border-radius: 999px;
-  color: var(--cream);
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.stage-labels .slot[data-setup="true"]:hover::after,
-.stage-labels .slot[data-setup="true"]:focus-visible::after {
-  border-color: var(--yellow);
-  color: var(--yellow);
-}
-
-.stage-labels .slot[data-selected="true"] {
-  color: var(--yellow);
-}
-
-.stage-labels .slot .count {
-  font-size: 9px;
-  font-weight: 400;
-  letter-spacing: 0.04em;
-  color: var(--dim);
-}
-
-.stage-labels .slot .pending {
-  font-size: 9px;
-  font-weight: 400;
-  color: #4a5578;
-}
-
-.console-fallback {
-  display: none;
-  padding: 8px 20px;
-  max-height: 100%;
-}
-
-body.stage3d-failed .lineup {
-  height: auto;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-body.stage3d-failed .console-fallback {
-  display: block;
-}
-
-body.stage3d-failed #stage-canvas,
-body.stage3d-failed #stage-labels {
-  display: none;
-}
-
-/* When the shelf fails, only the shelf is hidden. Its view switch steps aside so
-   Covers and List stay reachable. */
-body.shelf3d-failed .shelf {
-  display: none !important;
-}
-
 /* Covers and list */
 
 /* Pixel rental-store scene */
-@font-face { font-family: 'Aisles Pixel'; src: url('art/pixel-ui/PixelifySans.ttf') format('truetype'); font-weight: 400 700; font-display: swap; }
-.pixel-cabinet-sign, .pixel-console, .pixel-case.return, .wordmark, .launch-deck-title, .hero .launch-deck-boot, .shelf-pager { font-family: 'Aisles Pixel', sans-serif; }
+@font-face {
+  font-family: 'Aisles Pixel';
+  src: url('art/pixel-ui/PixelifySans.ttf') format('truetype');
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Departure Mono';
+  src: url('art/pixel-ui/DepartureMono-Regular.woff2') format('woff2'),
+       url('art/pixel-ui/DepartureMono-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-display: swap;
+}
+
+.pixel-cabinet-sign, .wordmark, .hero .launch-deck-boot, .shelf-pager {
+  font-family: 'Aisles Pixel', sans-serif;
+}
+
+.launch-deck-title {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+}
+
+.pixel-console, .checked-out-badge, .checked-out-action {
+  font-family: 'Departure Mono', monospace;
+}
 .layout { background: #10182f url('art/pixel-ui/store-background.png') center / cover no-repeat; }
-#stage-canvas, .shelf-sign { display: none; }
 .lineup { height: clamp(155px, 21vh, 225px); background: transparent; border-bottom: 0; }
 .stage-labels { display: flex; justify-content: center; align-items: stretch; gap: 4px; padding: 5px 12px 9px; overflow-x: auto; pointer-events: auto; }
 .stage-labels::before { content: ''; position: absolute; z-index: 0; inset: 0 max(8%, calc((100% - 1300px) / 2)); background: url('art/pixel-ui/console-shelf.png') center / 100% 250% no-repeat; image-rendering: pixelated; pointer-events: none; }
 .pixel-console { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; flex: 0 0 clamp(90px, 11%, 150px); min-width: 0; border: 2px solid transparent; background: transparent; color: #dce7ff; font-size: 11px; font-weight: 700; cursor: pointer; }
 .pixel-console > span:last-child { display: inline-flex; flex-direction: column; padding: 1px 7px; line-height: 1.05; background: #10264c; border: 1px solid #304a76; border-radius: 3px; }
 .pixel-console > span:last-child span:last-child { font-size: 9px; font-weight: 400; }
-.pixel-console[aria-pressed="true"] > span:last-child { color: #ffdc34; border-color: #ffd02b; box-shadow: 0 0 0 1px #ffd02b; }
+.pixel-console[aria-pressed="true"] > span:last-child {
+  color: #ffdc34;
+  border-color: #ffd02b;
+  box-shadow: 0 0 10px rgba(255, 208, 43, 0.5), 0 0 0 1px #ffd02b;
+  transform: translateY(-2px);
+}
+.pixel-console[aria-pressed="true"]::before {
+  content: '';
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140%;
+  height: 130%;
+  background: radial-gradient(ellipse at 50% 50%, rgba(255, 230, 110, 0.5) 0%, rgba(255, 200, 40, 0.22) 50%, transparent 80%);
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(4px);
+}
+.pixel-console[aria-pressed="true"]::after {
+  content: '';
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 35px solid transparent;
+  border-right: 35px solid transparent;
+  border-top: 75px solid rgba(255, 235, 140, 0.28);
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(5px);
+}
 .pixel-console:focus-visible, .pixel-case:focus-visible { outline: 3px solid #ffe24b; }
-.pixel-console-sprite { display: block; flex: 0 0 min(140px, calc(100% - 34px)); width: 100%; background-image: url('art/pixel-ui/consoles-sheet.png'); background-repeat: no-repeat; image-rendering: pixelated; }
+.pixel-console-sprite { display: block; flex: 0 0 min(140px, calc(100% - 34px)); width: 100%; background-image: url('art/pixel-ui/consoles-sheet.png'); background-repeat: no-repeat; image-rendering: pixelated; filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.45)); }
 .pixel-console-sprite.generic { display: grid; place-items: center; background: #303e5a; color: white; font-size: 20px; }
-.pixel-console[aria-pressed="true"] .pixel-console-sprite { animation: pixel-console-float 2.8s ease-in-out infinite; }
+.pixel-console[aria-pressed="true"] .pixel-console-sprite { animation: pixel-console-float 2.8s ease-in-out infinite; filter: drop-shadow(0 0 8px rgba(255, 215, 60, 0.55)) drop-shadow(0 8px 10px rgba(0, 0, 0, 0.6)); }
 @keyframes pixel-console-float { 0%, 100% { transform: translateY(-2px); } 50% { transform: translateY(-7px); } }
 #shelf-canvas { position: relative; overflow: hidden; background: transparent; border: 0; }
 .hero-stage-empty { background: transparent; border: 0; }
@@ -1381,13 +1310,121 @@ body.shelf3d-failed .shelf {
 .pixel-cabinet-sign { position: absolute; left: 22%; right: 22%; top: 1%; height: 8%; display: grid; place-items: center; text-align: center; color: #ffcf29; text-transform: uppercase; font-size: clamp(14px, 1.6vw, 28px); font-weight: 700; text-shadow: 2px 2px #382000; }
 .pixel-cases { position: absolute; inset: 12% 0 10%; display: grid; grid-template-rows: repeat(3, minmax(0, 1fr)); }
 /* Reuse the same bay and board from the cabinet art at every level. */
-.pixel-case-row { position: relative; min-height: 0; overflow: hidden; background: url('art/pixel-ui/shelf-v2.png') center 16.6% / 100% 348% no-repeat; image-rendering: pixelated; }
+.pixel-case-row {
+  position: relative;
+  min-height: 0;
+  overflow: visible;
+  background: url('art/pixel-ui/shelf-v2.png') center 16.6% / 100% 348% no-repeat;
+  image-rendering: pixelated;
+}
 .pixel-case-items { position: absolute; inset: 0 6%; display: grid; grid-template-columns: repeat(var(--case-columns, 6), minmax(0, 1fr)); gap: 4px; container-type: size; }
 .pixel-case-items[aria-hidden="true"] { pointer-events: none; }
-.pixel-case { position: relative; box-sizing: border-box; min-width: 0; min-height: 0; max-width: 100%; max-height: 74cqh; width: min(100%, calc(74cqh * var(--case-aspect))); height: auto; align-self: end; justify-self: center; margin-bottom: 21cqh; overflow: hidden; padding: 0; border: 3px solid #d9d7c8; background: #182d50; color: white; cursor: pointer; }
-.pixel-case span { position: absolute; inset: 8%; display: grid; place-items: center; overflow: hidden; font-size: 10px; }
+.pixel-case {
+  position: relative;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 74cqh;
+  width: min(100%, calc(74cqh * var(--case-aspect)));
+  height: auto;
+  align-self: end;
+  justify-self: center;
+  margin-bottom: 21cqh;
+  overflow: visible;
+  padding: 0;
+  border: 3px solid #dedbcc;
+  background: #182d50;
+  color: white;
+  cursor: pointer;
+  /* Grounded contact shadow on the wood shelf + depth cast */
+  box-shadow:
+    0 8px 4px -1px rgba(0, 0, 0, 0.95),
+    0 14px 12px rgba(0, 0, 0, 0.75),
+    0 0 1px rgba(0, 0, 0, 0.9);
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+.pixel-case::after {
+  content: '';
+  position: absolute;
+  left: 2%;
+  right: 2%;
+  bottom: -7px;
+  height: 7px;
+  background: radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.5) 60%, transparent 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+.pixel-case:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: #ffe066;
+  box-shadow:
+    0 14px 8px -2px rgba(0, 0, 0, 0.9),
+    0 20px 22px rgba(0, 0, 0, 0.75),
+    0 0 14px rgba(255, 224, 102, 0.5);
+  z-index: 5;
+}
+.pixel-case > span { position: absolute; inset: 8%; display: grid; place-items: center; overflow: hidden; font-size: 10px; }
 .pixel-case canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
-.pixel-case.return { border: 3px dashed #f3c729; background: #0a1835; color: #b4d3ff; font-weight: bold; }
+.pixel-case.return {
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+}
+.pixel-case.return:hover {
+  border-color: #ffd02b;
+  box-shadow:
+    inset 0 0 16px rgba(255, 208, 43, 0.35),
+    0 8px 16px rgba(0, 0, 0, 0.85);
+}
+.pixel-case-checked-out {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(180deg, #c92a2a, #8f1d1d);
+  border: 2px solid #ff8787;
+  border-radius: 4px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+.checked-out-badge {
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-size: clamp(11px, 1.3vw, 15px);
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  line-height: 1;
+}
+.checked-out-sub {
+  color: #ffe066;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-size: clamp(10px, 1.1vw, 13px);
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.checked-out-action {
+  color: #fff;
+  font-family: 'Departure Mono', monospace !important;
+  font-size: clamp(9px, 0.9vw, 11px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 3px 7px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-shadow: 0 1px 2px #000;
+}
 .hero .launch-deck-boot { color: #ffdb2e; font-size: 20px; font-weight: 700; }
 .hero-row:has(.pixel-hero-layout) { flex-basis: clamp(300px, 43vh, 500px); min-height: 260px; }
 .hero-stage:not(.hero-stage-empty) { display: flex; align-items: center; justify-content: center; padding: 5% 6% 10%; border: 3px solid #ffd02b; border-radius: 3px; background: linear-gradient(145deg, #102759, #091733 75%); box-shadow: inset 0 0 0 3px #06132e, inset 0 0 0 5px #9b790f; container-type: size; }
@@ -1406,8 +1443,11 @@ body.shelf3d-failed .shelf {
 @keyframes pixel-disc-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .pixel-hero-medium, .pixel-console[aria-pressed="true"] .pixel-console-sprite { animation: none; } }
 
-/* Use one locally bundled retro family across the application, including forms. */
-body, .path-row input, .game .serial, .empty code { font-family: 'Aisles Pixel', sans-serif; }
+/* Use Departure Mono for crisp, authentic terminal / retro micro-labels and data */
+body, .path-row input, .game .serial, .empty code, .hero-details, .detail-grid, .statusbar, .library-toolbar, .launch-deck-head {
+  font-family: 'Departure Mono', monospace;
+  -webkit-font-smoothing: antialiased;
+}
 
 .games-heading {
   flex: 0 0 auto;
@@ -1786,26 +1826,17 @@ body, .path-row input, .game .serial, .empty code { font-family: 'Aisles Pixel',
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  height: 30px;
+  height: 32px;
   padding: 0 20px;
-  border-top: 1px solid var(--navy-line);
-  background: #0a0f1f;
-  font-size: 11px;
-  line-height: 30px;
-  color: #77829d;
+  border-top: 1px solid rgba(80, 110, 170, 0.25);
+  background: #070b17;
+  font-size: 12px;
+  line-height: 32px;
+  color: #9ab0d3;
 }
 
 @media (max-width: 900px) {
   .startup-panel { inset-block: 54px 26px; }
-
-  .stage-row[data-hero-collapsed] {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .stage-row { transition: none; }
 }
 
 .statusbar .ok {

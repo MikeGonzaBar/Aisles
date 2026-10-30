@@ -1,7 +1,7 @@
 namespace Aisles.App.Domain;
 
 /// <summary>
-/// RetroAchievements coverage (PLAN.md section 3.4): not linked, unsupported, or linked
+/// RetroAchievements coverage: not linked, unsupported, or linked
 /// with progress. DS works through RetroArch's cores but not standalone DeSmuME.
 /// </summary>
 public static class RetroAchievementsSupport

@@ -1,6 +1,7 @@
-// Page shell, state, and browse views: host bridge, library state, toolbar, Covers,
-// List and details rail. The 3D shelf and lineup are separate modules.
+// Page shell, state, and browse views: host bridge, library state, toolbar, Shelf,
+// Covers, List and details rail. The pixel shelf and lineup live in pixel-ui.js.
 import { presetFor } from './media-presets.js';
+import { browseMotion } from './browse-motion.js';
 
 const webview = window.chrome?.webview;
 
@@ -8,7 +9,6 @@ const elements = {
   badge: document.getElementById('bridge-badge'),
   layout: document.querySelector('.layout'),
   stageRow: document.querySelector('.stage-row'),
-  consoleList: document.getElementById('console-list'),
   consoleFilter: document.getElementById('console-filter'),
   viewSwitch: document.getElementById('view-switch'),
   gameFilter: document.getElementById('game-filter'),
@@ -20,11 +20,9 @@ const elements = {
   hero: document.getElementById('hero'),
   shelf: document.querySelector('.shelf'),
   shelfCanvas: document.getElementById('shelf-canvas'),
-  shelfSign: document.getElementById('shelf-sign'),
   shelfPager: document.getElementById('shelf-pager'),
   shelfLabel: document.getElementById('shelf-label'),
   shelfHint: document.getElementById('shelf-hint'),
-  stageLabels: document.getElementById('stage-labels'),
   shelfListbox: document.getElementById('shelf-listbox'),
   status: document.getElementById('status'),
   totals: document.getElementById('totals'),
@@ -66,19 +64,18 @@ const state = {
   consoleFilterId: null,
   viewMode: 'shelf',
   // The shelf listbox's keyboard focus (separate from the selected game, which is
-  // what the 3D shelf and hero highlight).
+  // what the pixel shelf and selected-game panel highlight).
   shelfFocusedId: null,
   shelfBay: 1,
   shelfPerBay: 18,
 };
 
-// The shelf module owns its own WebGL context; when it cannot start, the other
-// two browse views must still be reachable.
-let shelfAvailable = true;
-
 let spatialUiScheduled = false;
 let startupArtworkScheduled = false;
 let startupScanTimer = 0;
+let browseAnimations = [];
+let browseTransitionId = 0;
+const reducedBrowseMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 let shelfListboxBuiltFor = null; // console.id + page the listbox was last built for
 const BROWSE_PREFERENCE_KEY = 'aisles.browse-preference.v1';
@@ -854,97 +851,11 @@ elements.settingsDialog.addEventListener('keydown', event => {
 
 /* Rendering */
 
-let renderedConsoleSignature = '';
-
 function renderConsoles() {
   const consoles = state.library?.consoles ?? [];
-  const signature = consoles
-    .map((console) => [
-      console.id,
-      console.shortName,
-      console.name,
-      console.games.length,
-      console.gamesPathExists,
-      console.emulatorExists,
-      console.requiresCore,
-      console.coreReady,
-    ].join(':'))
-    .join('|');
-
-  if (signature === renderedConsoleSignature && elements.consoleList.children.length === consoles.length) {
-    consoles.forEach((console, index) => {
-      elements.consoleList.children[index]
-        .setAttribute('aria-selected', String(console.id === state.selectedConsoleId));
-    });
-  } else {
-    elements.consoleList.replaceChildren();
-
-    for (const console of consoles) {
-      const item = document.createElement('li');
-      item.className = 'console';
-      item.setAttribute('role', 'option');
-      item.setAttribute('aria-selected', String(console.id === state.selectedConsoleId));
-
-      const short = document.createElement('span');
-      short.className = 'short';
-      short.textContent = console.shortName;
-
-      const name = document.createElement('span');
-      name.className = 'name';
-      name.textContent = console.name;
-
-      const count = document.createElement('span');
-      count.className = 'count';
-      count.textContent = String(console.games.length);
-
-      item.append(short, name, count);
-
-      if (!console.gamesPathExists) {
-        item.classList.add('is-empty');
-        const flag = document.createElement('span');
-        flag.className = 'flag';
-        flag.textContent = 'games folder missing';
-        item.append(flag);
-      } else if (!console.emulatorExists) {
-        const flag = document.createElement('span');
-        flag.className = 'flag';
-        flag.textContent = 'emulator missing';
-        item.append(flag);
-      } else if (console.games.length === 0) {
-        item.classList.add('is-empty');
-        const flag = document.createElement('span');
-        flag.className = 'flag';
-        flag.textContent = 'no games found';
-        item.append(flag);
-      }
-
-      item.addEventListener('click', () => selectConsole(console.id));
-      item.addEventListener('contextmenu', (event) => {
-        event.preventDefault();
-        showConsoleMenu(console.id, event.clientX, event.clientY);
-      });
-      elements.consoleList.append(item);
-    }
-
-    renderedConsoleSignature = signature;
-  }
-
   const totalGames = consoles.reduce((sum, console) => sum + console.games.length, 0);
   elements.totals.textContent = `${consoles.length} consoles · ${totalGames} games`;
-  renderShelfSign();
-}
-
-const SHELF_SIGN_IDS = new Set(['ps1', 'ps2', 'ps3', 'wii', 'gamecube', 'ds', '3ds', 'xbox360']);
-
-function renderShelfSign() {
   const console = currentConsole();
-  const supported = console && SHELF_SIGN_IDS.has(console.id);
-
-  elements.shelfSign.hidden = !supported;
-  elements.shelfSign.src = supported
-    ? `art/retail-wood-v1/category-${console.id}.png`
-    : '';
-  elements.shelfSign.alt = supported ? `${console.name} section` : '';
   elements.shelf?.setAttribute('aria-label', console ? `${console.name} shelf` : 'Shelf');
 }
 
@@ -1012,23 +923,99 @@ function renderLibraryToolbar() {
   }
 }
 
-function renderBrowseView() {
-  // Only visibility flips here. The shelf canvas is never recreated, so switching
-  // views does not reset the WebGL bay behind it.
-  elements.shelf.hidden = state.viewMode !== 'shelf' || !shelfAvailable;
-  elements.coversView.hidden = state.viewMode !== 'covers';
-  elements.listView.hidden = state.viewMode !== 'list';
+function browseViewElement(view) {
+  if (view === 'shelf') return elements.shelf;
+  if (view === 'covers') return elements.coversView;
+  return elements.listView;
+}
+
+function cancelBrowseAnimations() {
+  for (const animation of browseAnimations) animation.cancel();
+  browseAnimations = [];
+}
+
+function applyBrowseView(view) {
+  for (const element of [elements.shelf, elements.coversView, elements.listView]) {
+    element.style.removeProperty('transform');
+    element.style.removeProperty('z-index');
+    element.style.removeProperty('will-change');
+  }
+
+  elements.shelf.hidden = false;
+  elements.shelf.style.visibility = view !== 'shelf' ? 'hidden' : 'visible';
+  elements.coversView.hidden = view !== 'covers';
+  elements.listView.hidden = view !== 'list';
+
+  for (const name of ['shelf', 'covers', 'list']) {
+    const element = browseViewElement(name);
+    const active = name === view;
+    element.inert = !active;
+    element.setAttribute('aria-hidden', String(!active));
+  }
+}
+
+function transitionBrowseView(from, to) {
+  const transitionId = ++browseTransitionId;
+  cancelBrowseAnimations();
+  applyBrowseView(from);
+
+  if (reducedBrowseMotion.matches) {
+    applyBrowseView(to);
+    return;
+  }
+
+  const fromElement = browseViewElement(from);
+  const toElement = browseViewElement(to);
+  const motion = browseMotion(from, to);
+
+  elements.shelf.hidden = false;
+  elements.shelf.style.visibility = from === 'shelf' || to === 'shelf' ? 'visible' : 'hidden';
+  if (from !== 'shelf') fromElement.hidden = false;
+  if (to !== 'shelf') toElement.hidden = false;
+
+  for (const name of ['shelf', 'covers', 'list']) {
+    const element = browseViewElement(name);
+    const active = name === to;
+    element.inert = !active;
+    element.setAttribute('aria-hidden', String(!active));
+  }
+
+  const options = { duration: motion.duration, easing: 'cubic-bezier(.22, 1, .36, 1)', fill: 'both' };
+  if (motion.outgoing) {
+    fromElement.style.zIndex = '1';
+    fromElement.style.willChange = 'transform';
+    browseAnimations.push(fromElement.animate(motion.outgoing, options));
+  }
+  if (motion.incoming) {
+    toElement.style.zIndex = '2';
+    toElement.style.willChange = 'transform';
+    browseAnimations.push(toElement.animate(motion.incoming, options));
+  }
+
+  Promise.all(browseAnimations.map(animation => animation.finished.catch(() => {}))).then(() => {
+    if (transitionId !== browseTransitionId) return;
+    browseAnimations = [];
+    applyBrowseView(to);
+  });
+}
+
+function renderBrowseView(previousView = null) {
+  if (previousView && previousView !== state.viewMode) {
+    transitionBrowseView(previousView, state.viewMode);
+  } else {
+    browseTransitionId += 1;
+    cancelBrowseAnimations();
+    applyBrowseView(state.viewMode);
+  }
 
   for (const button of elements.viewSwitch.querySelectorAll('button[data-view]')) {
     const view = button.dataset.view;
     button.setAttribute('aria-pressed', String(view === state.viewMode));
 
-    const unusable = view === 'shelf' && (state.consoleFilterId === null || !shelfAvailable);
+    const unusable = view === 'shelf' && state.consoleFilterId === null;
     button.disabled = unusable;
     if (unusable) {
-      button.title = !shelfAvailable
-        ? 'The 3D shelf is unavailable.'
-        : 'Choose a console to use Shelf view.';
+      button.title = 'Choose a console to use Shelf view.';
     } else {
       button.removeAttribute('title');
     }
@@ -1040,11 +1027,13 @@ function renderBrowseView() {
 function setViewMode(viewMode) {
   if (state.launchingGameId) return;
   if (viewMode === state.viewMode) return;
-  if (viewMode === 'shelf' && (state.consoleFilterId === null || !shelfAvailable)) return;
+  if (viewMode === 'shelf' && state.consoleFilterId === null) return;
 
+  const previousView = state.viewMode;
   state.viewMode = viewMode;
   state.shelfFocusedId = null;
-  renderGames();
+  renderBrowseView(previousView);
+  syncShelfListbox();
   setBrowseStatus();
   saveBrowsePreference();
 }
@@ -1075,7 +1064,6 @@ function renderGames() {
   renderCoverGrid(entries);
   renderGameList(entries);
   syncShelfListbox();
-  syncConsoleLabels();
 }
 
 function renderGamesHeading(entries) {
@@ -1348,13 +1336,6 @@ function renderGameList(entries) {
   });
 }
 
-function onShelf3dFailed() {
-  shelfAvailable = false;
-  if (state.viewMode === 'shelf') state.viewMode = 'covers';
-  renderGames();
-}
-
-
 function artwork(game, className = 'art') {
   const tile = document.createElement('span');
   tile.className = className;
@@ -1550,8 +1531,7 @@ window.aislesSelectGame = selectGame;
 window.aislesClearGameSelection = clearGameSelection;
 window.aislesLaunchGame = launchGame;
 
-/* The hero. The case and medium are hero3d.js objects built from the same millimetre
-   table as the shelf; this file keeps only the copy and the launch button. */
+/* The selected-game case and medium use the same millimetre table as the shelf. */
 
 const SHELF_GAMES = 18;
 
@@ -1952,14 +1932,10 @@ function heroHead(title, meta, launch) {
   return head;
 }
 
-function isHeroCollapsed() {
-  // In Covers and List with nothing selected the hero column collapses so the browse
-  // view takes the full row; selecting a game brings it back.
-  return (state.viewMode === 'covers' || state.viewMode === 'list') && !state.selectedGameId;
-}
-
 function updateHeroLayout() {
-  elements.stageRow.toggleAttribute('data-hero-collapsed', isHeroCollapsed());
+  // Keeping this column stable lets browse views move on the compositor without
+  // resizing and rerendering the shelf underneath them.
+  elements.stageRow.removeAttribute('data-hero-collapsed');
 }
 
 function renderHero() {
@@ -1969,21 +1945,13 @@ function renderHero() {
 
   updateHeroLayout();
 
-  const collapsed = isHeroCollapsed();
-  elements.hero.toggleAttribute('aria-hidden', collapsed);
-  if (collapsed) {
-    window.aislesHero3d?.clear();
-    elements.hero.replaceChildren();
-    return;
-  }
+  elements.hero.removeAttribute('aria-hidden');
 
   const console = currentConsole();
   const game = console?.games.find((entry) => entry.id === state.selectedGameId) ?? null;
   elements.hero.replaceChildren();
 
   if (!game) {
-    window.aislesHero3d?.clear();
-
     const stage = document.createElement('div');
     stage.className = 'hero-stage hero-stage-empty';
     stage.textContent = !console
@@ -2057,7 +2025,7 @@ function renderHero() {
   stage.append(layout);
 }
 
-/* Shelf keyboard: a semantic listbox mirroring the 3D shelf's selection, page and
+/* Shelf keyboard: a semantic listbox mirroring the pixel shelf's selection, page and
    filter, so arrow keys and the accessibility tree stay in sync. */
 
 function shelfOptionId(gameId) {
@@ -2155,99 +2123,7 @@ function initShelfKeyboard() {
 
 }
 
-window.addEventListener('aisles:hero3d', renderHero);
 window.addEventListener('aisles:media-presets-ready', renderHero);
-
-/* Console labels over the 3D lineup. The 3D module positions .stage-labels .slot
-   spans; this upgrades them in place to accessible buttons routed through selectConsole. */
-
-function syncConsoleLabels() {
-  if (!state.library || !elements.stageLabels) return;
-  const labels = [...elements.stageLabels.querySelectorAll('.slot')];
-  const consoles = state.library.consoles;
-  let selectedIndex = -1;
-
-  labels.forEach((label, index) => {
-    const console = consoles[index];
-    if (!console) return;
-    const selected = console.id === state.selectedConsoleId;
-    const needsFolder = !console.gamesPathExists;
-    if (selected) selectedIndex = index;
-    label.role = 'button';
-    label.setAttribute(
-      'aria-label',
-      `${console.name}, ${console.games.length} game${console.games.length === 1 ? '' : 's'}${needsFolder ? ', games folder not set' : ''}${selected ? ', selected' : ''}`,
-    );
-    if (needsFolder) {
-      label.setAttribute('aria-description', 'Activate to open Settings and choose a games folder.');
-    } else {
-      label.removeAttribute('aria-description');
-    }
-    label.setAttribute('aria-pressed', String(selected));
-    label.dataset.consoleId = console.id;
-    label.dataset.setup = String(needsFolder);
-    label.tabIndex = selected ? 0 : -1;
-    label.style.pointerEvents = 'auto';
-    label.style.cursor = 'pointer';
-  });
-
-  // Roving tabindex: keep exactly one tabbable label (the selected one, or the
-  // first when nothing is selected).
-  if (selectedIndex < 0 && labels.length) labels[0].tabIndex = 0;
-}
-
-function activateConsoleLabel(label) {
-  const console = state.library?.consoles.find((item) => item.id === label.dataset.consoleId);
-  if (!console) return;
-  if (!console.gamesPathExists) {
-    openSettings(console.id);
-    return;
-  }
-  selectConsole(console.id);
-}
-
-function setupConsoleLabelButtons() {
-  if (!elements.stageLabels) return;
-
-  elements.stageLabels.addEventListener('click', (event) => {
-    const button = event.target instanceof Element ? event.target.closest('.slot') : null;
-    if (!button || !button.dataset.consoleId) return;
-    activateConsoleLabel(button);
-  });
-
-  elements.stageLabels.addEventListener('keydown', (event) => {
-    const button = event.target instanceof Element ? event.target.closest('.slot') : null;
-    if (!button) return;
-    const labels = [...elements.stageLabels.querySelectorAll('.slot')];
-    const index = labels.indexOf(button);
-    if (index < 0) return;
-
-    let next = index;
-    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = Math.min(index + 1, labels.length - 1);
-    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = Math.max(index - 1, 0);
-    else if (event.key === 'Home') next = 0;
-    else if (event.key === 'End') next = labels.length - 1;
-    else if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      activateConsoleLabel(button);
-      return;
-    } else {
-      return;
-    }
-
-    if (next !== index) {
-      event.preventDefault();
-      labels.forEach((label, i) => {
-        label.tabIndex = i === next ? 0 : -1;
-      });
-      labels[next].focus({ preventScroll: true });
-    }
-  });
-
-  // stage3d (re)builds the .slot spans asynchronously; upgrade each one as it
-  // appears and keep their state in sync.
-  new MutationObserver(syncConsoleLabels).observe(elements.stageLabels, { childList: true });
-}
 
 /* Pager */
 
@@ -2288,7 +2164,6 @@ window.addEventListener('aisles:shelf', (event) => {
   renderPager(event.detail);
   syncShelfListbox();
 });
-window.addEventListener('aisles:shelf3d-failed', onShelf3dFailed);
 
 /* Window mode. The stage opens maximized; F11 toggles full screen and Escape
    returns to the maximized window. */
@@ -2429,7 +2304,6 @@ function onLaunchResult(payload) {
     const settle = () => {
       state.launchSettleTimer = 0;
       state.launchingGameId = null;
-      window.aislesHero3d?.settleLaunch();
       elements.hero?.querySelector('.pixel-hero-medium')?.classList.remove('is-launching');
       const launch = elements.hero?.querySelector('.launch');
       if (launch) {
@@ -2589,7 +2463,6 @@ if (webview) {
         break;
     }
   });
-  setupConsoleLabelButtons();
   initShelfKeyboard();
 
   startup();

@@ -69,14 +69,11 @@
 
   <main class="layout" aria-busy="true">
     <section class="lineup" aria-label="Console lineup">
-      <canvas id="stage-canvas"></canvas>
       <div class="stage-labels" id="stage-labels"></div>
-      <!-- Shown only if WebGL or the model tier fails, so platform switching survives. -->
-      <ul id="console-list" class="list console-fallback"></ul>
     </section>
 
     <!-- The filter dock stays first in the DOM so keyboard order is filters then browse,
-         but renders at the bottom, letting the two 3D scenes stack. -->
+         while CSS places it below the pixel shelf. -->
     <section class="library-toolbar" aria-label="Library">
       <div class="console-filter" id="console-filter" role="group" aria-label="Console filter"></div>
       <div class="view-switch" id="view-switch" role="group" aria-label="Browse view">
@@ -90,7 +87,6 @@
       <div class="browse" id="browse">
         <section class="shelf" aria-label="Shelf">
           <div id="shelf-canvas" tabindex="0" role="listbox" aria-label="Shelf games" aria-describedby="shelf-hint"></div>
-          <img class="shelf-sign" id="shelf-sign" alt="" hidden />
           <div class="shelf-pager" id="shelf-pager">
             <button type="button" data-page="-1" aria-label="Previous shelf">&lsaquo;</button>
             <span id="shelf-label">Shelf 1 of 1</span>
@@ -138,14 +134,6 @@
     <span id="totals"></span>
   </footer>
 
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "./vendor/three.module.min.js",
-        "three/addons/": "./vendor/addons/"
-      }
-    }
-  </script>
   <script type="module" src="stage.js"></script>
 </body>
 </html>

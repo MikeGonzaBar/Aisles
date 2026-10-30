@@ -140,7 +140,7 @@ public sealed class LibraryScanner
         return new GameEntry
         {
             // Stable across rescans, and bound to platform + launch target as the
-            // artwork contract requires (PLAN.md section 5.3).
+            // artwork contract requires.
             Id = $"{console.Id}:{found.LaunchTarget}".ToLowerInvariant(),
             ConsoleId = console.Id,
             Title = title,

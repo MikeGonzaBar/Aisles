@@ -63,8 +63,21 @@ function updateCase(item, game, selected) {
   if (item.dataset.selected === String(selected)) return;
   item.dataset.selected = String(selected);
   item.replaceChildren();
-  if (selected) item.textContent = '← RETURN';
-  else {
+  if (selected) {
+    const card = document.createElement('div');
+    card.className = 'pixel-case-checked-out';
+    const tag = document.createElement('span');
+    tag.className = 'checked-out-badge';
+    tag.textContent = 'RENTED';
+    const sub = document.createElement('span');
+    sub.className = 'checked-out-sub';
+    sub.textContent = 'OUT';
+    const ret = document.createElement('span');
+    ret.className = 'checked-out-action';
+    ret.textContent = '↵ RETURN';
+    card.append(tag, sub, ret);
+    item.append(card);
+  } else {
     const fallback = document.createElement('span');
     fallback.textContent = game.title;
     item.append(fallback);

@@ -10,7 +10,7 @@ namespace Aisles.App.Domain;
 public sealed record PlayStats(long? Seconds, string? LastPlayed, string? Source, string? Reason);
 
 /// <summary>
-/// Reads the emulator-owned play-time caches (PLAN.md section 3.5): PCSX2 and DuckStation
+/// Reads the emulator-owned play-time caches: PCSX2 and DuckStation
 /// playtime.dat, Dolphin TimePlayed.ini, RPCS3 persistent_settings.dat, RetroArch .lrtl.
 /// </summary>
 public sealed class PlayStatsReader

@@ -36,7 +36,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="wwwroot\**\*">
+    <!-- The active app is pixel art. Keep the retired wood/3D workshop sources in
+         the repository without copying them into builds or releases. -->
+    <Content Include="wwwroot\**\*" Exclude="wwwroot\art\retail-wood-v1\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="..\..\assets\Aisles.ico">
@@ -48,21 +50,6 @@
       <Link>wwwroot\branding\%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-  </ItemGroup>
-
-  <!-- The lineup tier of the console models. The full models stay in assets/ until
-       there is a selected-slot hero view that needs them; shipping 66 MB of runtime
-       models for a 100 px row would be waste. Same-origin under wwwroot so GLTFLoader
-       needs no CORS arrangement. -->
-  <ItemGroup>
-    <Content Include="..\..\assets\models\**\lineup.glb">
-      <Link>wwwroot\models\%(RecursiveDir)%(Filename)%(Extension)</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\..\assets\models\lineup-catalog.json">
-      <Link>wwwroot\models\lineup-catalog.json</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 
