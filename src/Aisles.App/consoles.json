@@ -10,9 +10,9 @@
       "media": "JewelCase",
       "scan": "CuePerFolder",
       "gamesPath": "D:\\Emulation\\PS1\\Games",
-      "artworkPath": "C:\\Users\\gonza\\Documents\\DuckStation\\covers",
+      "artworkPath": "",
       "extensions": [".cue"],
-      "emulatorPath": "C:\\Emulation\\Duckstation\\duckstation-qt-x64-ReleaseLTCG.exe",
+      "emulatorPath": "",
       "arguments": "\"{0}\"",
       "accentColor": "#4A4F5A",
       "bodyColor": "#C9CBD0"
@@ -26,9 +26,9 @@
       "media": "DvdCase",
       "scan": "FlatFiles",
       "gamesPath": "D:\\Emulation\\PS2\\ISOs",
-      "artworkPath": "C:\\Emulation\\PCSX2\\pcsx2-v1.7.4981-windows-x64-Qt\\covers",
+      "artworkPath": "",
       "extensions": [".iso"],
-      "emulatorPath": "C:\\Emulation\\PCSX2\\pcsx2-v1.7.4981-windows-x64-Qt\\pcsx2-qt.exe",
+      "emulatorPath": "",
       "arguments": "\"{0}\"",
       "accentColor": "#1B1B1F",
       "bodyColor": "#2E2E34"
@@ -43,9 +43,9 @@
       "scan": "DiscFolders",
       "scanMarker": "PS3_DISC.SFB",
       "gamesPath": "D:\\Emulation\\PS3\\ISO",
-      "installedGamesPath": "C:\\Emulation\\RPCS3\\dev_hdd0\\game",
+      "installedGamesPath": "",
       "extensions": [],
-      "emulatorPath": "C:\\Emulation\\RPCS3\\rpcs3.exe",
+      "emulatorPath": "",
       "arguments": "\"{0}\"",
       "accentColor": "#101216",
       "bodyColor": "#3A3F46"
@@ -60,7 +60,7 @@
       "scan": "FlatFiles",
       "gamesPath": "D:\\Emulation\\WII",
       "extensions": [".rvz"],
-      "emulatorPath": "C:\\Emulation\\Dolphin\\Dolphin-x64\\Dolphin.exe",
+      "emulatorPath": "",
       "arguments": "-b -e \"{0}\"",
       "accentColor": "#D8DCE0",
       "bodyColor": "#F2F4F6"
@@ -75,7 +75,7 @@
       "scan": "FlatFiles",
       "gamesPath": "D:\\Emulation\\GameCube\\Games",
       "extensions": [".iso", ".rvz", ".gcm"],
-      "emulatorPath": "C:\\Emulation\\Dolphin\\Dolphin-x64\\Dolphin.exe",
+      "emulatorPath": "",
       "arguments": "-b -e \"{0}\"",
       "accentColor": "#3B2E6E",
       "bodyColor": "#6C5CE0"
@@ -90,8 +90,8 @@
       "scan": "FileInFolder",
       "gamesPath": "D:\\Emulation\\Nintendo DS\\Games",
       "extensions": [".nds"],
-      "emulatorPath": "C:\\RetroArch-Win64\\retroarch.exe",
-      "corePath": "C:\\RetroArch-Win64\\cores\\melondsds_libretro.dll",
+      "emulatorPath": "",
+      "corePath": "",
       "arguments": "-L \"{core}\" \"{0}\"",
       "accentColor": "#9AA0A6",
       "bodyColor": "#D5D8DC"
@@ -106,7 +106,7 @@
       "scan": "FlatFiles",
       "gamesPath": "D:\\Emulation\\3DS\\Games",
       "extensions": [".3ds", ".cci", ".cia"],
-      "emulatorPath": "C:\\Emulation\\Citra\\nightly\\citra-qt.exe",
+      "emulatorPath": "",
       "arguments": "\"{0}\"",
       "accentColor": "#1B1E24",
       "bodyColor": "#2B3038"
@@ -122,7 +122,7 @@
       "scanMarker": "default.xex",
       "gamesPath": "D:\\Emulation\\XBOX 360\\Games",
       "extensions": [".iso"],
-      "emulatorPath": "C:\\Emulation\\xenia_manager\\Emulators\\Xenia Canary\\xenia_canary.exe",
+      "emulatorPath": "",
       "arguments": "\"{0}\"",
       "accentColor": "#0F1A0F",
       "bodyColor": "#1E2A1E"

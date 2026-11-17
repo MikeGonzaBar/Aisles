@@ -10,20 +10,33 @@ together, browse by console, and launch each game with its configured emulator.
 
 ## Screenshots
 
+The application features four main views. Screenshots below represent the
+current pixel-art interface.
+
 ### Shelf
 
 Console sprites sit above a three-level game cabinet. Select a case to inspect
 its box, disc or cartridge, game information, and launch controls.
 
-![Aisles Shelf view with a selected PlayStation 2 game](docs/screenshots/current-shelf-wide.jpg)
+![Aisles Shelf view — pixel-art library browser](docs/screenshots/current-shelf.jpg)
 
-The same interface adapts to smaller desktop windows:
+### Covers
 
-![Aisles Shelf view in a compact desktop window](docs/screenshots/current-shelf.jpg)
+Offers a cover-grid browsing experience for larger libraries.
 
-**Covers** offers a cover grid, and **List** offers compact rows for browsing
-larger libraries. Screenshots of these two views are not yet included here.
-The captures above predate the latest typography and selected-case card changes.
+![Aisles Covers view — cover grid browser](docs/screenshots/covers.png)
+
+### List
+
+Offers compact rows for browsing larger libraries.
+
+![Aisles List view — compact list browser](docs/screenshots/list.png)
+
+### Settings
+
+The current configuration experience for consoles, emulators, and artwork.
+
+![Aisles Settings view — configuration panel](docs/screenshots/settings.png)
 
 ## Features
 
@@ -69,8 +82,9 @@ Release pages contain version information and an attached `changes.md`.
    to narrow the active library.
 6. Select a game and choose **Launch** / **Insert & Boot**.
 
-The shipped catalog contains example paths from the development machine.
-Replace them with your own paths before scanning and launching games.
+The shipped catalog contains neutral default paths. Replace them with your own
+emulator executables, game folders, and artwork directories in Settings before
+scanning and launching games.
 
 ## Supported systems and emulators
 
@@ -174,7 +188,9 @@ local configuration out of commits.
 
 ## License and credits
 
-A project-wide license has not yet been declared in this repository.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
+for details.
+
 Third-party code and assets retain their own licenses and attribution requirements:
 
 - [Pixelify Sans license](src/Aisles.App/wwwroot/art/pixel-ui/PixelifySans-OFL.txt)
