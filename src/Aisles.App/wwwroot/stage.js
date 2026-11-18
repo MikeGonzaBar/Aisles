@@ -1100,10 +1100,13 @@ function emptyStateDetails(entries) {
   if (!item) return null;
   if (state.gameFilter.trim()) return searchMissDetails();
   if (!item.gamesPathExists) {
+    const configuredPath = (item.gamesPath ?? '').trim();
     return {
       kind: 'recovery',
       console: item,
-      message: `No games folder at ${item.gamesPath}.`,
+      message: configuredPath
+        ? `No games folder at ${configuredPath}.`
+        : `No games folder configured for ${item.name}.`,
       primaryLabel: `Choose ${item.name} folder`,
       primaryAction: () => openSettings(item.id),
       secondaryLabel: 'Open Settings',
@@ -2152,7 +2155,7 @@ function renderPager(detail) {
     elements.shelfHint.textContent =
       shelves === 1
         ? games === 0
-          ? 'This shelf is empty. Choose a games folder below, then rescan.'
+          ? 'This shelf is empty. Set this console’s games folder in Settings, then rescan.'
           : 'Select a case, then INSERT & BOOT to play. Use Ctrl+K to filter this console.'
         : remaining > 0
           ? `${Math.max(0, remaining)} more games open Shelf ${bay + 1}. The bay slides and the consoles stay put.`

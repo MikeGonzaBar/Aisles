@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using Aisles.App.Bridge;
 using Aisles.App.Domain;
 using Aisles.App.Ps3Trophies;
@@ -648,11 +649,45 @@ try
         missingTrophies.Earned is null && missingTrophies.Total is null,
         "noTrophies does not fabricate counts");
 
-    Console.WriteLine("Settings, play stats, version, emulator profile, RetroAchievements and PS3 trophy tests passed.");
+    // The shipped catalog must stay portable: a fresh install starts with no
+    // development-machine paths, so every path field ships empty.
+    var catalogPath = FindRepositoryFile(Path.Combine("src", "Aisles.App", "consoles.json"));
+    var catalogText = File.ReadAllText(catalogPath);
+    True(
+        !catalogText.Contains(@"C:\Users\", StringComparison.OrdinalIgnoreCase),
+        "shipped catalog has no user profile paths");
+    using (var catalog = JsonDocument.Parse(catalogText))
+    {
+        var shippedConsoles = catalog.RootElement.GetProperty("consoles").EnumerateArray().ToArray();
+        True(shippedConsoles.Length > 0, "shipped catalog lists consoles");
+        string[] pathFields = ["gamesPath", "installedGamesPath", "artworkPath", "emulatorPath", "corePath"];
+        foreach (var shipped in shippedConsoles)
+        {
+            var id = shipped.GetProperty("id").GetString() ?? "(missing id)";
+            foreach (var field in pathFields)
+            {
+                if (!shipped.TryGetProperty(field, out var value)) continue;
+                Equal("", value.GetString() ?? "", $"shipped {id}.{field} is unconfigured");
+            }
+        }
+    }
+
+    Console.WriteLine("Settings, portable shipped catalog, play stats, version, emulator profile, RetroAchievements and PS3 trophy tests passed.");
 }
 finally
 {
     try { Directory.Delete(root, true); } catch { }
+}
+
+static string FindRepositoryFile(string relativePath)
+{
+    for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+    {
+        var candidate = Path.Combine(directory.FullName, relativePath);
+        if (File.Exists(candidate)) return candidate;
+    }
+
+    throw new FileNotFoundException($"Could not locate {relativePath} above {AppContext.BaseDirectory}");
 }
 
 static HttpResponseMessage Json(string json) => new(HttpStatusCode.OK)

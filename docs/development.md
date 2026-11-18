@@ -41,8 +41,9 @@ not substitute for launching real games through each emulator.
 ## Releases
 
 [The release workflow](../.github/workflows/release.yml) runs on pushes to `main`
-and manual dispatch. It tests the domain project, publishes a self-contained
-`win-x64` build, and packages it with [Inno Setup](../installer/Aisles.iss).
+and manual dispatch. It runs the domain tests and the frontend `npm test` suite,
+publishes a self-contained `win-x64` build, and packages it with
+[Inno Setup](../installer/Aisles.iss).
 Versions follow `1.0.<GitHub run number>`. The workflow creates a GitHub Release
 with `Aisles-Setup-<version>.exe` and a commit-derived `changes.md`.
 
